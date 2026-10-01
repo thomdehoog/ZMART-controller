@@ -13,8 +13,8 @@ time the driver connects:
 - ``optical_calibration``: how far each objective's view is shifted from
   objective 1.
 
-Each item has shipped defaults in ``defaults/``, a check that refuses a
-malformed file, and a saved copy in the computer's ZMART configuration
+Each item is a folder here, holding its shipped ``default.json`` and a
+check that refuses a malformed file, and a saved copy in the computer's ZMART configuration
 folder. The arithmetic between stage and user coordinates lives in
 :mod:`.coordinates`.
 """

@@ -27,7 +27,13 @@ from typing import Any
 
 from zmart_controller.utils import config_root
 
-from .checks import CHECKS
+from . import (
+    image_stage_registration,
+    limits,
+    machine_description,
+    optical_calibration,
+    origin,
+)
 
 # The order matters: connect loads them in this order, because each one
 # depends on the ones before it.
@@ -39,7 +45,15 @@ ITEMS: tuple[str, ...] = (
     "optical_calibration",
 )
 
-DEFAULTS = Path(__file__).resolve().parent / "defaults"
+# Each item is a folder beside this file, holding its default and its check.
+HERE = Path(__file__).resolve().parent
+CHECKS = {
+    "machine_description": machine_description.check,
+    "image_stage_registration": image_stage_registration.check,
+    "origin": origin.check,
+    "limits": limits.check,
+    "optical_calibration": optical_calibration.check,
+}
 
 IDENTITY = ("mock", "mock-scope", "mock-api")
 
@@ -82,7 +96,7 @@ def load(item: str, identity: tuple[str, str, str] = IDENTITY) -> tuple[Any, str
     """Load and check one item. Returns ``(value, where it came from)``."""
     path = saved_path(item, identity)
     if not path.is_file():
-        path = DEFAULTS / f"{item}.json"
+        path = HERE / item / "default.json"
     value = _read(path)
     CHECKS[item](value, str(path))
     return value, str(path)

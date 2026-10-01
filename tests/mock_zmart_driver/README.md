@@ -50,7 +50,7 @@ part is a folder, and each part only uses the parts below it.
 | [`data_handling/`](data_handling/) | 6. Data handling | Waits for the vendor's file, turns the picture to line up with the stage, writes OME-TIFF or OME-Zarr, and saves the log of the commands behind it. |
 | [`configuration/`](configuration/) | 7. Configuration | The machine description, image-to-stage registration, origin, limits and optical calibration, each with shipped defaults and a check. Also the arithmetic between stage and user coordinates. |
 | [`zmart_controller/`](zmart_controller/) | 8. ZMART controller plugin | The 11 functions the controller calls. They only map commands onto the parts above. |
-| [`testing/`](testing/) | 9. Testing | The mock API, and the driver's own tests (`test_mock_driver.py`, `test_mock_api.py`). |
+| [`testing/`](testing/) | 9. Testing | The mock API, and the driver's own tests in `unit/`, and `run_ci.py`, which lints the driver and runs them. |
 
 ## How a move travels through the driver
 
@@ -80,7 +80,7 @@ On a real microscope, the operator runs a setup step once, and the driver
 saves the result in the computer's configuration folder. The mock works the
 same way, through `mock_zmart_driver.configuration.save` and
 `mock_zmart_driver.procedures.record_origin`. Until something is saved, the
-shipped defaults in [`configuration/defaults/`](configuration/defaults/) are
+shipped defaults, one `default.json` in each item's folder under [`configuration/`](configuration/), are
 used, and `get_info()` says so.
 
 The defaults are deliberately the defaults of an *uncalibrated* microscope.

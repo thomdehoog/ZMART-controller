@@ -28,7 +28,7 @@ from mock_zmart_driver.testing.mock_api import read_mraw
 from mock_zmart_driver.vendor_interface import VendorError
 from zmart_controller.session import set_instrument
 
-PACKAGE = Path(__file__).resolve().parent.parent
+PACKAGE = Path(__file__).resolve().parents[2]
 MOCK = {"vendor": "mock", "microscope": "mock-scope", "api": "mock-api"}
 
 
@@ -534,15 +534,24 @@ ALLOWED = {
 
 
 def _imported_parts(path: Path, part: str) -> set[str]:
+    """The driver's parts that ``path`` imports from, wherever in its part it sits."""
     tree = ast.parse(path.read_text())
+    # Where this file sits, as package names below the driver: a relative
+    # import climbs from here, so it reaches another part only when it
+    # climbs to the driver's top.
+    here = list(path.relative_to(PACKAGE).parent.parts)
     found = set()
     for node in ast.walk(tree):
         if isinstance(node, ast.ImportFrom):
             module = node.module or ""
-            if node.level == 2:
-                names = [module.split(".")[0]] if module else [a.name for a in node.names]
-                found.update(names)
-            elif node.level == 0 and module.startswith("mock_zmart_driver"):
+            if node.level:
+                base = here[: len(here) - (node.level - 1)]
+                target = [*base, *module.split(".")] if module else base
+                if target:
+                    found.add(target[0])
+                else:
+                    found.update(a.name for a in node.names)
+            elif module.startswith("mock_zmart_driver"):
                 pieces = module.split(".")
                 if len(pieces) > 1:
                     found.add(pieces[1])
