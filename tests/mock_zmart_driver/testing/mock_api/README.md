@@ -34,7 +34,7 @@ micrometers, and its error handling sorts the codes into kinds.
 ## Getting started
 
 ```python
-from zmart_driver_mock.testing.mock_api import MockScope
+from mock_zmart_driver.testing.mock_api import MockScope
 
 scope = MockScope(output_folder="images")        # the folder must exist
 scope.send("Login", token="mock-token")
@@ -104,7 +104,7 @@ For exact, fast tests, use a `FakeClock`, which only moves when you tell it
 to:
 
 ```python
-from zmart_driver_mock.testing.mock_api import FakeClock, MockScope
+from mock_zmart_driver.testing.mock_api import FakeClock, MockScope
 
 clock = FakeClock()
 scope = MockScope(output_folder="images", clock=clock)

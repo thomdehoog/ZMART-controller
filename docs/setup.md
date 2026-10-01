@@ -39,9 +39,9 @@ needs nothing but `import zmart_controller`.
    driver in for one session only, pass `remember=False`.
 
    No microscope at hand? The same line works on the mock in
-   `tests/zmart_driver_mock/`, so you can try the whole flow first, from the
+   `tests/mock_zmart_driver/`, so you can try the whole flow first, from the
    repository's folder: `sys.path.insert(0, "tests")`, then
-   `zmart_controller.register_driver("zmart_driver_mock")`.
+   `zmart_controller.register_driver("mock_zmart_driver")`.
 
 The configuration folder is `C:\ProgramData\zmart-microscopy\` on Windows,
 `/Library/Application Support/zmart-microscopy/` on macOS and

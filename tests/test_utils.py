@@ -10,7 +10,7 @@ import json
 
 import pytest
 
-from zmart_controller import utils
+from zmart_controller import utils, validate_driver
 
 
 @pytest.fixture
@@ -70,7 +70,7 @@ class TestDiscovery:
         # Pretend a package is installed that announces the mock as a driver.
         from importlib.metadata import EntryPoint
 
-        fake = EntryPoint("fake", "zmart_driver_mock", utils.ENTRY_POINT_GROUP)
+        fake = EntryPoint("fake", "mock_zmart_driver", utils.ENTRY_POINT_GROUP)
         monkeypatch.setattr(
             utils,
             "entry_points",
@@ -93,7 +93,7 @@ class TestDiscovery:
 
 
 FUNCTIONS = """
-from zmart_driver_mock.zmart_controller import (
+from mock_zmart_driver.zmart_controller import (
     connect, disconnect, get_info, get_actuators, get_xyz, set_xyz, get_state,
     set_state, get_acquisition_options, acquire, get_procedures, run_procedure,
 )
@@ -136,7 +136,7 @@ class TestRegisterDriver:
 
     def test_from_a_module_name(self):
         utils.REGISTRY.pop(("mock", "mock-scope", "mock-api"), None)
-        added = utils.register_driver("zmart_driver_mock", remember=False)
+        added = utils.register_driver("mock_zmart_driver", remember=False)
         assert [i["vendor"] for i in added] == ["mock"]
 
     def test_calling_it_twice_is_harmless(self, tmp_path, forget_acme):
@@ -170,7 +170,7 @@ class TestRegisterDriver:
 
     def test_the_setup_guide_works_on_the_mock(self):
         utils.REGISTRY.pop(("mock", "mock-scope", "mock-api"), None)
-        added = utils.register_driver("zmart_driver_mock", remember=False)
+        added = utils.register_driver("mock_zmart_driver", remember=False)
         assert [i["vendor"] for i in added] == ["mock"]
         assert utils.remembered_drivers() == []
 
@@ -288,3 +288,44 @@ class TestConfigRoot:
         )
         monkeypatch.setattr(utils.platform, "system", lambda: "Linux")
         assert utils.config_root() == utils.Path("/etc/zmart-microscopy")
+
+
+# ---- validate_driver: does a driver fit the contract?
+
+MOCK = ("mock", "mock-scope", "mock-api")
+
+
+def _mock_instrument():
+    return {"vendor": "mock", "microscope": "mock-scope", "api": "mock-api"}
+
+
+def _break(monkeypatch, name, func):
+    """Swap one of the mock's functions in the table the registry uses."""
+    monkeypatch.setitem(utils.REGISTRY[MOCK]["ops"], name, func)
+
+
+def test_the_mock_fits():
+    assert validate_driver(_mock_instrument()) == []
+
+
+def test_problems_are_named(monkeypatch):
+    # Break two answers and expect plain sentences about those two, nothing else.
+    _break(monkeypatch, "get_xyz", lambda handle, **kw: {"success": True, "report": {"x": {}}})
+    _break(monkeypatch, "get_info", lambda handle: {"success": True, "report": {}})
+    problems = validate_driver(_mock_instrument())
+    assert "get_info: the report must contain output_root" in problems
+    assert any(p.startswith("get_xyz: axis 'x' is missing") for p in problems)
+    assert any(p.startswith("get_xyz: axis 'y' is missing") for p in problems)
+    assert not any(p.startswith("get_state") for p in problems)
+
+
+def test_a_bare_answer_without_the_envelope_is_reported(monkeypatch):
+    _break(monkeypatch, "get_procedures", lambda handle: {"autofocus": {}})
+    problems = validate_driver(_mock_instrument())
+    assert any('get_procedures must return {"success"' in p for p in problems)
+
+
+@pytest.fixture(autouse=True)
+def _mock_present():
+    if MOCK not in utils.REGISTRY:
+        utils.register_driver("mock_zmart_driver", remember=False)
