@@ -14,7 +14,7 @@ from __future__ import annotations
 import time
 from typing import Any
 
-from .. import get_commands as get
+from .. import get_actions as get
 
 POLL_INTERVAL_S = 0.01
 

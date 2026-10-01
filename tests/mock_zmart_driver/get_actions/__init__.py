@@ -1,4 +1,4 @@
-"""Part 3 of the driver anatomy: get commands and the get dispatcher.
+"""Part 3 of the driver anatomy: get actions and the get dispatcher.
 
 A get command asks the microscope something and never changes anything. The
 get dispatcher is the engine behind every one of them: it lets one read

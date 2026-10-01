@@ -1,4 +1,4 @@
-"""The get commands: what the driver can ask the microscope.
+"""The get actions: what the driver can ask the microscope.
 
 Most are one line: which primitive to call, through the get dispatcher. A
 few combine readings and give them a meaning, such as the position in user

@@ -1,4 +1,4 @@
-"""The set commands: what the driver can change on the microscope.
+"""The set actions: what the driver can change on the microscope.
 
 Each function builds a :class:`SetCommand` (which primitive to send, how to
 confirm it, which limit applies) and hands it to the set dispatcher. None of
@@ -13,7 +13,7 @@ University of Zurich (thom.dehoog@zmb.uzh.ch, thomdehoog@gmail.com).
 
 from __future__ import annotations
 
-from .. import get_commands as get
+from .. import get_actions as get
 from ..configuration import raw_from_user
 from .dispatch import NeverConfirmed, Outcome, SetCommand
 from .tuning import ACQUIRE_TUNING, OBJECTIVE_TUNING
