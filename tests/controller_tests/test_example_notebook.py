@@ -15,7 +15,7 @@ from pathlib import Path
 
 from zmart_controller import utils
 
-NOTEBOOK = Path(__file__).resolve().parent.parent / "docs" / "example_experiment.ipynb"
+NOTEBOOK = Path(__file__).resolve().parents[2] / "docs" / "example_experiment.ipynb"
 
 
 def _code_cells() -> list[str]:

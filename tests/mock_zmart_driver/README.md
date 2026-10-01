@@ -50,7 +50,7 @@ part is a folder, and each part only uses the parts below it.
 | [`data_handling/`](data_handling/) | 6. Data handling | Waits for the vendor's file, turns the picture to line up with the stage, writes OME-TIFF or OME-Zarr, and saves the log of the commands behind it. |
 | [`configuration/`](configuration/) | 7. Configuration | The machine description, image-to-stage registration, origin, limits and optical calibration, each with shipped defaults and a check. Also the arithmetic between stage and user coordinates. |
 | [`zmart_controller/`](zmart_controller/) | 8. ZMART controller plugin | The 11 functions the controller calls. They only map commands onto the parts above. |
-| [`testing/`](testing/) | 9. Testing | The mock API. The tests themselves are in the repository's `tests/` folder. |
+| [`testing/`](testing/) | 9. Testing | The mock API, and the driver's own tests (`test_mock_driver.py`, `test_mock_api.py`). |
 
 ## How a move travels through the driver
 

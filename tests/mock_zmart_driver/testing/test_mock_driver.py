@@ -1,6 +1,6 @@
 """Tests for the mock driver's parts, following the driver anatomy.
 
-The controller-level tests (test_session.py) check what an experiment sees.
+The controller-level tests (tests/controller_tests/) check what an experiment sees.
 These check how the driver gets there: that every fault from the mock API is
 sorted into the right kind and handled by the rule for that kind, that the
 limits gate stops a request before anything is sent, that the configuration
@@ -28,7 +28,7 @@ from mock_zmart_driver.testing.mock_api import read_mraw
 from mock_zmart_driver.vendor_interface import VendorError
 from zmart_controller.session import set_instrument
 
-PACKAGE = Path(__file__).resolve().parent
+PACKAGE = Path(__file__).resolve().parent.parent
 MOCK = {"vendor": "mock", "microscope": "mock-scope", "api": "mock-api"}
 
 
@@ -561,7 +561,6 @@ def test_each_part_only_uses_the_parts_below_it(part):
 def test_only_the_vendor_interface_touches_the_mock_api():
     for path in PACKAGE.rglob("*.py"):
         relative = path.relative_to(PACKAGE)
-        # The tests beside the driver test it; they are not part of it.
-        if relative.parts[0] in ("testing", "vendor_interface") or path.name.startswith("test_"):
+        if relative.parts[0] in ("testing", "vendor_interface"):
             continue
         assert "testing" not in _imported_parts(path, relative.parts[0]), str(relative)
