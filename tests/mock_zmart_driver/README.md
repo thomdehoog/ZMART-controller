@@ -44,9 +44,9 @@ part is a folder, and each part only uses the parts below it.
 |---|---|---|
 | [`vendor_interface/`](vendor_interface/) | 1. Vendor interface | Starts MockScope, logs in, and offers one plain function (a *primitive*) per vendor command. The only part that knows MockScope. |
 | [`error_handling/`](error_handling/) | 2. Error handling | Sorts every problem into a kind (temporary, bad request, permanent, connection lost, ...) and holds the table of what to do for each kind. |
-| [`get_commands/`](get_commands/) | 3. Get commands | Ask the microscope things through the get dispatcher: one read at a time, a few tries after a temporary problem, a time limit, and "unknown" rather than a guess. |
-| [`set_commands/`](set_commands/) | 4. Set commands | Change the microscope through the set dispatcher: the limits gate, sending, retries, reading back to confirm, sending again, and giving up softly when it cannot confirm. |
-| [`procedures/`](procedures/) | 5. Procedures | Recipes built only from get and set commands: autofocus, backlash takeup, parking the piezo, and recording the origin. |
+| [`get_actions/`](get_actions/) | 3. Get actions | Ask the microscope things through the get dispatcher: one read at a time, a few tries after a temporary problem, a time limit, and "unknown" rather than a guess. |
+| [`set_actions/`](set_actions/) | 4. Set actions | Change the microscope through the set dispatcher: the limits gate, sending, retries, reading back to confirm, sending again, and giving up softly when it cannot confirm. |
+| [`procedures/`](procedures/) | 5. Procedures | Recipes built only from get and set actions: autofocus, backlash takeup, parking the piezo, and recording the origin. |
 | [`data_handling/`](data_handling/) | 6. Data handling | Waits for the vendor's file, turns the picture to line up with the stage, writes OME-TIFF or OME-Zarr, and saves the log of the commands behind it. |
 | [`configuration/`](configuration/) | 7. Configuration | The machine description, image-to-stage registration, origin, limits and optical calibration, each with shipped defaults and a check. Also the arithmetic between stage and user coordinates. |
 | [`zmart_controller/`](zmart_controller/) | 8. ZMART controller plugin | The 11 functions the controller calls. They only map commands onto the parts above. |
@@ -57,7 +57,7 @@ part is a folder, and each part only uses the parts below it.
 `zmart_controller.set_xyz(100, 50, 0)` goes through these steps:
 
 1. **The plugin** picks the motor for each axis and hands the request to the
-   set commands.
+   set actions.
 2. **The set command** reads the current position through the get
    dispatcher, and turns the user position (micrometers from the origin)
    into a stage position, using the configuration.

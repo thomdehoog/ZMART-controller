@@ -8,8 +8,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from .. import get_commands as get
-from .. import set_commands as setter
+from .. import get_actions as get
+from .. import set_actions as setter
 from ..configuration import sample_point, save
 
 # How far back the backlash takeup steps before approaching again, in µm.

@@ -22,8 +22,8 @@ import pytest
 
 from mock_zmart_driver.configuration import load_configuration, save, saved_path
 from mock_zmart_driver.error_handling import RULES, Kind, classify
-from mock_zmart_driver.get_commands import DEFAULT_GET_TUNING
-from mock_zmart_driver.set_commands import DEFAULT_SET_TUNING, Gate
+from mock_zmart_driver.get_actions import DEFAULT_GET_TUNING
+from mock_zmart_driver.set_actions import DEFAULT_SET_TUNING, Gate
 from mock_zmart_driver.testing.mock_api import read_mraw
 from mock_zmart_driver.vendor_interface import VendorError
 from zmart_controller.session import set_instrument
@@ -498,11 +498,11 @@ class TestRealisticTiming:
         assert len(reads) > 1  # it had to read back more than once
 
     def test_stop_during_an_acquisition(self, slow_mic):
-        from mock_zmart_driver import set_commands
+        from mock_zmart_driver import set_actions
 
         handle = slow_mic._handle
         handle.vendor.start_acquisition("long", z_planes=200, z_step_um=0.1)
-        outcome = set_commands.stop(handle)
+        outcome = set_actions.stop(handle)
         assert outcome.confirmed
         status = handle.scope.send("GetStatus")["result"]
         assert status["last_acquisition"]["state"] == "aborted"
@@ -517,16 +517,16 @@ ALLOWED = {
     "vendor_interface": {"testing"},
     "error_handling": {"vendor_interface"},
     "configuration": set(),
-    "get_commands": {"error_handling", "configuration"},
-    "set_commands": {"error_handling", "configuration", "get_commands"},
-    "data_handling": {"get_commands"},
-    "procedures": {"get_commands", "set_commands", "configuration", "data_handling"},
+    "get_actions": {"error_handling", "configuration"},
+    "set_actions": {"error_handling", "configuration", "get_actions"},
+    "data_handling": {"get_actions"},
+    "procedures": {"get_actions", "set_actions", "configuration", "data_handling"},
     "zmart_controller": {
         "vendor_interface",
         "error_handling",
         "configuration",
-        "get_commands",
-        "set_commands",
+        "get_actions",
+        "set_actions",
         "data_handling",
         "procedures",
     },

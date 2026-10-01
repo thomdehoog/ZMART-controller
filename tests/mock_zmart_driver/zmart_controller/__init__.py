@@ -4,14 +4,14 @@ This is part 8 of the driver anatomy. It presents the driver to the ZMART
 Controller in the shape every microscope shares, and it does nothing else:
 no coordinate arithmetic and no safety checks of its own. Those happened
 further down. Each function here only maps a controller command onto the
-driver's get commands, set commands, procedures and data handling.
+driver's get actions, set actions, procedures and data handling.
 
 The mock is a complete driver, built from the same parts a real one has::
 
     vendor_interface/   talks to MockScope Control, the pretend vendor software
     error_handling/     sorts every problem into a kind, and says what to do
-    get_commands/       asks the microscope things, through the get dispatcher
-    set_commands/       changes the microscope, through the set dispatcher
+    get_actions/       asks the microscope things, through the get dispatcher
+    set_actions/       changes the microscope, through the set dispatcher
     procedures/         recipes: autofocus, backlash takeup, parking the piezo
     data_handling/      turns the vendor's files into OME-TIFF or OME-Zarr
     configuration/      origin, registration, limits, calibration
@@ -43,15 +43,15 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from mock_zmart_driver import get_commands as get
-from mock_zmart_driver import set_commands as setter
+from mock_zmart_driver import get_actions as get
+from mock_zmart_driver import set_actions as setter
 from mock_zmart_driver.configuration import Configuration, load_configuration, user_range
 from mock_zmart_driver.data_handling import FORMATS, CommandLog, save_acquisition
 from mock_zmart_driver.data_handling.save import safe_name
 from mock_zmart_driver.error_handling import classify
-from mock_zmart_driver.get_commands import GetDispatcher
+from mock_zmart_driver.get_actions import GetDispatcher
 from mock_zmart_driver.procedures import PROCEDURES
-from mock_zmart_driver.set_commands import Gate, SetDispatcher
+from mock_zmart_driver.set_actions import Gate, SetDispatcher
 from mock_zmart_driver.vendor_interface import MockScopeConnection
 
 logger = logging.getLogger("mock_zmart_driver")

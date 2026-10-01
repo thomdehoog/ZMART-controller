@@ -1,6 +1,6 @@
 """Part 5 of the driver anatomy: procedures.
 
-A procedure is a recipe of several get and set commands, such as autofocus.
+A procedure is a recipe of several get and set actions, such as autofocus.
 It never talks to the vendor software directly, so every step passes the
 limits gate and the error rules without any extra effort.
 
