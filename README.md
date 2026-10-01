@@ -27,7 +27,7 @@ The ZMART controller lives between your workflow and the microscope:
    get and set the state of the microscope, and acquire an image.
 
 2. **A schema, not a driver.** It provides a consistent, interoperable vocabulary
-   that ZMART drivers plug into. The drivers take care of interacting with the microscope, enforcing limits,
+   that ZMART-drivers plug into. The drivers take care of interacting with the microscope, enforcing limits,
    and providing a single absolute coordinate system that corresponds to the space in which you observe the specimen.
 
 Note: we are aware of the [useq-schema](https://github.com/pymmcore-plus/useq-schema) from the Micro-Manager community and of Anthropic's [Model Hardware Standard](https://www.anthropic.com/news/model-hardware-standard-research-preview). We might switch, because both have real upsides, but currently the useq-schema is not interoperable enough for our needs and the Model Hardware Standard is not released to the public yet.
