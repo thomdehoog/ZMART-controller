@@ -20,7 +20,7 @@ The mock is a complete driver, built from the same parts a real one has::
 
 Plug it in like any driver::
 
-    zmart_controller.register_driver("zmart_driver_mock")
+    zmart_controller.register_driver("mock_zmart_driver")
 
 The connection dictionary may hold ``output_root`` (where images are
 saved), ``token`` (the vendor login, default ``"mock-token"``) and
@@ -43,18 +43,18 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from zmart_driver_mock import get_commands as get
-from zmart_driver_mock import set_commands as setter
-from zmart_driver_mock.configuration import Configuration, load_configuration, user_range
-from zmart_driver_mock.data_handling import FORMATS, CommandLog, save_acquisition
-from zmart_driver_mock.data_handling.save import safe_name
-from zmart_driver_mock.error_handling import classify
-from zmart_driver_mock.get_commands import GetDispatcher
-from zmart_driver_mock.procedures import PROCEDURES
-from zmart_driver_mock.set_commands import Gate, SetDispatcher
-from zmart_driver_mock.vendor_interface import MockScopeConnection
+from mock_zmart_driver import get_commands as get
+from mock_zmart_driver import set_commands as setter
+from mock_zmart_driver.configuration import Configuration, load_configuration, user_range
+from mock_zmart_driver.data_handling import FORMATS, CommandLog, save_acquisition
+from mock_zmart_driver.data_handling.save import safe_name
+from mock_zmart_driver.error_handling import classify
+from mock_zmart_driver.get_commands import GetDispatcher
+from mock_zmart_driver.procedures import PROCEDURES
+from mock_zmart_driver.set_commands import Gate, SetDispatcher
+from mock_zmart_driver.vendor_interface import MockScopeConnection
 
-logger = logging.getLogger("zmart_driver_mock")
+logger = logging.getLogger("mock_zmart_driver")
 
 # Where images go when the connection does not say: a folder in the
 # computer's temporary space, so trying the mock never litters a project.

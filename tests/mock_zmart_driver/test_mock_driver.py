@@ -19,16 +19,16 @@ import struct
 from pathlib import Path
 
 import pytest
-from zmart_driver_mock.configuration import load_configuration, save, saved_path
-from zmart_driver_mock.error_handling import RULES, Kind, classify
-from zmart_driver_mock.get_commands import DEFAULT_GET_TUNING
-from zmart_driver_mock.set_commands import DEFAULT_SET_TUNING, Gate
-from zmart_driver_mock.testing.mock_api import read_mraw
-from zmart_driver_mock.vendor_interface import VendorError
 
+from mock_zmart_driver.configuration import load_configuration, save, saved_path
+from mock_zmart_driver.error_handling import RULES, Kind, classify
+from mock_zmart_driver.get_commands import DEFAULT_GET_TUNING
+from mock_zmart_driver.set_commands import DEFAULT_SET_TUNING, Gate
+from mock_zmart_driver.testing.mock_api import read_mraw
+from mock_zmart_driver.vendor_interface import VendorError
 from zmart_controller.session import set_instrument
 
-PACKAGE = Path(__file__).resolve().parent / "zmart_driver_mock"
+PACKAGE = Path(__file__).resolve().parent
 MOCK = {"vendor": "mock", "microscope": "mock-scope", "api": "mock-api"}
 
 
@@ -233,7 +233,7 @@ class TestProcedures:
         assert mic._handle.scope.send("GetFocus")["result"] == {"focus": 5030.0, "piezo": 0.0}
 
     def test_record_origin_is_used_at_the_next_connect(self, tmp_path):
-        from zmart_driver_mock.procedures import record_origin
+        from mock_zmart_driver.procedures import record_origin
 
         session = _open(tmp_path, mock_timing="instant")
         session.set_xyz(100, -50, 0)
@@ -398,8 +398,8 @@ def test_alignment_undoes_every_camera_orientation(orientation):
     # Draw the same slide twice, 5 µm apart in x and 3 µm apart in y, with a
     # non-square camera, and check that after alignment the picture moved
     # left by 5 pixels and up by 3, whatever way the camera sits.
-    from zmart_driver_mock.data_handling import align_to_stage
-    from zmart_driver_mock.testing.mock_api.sample import render
+    from mock_zmart_driver.data_handling import align_to_stage
+    from mock_zmart_driver.testing.mock_api.sample import render
 
     width, height = 40, 24
 
@@ -498,7 +498,7 @@ class TestRealisticTiming:
         assert len(reads) > 1  # it had to read back more than once
 
     def test_stop_during_an_acquisition(self, slow_mic):
-        from zmart_driver_mock import set_commands
+        from mock_zmart_driver import set_commands
 
         handle = slow_mic._handle
         handle.vendor.start_acquisition("long", z_planes=200, z_step_um=0.1)
@@ -542,7 +542,7 @@ def _imported_parts(path: Path, part: str) -> set[str]:
             if node.level == 2:
                 names = [module.split(".")[0]] if module else [a.name for a in node.names]
                 found.update(names)
-            elif node.level == 0 and module.startswith("zmart_driver_mock"):
+            elif node.level == 0 and module.startswith("mock_zmart_driver"):
                 pieces = module.split(".")
                 if len(pieces) > 1:
                     found.add(pieces[1])
@@ -561,6 +561,7 @@ def test_each_part_only_uses_the_parts_below_it(part):
 def test_only_the_vendor_interface_touches_the_mock_api():
     for path in PACKAGE.rglob("*.py"):
         relative = path.relative_to(PACKAGE)
-        if relative.parts[0] in ("testing", "vendor_interface"):
+        # The tests beside the driver test it; they are not part of it.
+        if relative.parts[0] in ("testing", "vendor_interface") or path.name.startswith("test_"):
             continue
         assert "testing" not in _imported_parts(path, relative.parts[0]), str(relative)

@@ -2,7 +2,7 @@
 
 Start here::
 
-    from zmart_driver_mock.testing.mock_api import MockScope
+    from mock_zmart_driver.testing.mock_api import MockScope
 
     scope = MockScope(output_folder="images")
     scope.send("Login", token="mock-token")

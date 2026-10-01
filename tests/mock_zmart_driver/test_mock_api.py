@@ -12,8 +12,9 @@ University of Zurich (thom.dehoog@zmb.uzh.ch, thomdehoog@gmail.com).
 from __future__ import annotations
 
 import pytest
-from zmart_driver_mock.testing.mock_api import FAULTS, FakeClock, MockScope, read_mraw
-from zmart_driver_mock.testing.mock_api.scope import START_POSITION
+
+from mock_zmart_driver.testing.mock_api import FAULTS, FakeClock, MockScope, read_mraw
+from mock_zmart_driver.testing.mock_api.scope import START_POSITION
 
 
 @pytest.fixture

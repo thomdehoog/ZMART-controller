@@ -17,7 +17,7 @@ the same code a real driver would need.
 ```python
 import zmart_controller
 
-zmart_controller.register_driver("zmart_driver_mock", remember=False)
+zmart_controller.register_driver("mock_zmart_driver", remember=False)
 instrument = next(i for i in zmart_controller.get_instruments() if i["vendor"] == "mock")
 zmart_controller.set_instrument(instrument)
 
@@ -78,8 +78,8 @@ images of each acquisition.
 
 On a real microscope, the operator runs a setup step once, and the driver
 saves the result in the computer's configuration folder. The mock works the
-same way, through `zmart_driver_mock.configuration.save` and
-`zmart_driver_mock.procedures.record_origin`. Until something is saved, the
+same way, through `mock_zmart_driver.configuration.save` and
+`mock_zmart_driver.procedures.record_origin`. Until something is saved, the
 shipped defaults in [`configuration/defaults/`](configuration/defaults/) are
 used, and `get_info()` says so.
 

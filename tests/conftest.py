@@ -1,6 +1,6 @@
 """Test setup: register the mock microscope and reset the active session.
 
-The mock is the pretend microscope in tests/zmart_driver_mock/, so the tests
+The mock is the pretend microscope in tests/mock_zmart_driver/, so the tests
 run without any hardware. pytest puts this folder on the import path, which
 is how the name below finds it.
 
@@ -12,7 +12,7 @@ import pytest
 
 from zmart_controller import register_driver
 
-register_driver("zmart_driver_mock", remember=False)
+register_driver("mock_zmart_driver", remember=False)
 
 
 @pytest.fixture(autouse=True)
