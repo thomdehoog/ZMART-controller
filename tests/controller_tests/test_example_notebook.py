@@ -13,9 +13,17 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
+
 from zmart_controller import utils
 
 NOTEBOOK = Path(__file__).resolve().parents[2] / "docs" / "example_experiment.ipynb"
+
+
+@pytest.fixture(autouse=True)
+def _run_from_the_notebooks_folder(monkeypatch):
+    """Jupyter runs a notebook from its own folder, so its relative paths start there."""
+    monkeypatch.chdir(NOTEBOOK.parent)
 
 
 def _code_cells() -> list[str]:

@@ -52,7 +52,7 @@ from mock_zmart_driver.error_handling import classify
 from mock_zmart_driver.get_actions import GetDispatcher
 from mock_zmart_driver.procedures import PROCEDURES
 from mock_zmart_driver.set_actions import Gate, SetDispatcher
-from mock_zmart_driver.vendor_interface import MockScopeConnection
+from mock_zmart_driver.vendor_interface import NAME_LIMIT, MockScopeConnection
 
 logger = logging.getLogger("mock_zmart_driver")
 
@@ -361,7 +361,8 @@ def acquire(
     if options["backlash_correction"]:
         PROCEDURES["backlash_takeup"]["run"](handle)
     position = get.user_position(handle).value_or_raise("the position")
-    vendor_name = safe_name(f"{acquisition_type}_{position_label}")
+    # The vendor software takes short names only; the saved files keep the full label.
+    vendor_name = safe_name(f"{acquisition_type}_{position_label}")[:NAME_LIMIT]
     outcome = setter.acquire(
         handle, name=vendor_name, z_planes=options["z_planes"], z_step_um=options["z_step_um"]
     )

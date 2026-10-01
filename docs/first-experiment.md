@@ -6,7 +6,7 @@ own workflow.
 
 ## Install
 
-Python 3.12 or newer.
+Python 3.11 or newer.
 
 ```bash
 git clone https://github.com/thomdehoog/ZMART-controller

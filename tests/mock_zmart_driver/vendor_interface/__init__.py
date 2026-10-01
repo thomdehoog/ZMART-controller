@@ -15,6 +15,6 @@ It keeps the three promises from the driver anatomy:
    NIS-Elements instead, and nothing above it changes shape.
 """
 
-from .client import MockScopeConnection, VendorError
+from .client import NAME_LIMIT, MockScopeConnection, VendorError
 
-__all__ = ["MockScopeConnection", "VendorError"]
+__all__ = ["NAME_LIMIT", "MockScopeConnection", "VendorError"]

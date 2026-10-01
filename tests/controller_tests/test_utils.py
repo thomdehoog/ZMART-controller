@@ -7,10 +7,14 @@ University of Zurich (thom.dehoog@zmb.uzh.ch, thomdehoog@gmail.com).
 from __future__ import annotations
 
 import json
+import sys
+from pathlib import Path
 
 import pytest
 
 from zmart_controller import utils, validate_driver
+
+MOCK_FOLDER = Path(__file__).parents[1] / "mock_zmart_driver"
 
 
 @pytest.fixture
@@ -270,6 +274,94 @@ class TestRememberedDrivers:
         with caplog.at_level("ERROR"):
             utils.get_instruments()  # must not raise
         assert "acme_gone_driver" in caplog.text
+
+
+def make_driver_package(root, name, microscope):
+    """Write a driver laid out like the mock: a package whose functions import its own modules.
+
+    ``root/name/`` is the package, with a module of its own (``vendor.py``) and a
+    ``zmart_controller/`` folder that reaches it by the full name ``name.vendor``,
+    as docs/driver.md asks of driver authors.
+    """
+    package = root / name
+    plugin = package / "zmart_controller"
+    plugin.mkdir(parents=True)
+    (package / "__init__.py").write_text("")
+    (package / "vendor.py").write_text(f"MICROSCOPE = {microscope!r}\n")
+    (plugin / "__init__.py").write_text(f"from {name}.vendor import MICROSCOPE\n" + FUNCTIONS)
+    manifest = {
+        "contract": 1,
+        "instruments": [{"vendor": "acme", "microscope": microscope, "api": "acme-sdk"}],
+    }
+    (plugin / "zmart.json").write_text(json.dumps(manifest))
+    return package
+
+
+@pytest.fixture
+def unimport():
+    """Forget the driver packages a test imported, as a new Python session would."""
+    names = []
+    yield names
+    for module in [m for m in sys.modules if m.split(".")[0] in names]:
+        del sys.modules[module]
+
+
+class TestDriverPackages:
+    def test_a_package_folder_registers_although_its_parent_is_not_importable(
+        self, tmp_path, forget_acme, unimport
+    ):
+        name = f"acme_pkg_{tmp_path.name}".replace("-", "_")
+        unimport.append(name)
+        package = make_driver_package(tmp_path / "drivers", name, "packaged")
+        added = utils.register_driver(package, remember=False)
+        assert [i["microscope"] for i in added] == ["packaged"]
+        assert sys.modules[f"{name}.vendor"].MICROSCOPE == "packaged"
+
+    def test_the_mock_registers_by_its_folder(self):
+        utils.REGISTRY.pop(("mock", "mock-scope", "mock-api"), None)
+        added = utils.register_driver(MOCK_FOLDER, remember=False)
+        assert [i["vendor"] for i in added] == ["mock"]
+
+    def test_a_driver_given_by_name_is_remembered_by_its_folder_and_found_next_session(
+        self, tmp_path, forget_acme, unimport, monkeypatch
+    ):
+        name = f"acme_pkg_{tmp_path.name}".replace("-", "_")
+        unimport.append(name)
+        package = make_driver_package(tmp_path / "drivers", name, "by-name")
+        monkeypatch.syspath_prepend(str(tmp_path / "drivers"))
+        utils.register_driver(name)
+        assert utils.remembered_drivers() == [str(package.resolve())]
+
+        # A new session started elsewhere: the driver's folder is no longer importable.
+        monkeypatch.undo()
+        monkeypatch.setenv("ZMART_MICROSCOPY_ROOT", str(tmp_path / "config"))
+        for module in [m for m in sys.modules if m.split(".")[0] == name]:
+            del sys.modules[module]
+        utils.REGISTRY.pop(("acme", "by-name", "acme-sdk"))
+        monkeypatch.setattr(utils, "_discovered", False)
+        assert any(i["microscope"] == "by-name" for i in utils.get_instruments())
+
+    def test_forgetting_by_name_matches_remembering_by_name(
+        self, tmp_path, forget_acme, unimport, monkeypatch
+    ):
+        name = f"acme_pkg_{tmp_path.name}".replace("-", "_")
+        unimport.append(name)
+        make_driver_package(tmp_path / "drivers", name, "forget-me")
+        monkeypatch.syspath_prepend(str(tmp_path / "drivers"))
+        utils.register_driver(name)
+        assert utils.forget_driver(name) is True
+        assert utils.remembered_drivers() == []
+
+    def test_a_different_package_of_the_same_name_is_refused_by_name(
+        self, tmp_path, forget_acme, unimport
+    ):
+        name = f"acme_pkg_{tmp_path.name}".replace("-", "_")
+        unimport.append(name)
+        first = make_driver_package(tmp_path / "one", name, "first")
+        second = make_driver_package(tmp_path / "two", name, "second")
+        utils.register_driver(first, remember=False)
+        with pytest.raises(ValueError, match=f"another package named {name}"):
+            utils.register_driver(second, remember=False)
 
 
 class TestConfigRoot:

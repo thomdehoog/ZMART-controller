@@ -160,11 +160,23 @@ def forget_driver(driver: str | Path) -> bool:
 
 
 def _driver_key(driver: str | Path) -> str:
-    """How a driver is written down: an absolute path, or the module name as given."""
+    """How a driver is written down: the absolute path of its folder.
+
+    A driver given by module name is written down by the folder it was found
+    in, so a later session finds it even when started from somewhere else,
+    where the name alone would no longer import. A name that cannot be found
+    is kept as given.
+    """
     path = Path(driver)
     if path.exists():
         return str(path.resolve())
-    return str(driver)
+    try:
+        spec = importlib.util.find_spec(str(driver))
+    except (ImportError, ValueError):
+        spec = None
+    if spec is None or not spec.origin or not spec.origin.endswith("__init__.py"):
+        return str(driver)
+    return str(Path(spec.origin).parent.resolve())
 
 
 CONTRACT = 1
@@ -210,6 +222,8 @@ def _locate_plugin(driver: str | Path):
     """Find the folder holding ``zmart.json``; import first if given a module name."""
     path = Path(driver)
     if path.is_dir():
+        if (path / PLUGIN_FOLDER / MANIFEST).is_file() and (path / "__init__.py").is_file():
+            return path / PLUGIN_FOLDER, _import_package(path)
         for candidate in (path / PLUGIN_FOLDER, path):
             if (candidate / MANIFEST).is_file():
                 return candidate, None
@@ -248,6 +262,41 @@ def _read_manifest(path: Path) -> dict[str, Any]:
             raise ValueError(f"{path}: every instrument must be an object")
         _identity(instrument)  # raises ValueError naming any missing identity key
     return manifest
+
+
+def _import_package(package: Path):
+    """Import a driver package by its own name, and return its ``zmart_controller`` module.
+
+    A driver laid out as ``docs/driver.md`` describes reaches its own modules
+    by their full names, such as ``acme_driver.vendor_interface``. Those
+    imports only work when the package is imported under that name, so the
+    folder above the package is added to Python's search path first. A
+    different package of the same name that is already loaded is refused,
+    since Python can hold only one of them.
+    """
+    package = package.resolve()
+    top, parts = package, [package.name]
+    while (top.parent / "__init__.py").is_file():
+        top = top.parent
+        parts.insert(0, top.name)
+    name = ".".join(parts)
+    loaded = sys.modules.get(parts[0])
+    if loaded is not None and getattr(loaded, "__file__", None):
+        if Path(loaded.__file__).resolve().parent != top:
+            raise ValueError(
+                f"cannot plug in {package}: another package named {parts[0]} is already "
+                f"loaded from {Path(loaded.__file__).parent}. Rename one of the two drivers."
+            )
+    search_root = str(top.parent)
+    if search_root not in sys.path:
+        sys.path.append(search_root)
+    module = importlib.import_module(f"{name}.{PLUGIN_FOLDER}")
+    if Path(module.__file__).resolve().parent != package / PLUGIN_FOLDER:
+        raise ValueError(
+            f"cannot plug in {package}: the name {name} imports from "
+            f"{Path(module.__file__).parent} instead. Rename one of the two drivers."
+        )
+    return module
 
 
 def _import_plugin(plugin_dir: Path):
