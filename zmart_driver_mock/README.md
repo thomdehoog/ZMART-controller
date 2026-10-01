@@ -1,7 +1,7 @@
 # The mock driver
 
 The mock driver lets you try every ZMART command without a microscope. It is
-also the template for a new driver: it is built from the same parts as every
+also the template for a new driver anatomy that we are testing out. It is built from the same parts as every
 ZMART driver, so you can read it to learn how a driver works inside, and copy
 its layout when you start your own.
 
