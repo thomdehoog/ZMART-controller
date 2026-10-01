@@ -171,7 +171,7 @@ class TestInfo:
         assert Path(info["output_root"]).is_dir()
         assert info["serial"] == "MOCK-0001"
         # Nothing has been set up yet, so every configuration item is a shipped default.
-        assert all("defaults" in source for source in info["configuration"].values())
+        assert all(source.endswith("default.json") for source in info["configuration"].values())
 
 
 class TestDisconnect:
