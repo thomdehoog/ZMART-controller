@@ -21,7 +21,7 @@ empty list.
 
 To drive several microscopes at once, hold a session for each::
 
-    from zmart_controller.layer import set_instrument
+    from zmart_controller.session import set_instrument
 
     mic_a = set_instrument(instrument_a)
     mic_b = set_instrument(instrument_b)
@@ -41,14 +41,13 @@ __author__ = "Thom de Hoog"
 __email__ = "thom.dehoog@zmb.uzh.ch, thomdehoog@gmail.com"
 __affiliation__ = "Center for Microscopy and Image Analysis (ZMB), University of Zurich"
 
-from .check import check_driver
-from .layer import Session
-from .layer import set_instrument as _set_instrument
-from .registry import forget_driver, get_instruments, register_driver
+from .session import Session
+from .session import set_instrument as _set_instrument
+from .utils import forget_driver, get_instruments, register_driver, validate_driver
 
 __all__ = [
     "Session",
-    "check_driver",
+    "validate_driver",
     "disconnect",
     "forget_driver",
     "get_instruments",

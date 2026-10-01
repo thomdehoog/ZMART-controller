@@ -24,7 +24,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from .registry import IDENTITY, resolve
+from .utils import IDENTITY, resolve
 
 
 class Session:

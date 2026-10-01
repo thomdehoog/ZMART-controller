@@ -24,9 +24,9 @@ def _config_in_a_temporary_folder(tmp_path, monkeypatch):
 @pytest.fixture(autouse=True)
 def _images_in_a_temporary_folder(tmp_path, monkeypatch):
     """Save the mock's images in the test's own folder, never in a shared one."""
-    from zmart_controller import registry
+    from zmart_controller import utils
 
-    connect = registry.REGISTRY[("mock", "mock-scope", "mock-api")]["ops"]["connect"]
+    connect = utils.REGISTRY[("mock", "mock-scope", "mock-api")]["ops"]["connect"]
     monkeypatch.setitem(connect.__globals__, "DEFAULT_OUTPUT_ROOT", tmp_path / "images")
 
 
