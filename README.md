@@ -9,7 +9,7 @@
 
 The **ZMART Controller** provides a small, universal schema for driving a microscope from Python.
 You build your workflow on this schema, and it runs on any microscope that has a ZMART driver plugged into it.
-It is part of **ZMART** (ZMB's Microscopy-Agnostic Research Toolkit), the tools we use for smart microscopy
+It is part of [**ZMART**](https://github.com/thomdehoog/ZMART-microscopy) (ZMB's Microscopy-Agnostic Research Toolkit), the tools we use for smart microscopy
 at the Center for Microscopy and Image Analysis (ZMB), University of Zurich.
 <br clear="left"/>
 
