@@ -9,7 +9,9 @@ own workflow.
 Python 3.12 or newer.
 
 ```bash
-pip install "git+https://github.com/thomdehoog/ZMART-controller"
+git clone https://github.com/thomdehoog/ZMART-controller
+cd ZMART-controller
+pip install .
 pip install jupyterlab
 ```
 

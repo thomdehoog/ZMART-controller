@@ -1,7 +1,8 @@
 """Test setup: register the mock microscope and reset the active session.
 
-The mock is the pretend microscope that ships with the package, so the tests
-run without any hardware.
+The mock is the pretend microscope in tests/zmart_driver_mock/, so the tests
+run without any hardware. pytest puts this folder on the import path, which
+is how the name below finds it.
 
 Author: Thom de Hoog, Center for Microscopy and Image Analysis (ZMB),
 University of Zurich (thom.dehoog@zmb.uzh.ch, thomdehoog@gmail.com).
