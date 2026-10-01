@@ -20,6 +20,10 @@ from typing import Any
 # driver imports the vendor's own library at this point instead.
 from ..testing.mock_api import MockScope, read_mraw
 
+# The longest acquisition name MockScope Control accepts. The driver keeps its
+# own names shorter; the files it saves are named separately, in full.
+NAME_LIMIT = 100
+
 
 class VendorError(Exception):
     """The vendor software refused a command and answered with an error code.

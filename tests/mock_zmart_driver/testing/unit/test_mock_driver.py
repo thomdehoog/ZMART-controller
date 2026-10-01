@@ -364,6 +364,12 @@ class TestReviewFindings:
         assert second["report"]["files"] == []
         assert "not running" in second["report"]["reason"]
 
+    def test_a_long_position_label_is_saved_under_its_full_name(self, mic):
+        label = "well_B07_field_" + "x" * 100
+        answer = mic.acquire(acquisition_type="overview", position_label=label)
+        assert answer["success"] is True, answer["report"].get("reason")
+        assert Path(answer["report"]["files"][0]).name.startswith(label)
+
     def test_acquire_near_the_lower_limit(self, mic):
         mic.set_xyz(-4980, -5000, 0)  # 20 µm from the x limit, right at the y limit
         answer = mic.acquire(acquisition_type="t", position_label="edge")

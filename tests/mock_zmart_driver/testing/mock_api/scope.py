@@ -594,7 +594,9 @@ class MockScope:
         if state != "idle":
             raise _Refusal(100, f"the microscope is {state.replace('_', ' ')}")
         if not isinstance(name, str) or not _NAME_PATTERN.match(name):
-            raise _Refusal(205, "name may use letters, digits, '_', '-' and '.'")
+            raise _Refusal(
+                205, "name may use letters, digits, '_', '-' and '.', up to 100 characters"
+            )
         if isinstance(z_planes, bool) or not isinstance(z_planes, int):
             raise _Refusal(205, "z_planes must be a whole number")
         if not 1 <= z_planes <= 200:

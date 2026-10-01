@@ -1,6 +1,6 @@
 # ZMART Controller
 
-[![python](https://img.shields.io/badge/python-3.12%2B-blue)](https://www.python.org/downloads/)
+[![python](https://img.shields.io/badge/python-3.11%2B-blue)](https://www.python.org/downloads/)
 [![license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 [![dependencies](https://img.shields.io/badge/dependencies-none-brightgreen)](pyproject.toml)
 [![tests](https://img.shields.io/badge/tests-pytest-blue)](#testing)
@@ -70,7 +70,7 @@ zmart_controller.run_procedure(Dict)
 zmart_controller.disconnect()
 ```
 
-Every command answers with the same two things:
+Every command except `disconnect` answers with the same two things:
 
 ```python
 {"success": True, "report": {...}}
@@ -90,8 +90,27 @@ We have not defined a vocabulary for error messages at this point.
 
 ### Status
 This is version 0.1. At the ZMB we use it daily in our smart-microscopy workflows. Drivers exist
-for several commercial and open-source microscopes; each lives in its own repository and says
-there how far it has been validated.
+for several commercial and open-source microscopes in ZMART Microscopy, and each says there how
+far it has been validated. They are being moved to the layout this controller plugs in (a
+`zmart.json` beside the driver's functions, see [Plug in your own driver functions](docs/driver.md)).
+Until a driver has made that move, the mock driver in `tests/mock_zmart_driver/` is the one you
+can plug in directly.
+
+## Testing
+
+The tests run on the mock driver, so they need no microscope. From a clone of this repository:
+
+```bash
+pip install -e ".[test]"
+python -m pytest
+```
+
+The mock driver also has a check of its own, which runs its tests and a style check
+(it needs `pip install ruff`):
+
+```bash
+python tests/mock_zmart_driver/testing/run_ci.py
+```
 
 ## Author
 Thom de Hoog, Center for Microscopy and Image Analysis (ZMB), University of
@@ -104,6 +123,6 @@ MIT License. See LICENSE file for details.
 
 - [ZMART Microscopy](https://github.com/thomdehoog/ZMART-microscopy): the main repository, with the workflows and the drivers
 - [ZMART drivers](https://github.com/thomdehoog/ZMART-microscopy/tree/main/zmart_drivers): the drivers that plug into this controller, one per microscope
-- [Smart Analysis](https://github.com/thomdehoog/smart-analysis): the analysis engine that runs between acquisitions
+- [ZMART analysis](https://github.com/thomdehoog/ZMART-analysis): the analysis engine that runs between acquisitions
 - [ZMART viewer](https://github.com/thomdehoog/ZMART-viewer): the viewer
 - [Center for Microscopy and Image Analysis (ZMB)](https://www.zmb.uzh.ch), University of Zurich

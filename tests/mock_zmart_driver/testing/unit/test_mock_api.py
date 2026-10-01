@@ -201,6 +201,8 @@ class TestAcquisition:
 
     def test_bad_name_is_refused(self, scope):
         assert scope.send("StartAcquisition", name="../escape")["code"] == 205
+        too_long = scope.send("StartAcquisition", name="n" * 101)
+        assert too_long["code"] == 205 and "100 characters" in too_long["message"]
 
     def test_not_an_mraw_file(self, tmp_path):
         other = tmp_path / "other.txt"
