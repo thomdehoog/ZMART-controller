@@ -1,7 +1,7 @@
 # Plug in your own driver functions
 
 A driver is one Python function per command, collected in a dictionary and
-handed to the controller's registry. There is no base class to inherit from.
+handed to the controller. There is no base class to inherit from.
 The mock microscope in [`tests/zmart_driver_mock/`](../tests/zmart_driver_mock/)
 is a complete driver, built the way every ZMART driver is built inside; its
 [README](../tests/zmart_driver_mock/README.md) walks through the parts. Read it
@@ -87,7 +87,7 @@ Once the driver connects, let the controller check the answers:
 ```python
 import zmart_controller
 
-problems = zmart_controller.check_driver(instrument)
+problems = zmart_controller.validate_driver(instrument)
 ```
 
 It calls every `get_*` function and compares each report with the contract

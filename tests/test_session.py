@@ -58,8 +58,9 @@ class TestFrame:
     def test_origin_is_driver_configuration(self):
         # The origin is saved by the driver's own setup step and loaded at
         # connect, never set through the controller.
-        from zmart_controller.layer import set_instrument as open_session
         from zmart_driver_mock.configuration import save
+
+        from zmart_controller.session import set_instrument as open_session
 
         save("origin", {"x": 50_100.0, "y": 37_500.0, "z": 5_000.0})
         session = open_session(_mock_instrument())
@@ -244,8 +245,9 @@ class TestModuleStyle:
 
 class TestTravelRange:
     def test_range_is_reported_in_the_users_frame(self):
-        from zmart_controller.layer import set_instrument as open_session
         from zmart_driver_mock.configuration import save
+
+        from zmart_controller.session import set_instrument as open_session
 
         save("origin", {"x": 51_000.0, "y": 37_500.0, "z": 5_000.0})
         session = open_session(_mock_instrument())

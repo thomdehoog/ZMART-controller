@@ -1,6 +1,6 @@
 """Tests for the mock driver's parts, following the driver anatomy.
 
-The controller-level tests (test_layer.py) check what an experiment sees.
+The controller-level tests (test_session.py) check what an experiment sees.
 These check how the driver gets there: that every fault from the mock API is
 sorted into the right kind and handled by the rule for that kind, that the
 limits gate stops a request before anything is sent, that the configuration
@@ -19,14 +19,14 @@ import struct
 from pathlib import Path
 
 import pytest
-
-from zmart_controller.layer import set_instrument
 from zmart_driver_mock.configuration import load_configuration, save, saved_path
 from zmart_driver_mock.error_handling import RULES, Kind, classify
 from zmart_driver_mock.get_commands import DEFAULT_GET_TUNING
 from zmart_driver_mock.set_commands import DEFAULT_SET_TUNING, Gate
 from zmart_driver_mock.testing.mock_api import read_mraw
 from zmart_driver_mock.vendor_interface import VendorError
+
+from zmart_controller.session import set_instrument
 
 PACKAGE = Path(__file__).resolve().parent / "zmart_driver_mock"
 MOCK = {"vendor": "mock", "microscope": "mock-scope", "api": "mock-api"}

@@ -13,7 +13,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from zmart_controller import registry
+from zmart_controller import utils
 
 NOTEBOOK = Path(__file__).resolve().parent.parent / "docs" / "example_experiment.ipynb"
 
@@ -46,11 +46,11 @@ def test_the_notebook_drives_the_mock_even_when_another_driver_sorts_first(capsy
         return op
 
     other = {"vendor": "aaa", "microscope": "real-scope", "api": "real-api"}
-    registry.register(other, ops={name: record(name) for name in registry.OPS})
+    utils.register(other, ops={name: record(name) for name in utils.OPS})
     try:
         _run_notebook()
     finally:
-        registry.REGISTRY.pop(registry._identity(other), None)
+        utils.REGISTRY.pop(utils._identity(other), None)
     assert calls == []
 
 
@@ -67,5 +67,5 @@ def test_the_notebook_works_with_a_driver_that_names_its_files_differently(monke
         }
 
     key = ("mock", "mock-scope", "mock-api")
-    monkeypatch.setitem(registry.REGISTRY[key]["ops"], "acquire", acquire)
+    monkeypatch.setitem(utils.REGISTRY[key]["ops"], "acquire", acquire)
     _run_notebook()
