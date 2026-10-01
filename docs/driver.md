@@ -2,9 +2,9 @@
 
 A driver is one Python function per command, collected in a dictionary and
 handed to the controller's registry. There is no base class to inherit from.
-The mock microscope in [`zmart_driver_mock/`](../zmart_driver_mock/)
+The mock microscope in [`tests/zmart_driver_mock/`](../tests/zmart_driver_mock/)
 is a complete driver, built the way every ZMART driver is built inside; its
-[README](../zmart_driver_mock/README.md) walks through the parts. Read it
+[README](../tests/zmart_driver_mock/README.md) walks through the parts. Read it
 alongside this page, and copy its layout when you start a new driver.
 
 ## The shape

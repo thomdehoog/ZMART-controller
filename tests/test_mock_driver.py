@@ -28,7 +28,7 @@ from zmart_driver_mock.set_commands import DEFAULT_SET_TUNING, Gate
 from zmart_driver_mock.testing.mock_api import read_mraw
 from zmart_driver_mock.vendor_interface import VendorError
 
-PACKAGE = Path(__file__).resolve().parent.parent / "zmart_driver_mock"
+PACKAGE = Path(__file__).resolve().parent / "zmart_driver_mock"
 MOCK = {"vendor": "mock", "microscope": "mock-scope", "api": "mock-api"}
 
 
