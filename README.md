@@ -46,7 +46,7 @@ import zmart_controller
 zmart_controller.get_instruments()
 zmart_controller.set_instrument(instrument=Dict)
 
-# 2) Learn about the connected setup
+# 2) Learn about the connected setup: where images go, and the microscope in plain words
 zmart_controller.get_info()
 
 # 3) Discover the motors, then read the position and travel range, or move (micrometers)

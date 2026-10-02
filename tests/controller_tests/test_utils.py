@@ -411,6 +411,37 @@ def test_problems_are_named(monkeypatch):
     assert not any(p.startswith("get_state") for p in problems)
 
 
+def test_a_driver_without_a_description_still_fits(monkeypatch):
+    """The description is for whoever drives the microscope; the controller runs without it."""
+    _break(monkeypatch, "get_info", lambda handle: {"success": True, "report": {"output_root": "x"}})
+    assert validate_driver(_mock_instrument()) == []
+
+
+@pytest.mark.parametrize("description", ["", "   ", 42, ["a microscope"]])
+def test_a_description_that_says_nothing_is_reported(monkeypatch, description):
+    _break(
+        monkeypatch,
+        "get_info",
+        lambda handle: {"success": True, "report": {"output_root": "x", "description": description}},
+    )
+    assert validate_driver(_mock_instrument()) == [
+        "get_info: description must be text that describes the microscope"
+    ]
+
+
+def test_the_mock_describes_itself():
+    from zmart_controller import set_instrument
+
+    session = set_instrument(_mock_instrument())
+    try:
+        description = session.get_info()["report"]["description"]
+    finally:
+        session.disconnect()
+    assert isinstance(description, str) and len(description) > 200
+    for word in ("stage", "objective", "exposure", "laser"):
+        assert word in description.lower(), word
+
+
 def test_a_bare_answer_without_the_envelope_is_reported(monkeypatch):
     _break(monkeypatch, "get_procedures", lambda handle: {"autofocus": {}})
     problems = validate_driver(_mock_instrument())

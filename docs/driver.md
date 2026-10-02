@@ -106,7 +106,7 @@ ones listed here.
 |---|---|---|
 | `connect` | the connection dictionary | *(returns a handle: anything)* |
 | `disconnect` *(optional)* | handle | *(returns nothing; afterwards every other call raises `RuntimeError`, and a second `disconnect` is harmless)* |
-| `get_info` | handle | `output_root`, the folder where images are saved |
+| `get_info` | handle | `output_root`, the folder where images are saved; and, recommended, `description` |
 | `get_actuators` | handle | `{axis: [actuator names]}` for `x`, `y`, `z` |
 | `get_xyz` | handle, `with_actuators=` | `{axis: {"value", "actuator", "unit", "range"}}` for `x`, `y`, `z`; `value` and `range` (`[min, max]`, how far the axis can travel) in micrometers from the origin |
 | `set_xyz` | handle, `x`, `y`, `z`, `with_actuators=` | `position` and `actuators`; raise if the move cannot be confirmed |
@@ -121,8 +121,20 @@ A *state* has two parts. `"changeable"` holds the settings that `set_state`
 applies. `"observed"` is a read-only report, such as which objective is in
 place and the pixel size; it is never used as an instruction. When the allowed
 values of an option cannot be listed, `"options"` may be a short description
-such as `"float > 0"`. Anything in `get_info` beyond `output_root` is an extra
-of your driver; an experiment that depends on it will not run elsewhere.
+such as `"float > 0"`.
+
+`description` is the microscope in plain words, for whoever drives it: a
+person, a notebook, or the ZMART AI agent, which learns the instrument from it.
+Say what the other answers cannot: what each setting in `changeable` means, its
+unit and its bounds, which objective sits in which slot, and anything about the
+sample or the images worth knowing. Leave out what `get_xyz` and
+`get_procedures` already report, since those stay current and a description
+does not. A driver without a description still works with the controller and
+in every experiment; only the AI agent then has less to go on. When it is
+there, it must be text with something in it.
+
+Anything else in `get_info` is an extra of your driver; an experiment that
+depends on it will not run elsewhere.
 
 ## Rules
 
