@@ -440,6 +440,9 @@ def test_the_mock_describes_itself():
     assert isinstance(description, str) and len(description) > 200
     for word in ("stage", "objective", "exposure", "laser"):
         assert word in description.lower(), word
+    # The bounds are this microscope's configured limits, not the software's widest ones.
+    for bounds in ("0 to 50", "0 to 800", "0.1 to 1000"):
+        assert bounds in description, bounds
 
 
 def test_a_bare_answer_without_the_envelope_is_reported(monkeypatch):
