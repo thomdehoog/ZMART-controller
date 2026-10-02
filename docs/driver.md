@@ -127,7 +127,7 @@ ones listed here.
 | `get_state` | handle | `{"changeable": {...}, "observed": {...}}` |
 | `set_state` | handle, state | what was applied; act on `changeable` only |
 | `get_acquisition_options` | handle | `{name: {"options": [...], "active": value}}` |
-| `acquire` | handle, `acquisition_type=`, `position_label=`, `options=` | `acquisition_type`, `position_label`, and `files`: a list with the path of every file the acquisition saved |
+| `acquire` | handle, `acquisition_type=`, `position_label=`, `options=` | `acquisition_type`, `position_label`; `files`, a list with the path of every file the acquisition saved; and `planes`, one entry per saved image plane (see below) |
 | `get_procedures` | handle | `{name: {"description", ...}}` |
 | `run_procedure` | handle, `{"name": ..., ...}` | `ran`, the name of the procedure; raise `ValueError` for an unknown name |
 
@@ -138,6 +138,31 @@ finds the pictures on any microscope: one written for a Leica keeps working on
 a Nikon only if both say where their images are in the same words. Every path
 must exist when `acquire` returns. An acquisition that did not succeed may
 list none.
+
+`planes` says where each saved picture sits on the sample. A file says how
+large a pixel is, but rarely where the stage stood, and a stack is taken with
+the stage at one place while its planes are spread above and below it. Only the
+driver knows, at the moment it acquires, so it says so here. That is what lets
+the operator page lay every picture down in its place, and lets a workflow tell
+one channel or depth from another, on any microscope. Each entry describes one
+image plane, a single picture of one channel at one depth and one moment:
+
+| Key | What it is |
+|---|---|
+| `path` | the file the plane is in; one of `files` |
+| `c` | which channel, counted from 0 in the order the microscope records them |
+| `z` | which depth of the stack, counted from 0 from the first plane taken; 0 for a single plane |
+| `t` | which moment, counted from 0; 0 for an acquisition taken once |
+| `x_um`, `y_um` | the stage position the plane was taken at, in micrometres, in the frame `get_xyz` and `set_xyz` use |
+| `z_um` | the height of this plane, in micrometres, in the same frame |
+
+When a file holds many planes, such as a stack saved as one file, every plane
+names that file, and `c`, `z` and `t` say where inside it the plane is. No two
+planes may share the same `c`, `z` and `t`. A position the driver genuinely
+cannot know is `None` rather than a guess, because a picture laid down in the
+wrong place is worse than one left unplaced. A driver may add entries of its
+own to a plane, such as a channel's name; they are extras that nothing relies
+on, so a workflow that should run on any microscope must not need them.
 
 A *state* has two parts. `"changeable"` holds the settings that `set_state`
 applies. `"observed"` is a read-only report, such as which objective is in

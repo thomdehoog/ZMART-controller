@@ -281,6 +281,37 @@ class TestDataHandling:
         assert 'PhysicalSizeX="1.0"' in description
         assert 'PositionZ="1.0"' in description
 
+    def test_each_plane_says_which_file_channel_depth_and_place_it_is(self, mic):
+        mic.set_xyz(100, 50, 3)
+        answer = mic.acquire(
+            acquisition_type="stack",
+            position_label="cell 2",
+            options={"z_planes": 3, "z_step_um": 2.0},
+        )["report"]
+        assert answer["planes"] == [
+            {
+                "path": answer["files"][index],
+                "c": 0,
+                "z": index,
+                "t": 0,
+                "x_um": 100.0,
+                "y_um": 50.0,
+                "z_um": 3.0 + 2.0 * index,
+            }
+            for index in range(3)
+        ]
+
+    def test_an_ome_zarr_stack_names_its_planes_inside_the_one_folder(self, mic):
+        answer = mic.acquire(
+            acquisition_type="t",
+            position_label="zp",
+            options={"format": "ome-zarr", "z_planes": 2, "z_step_um": 0.5},
+        )["report"]
+        root = answer["files"][0]
+        assert [(plane["path"], plane["z"]) for plane in answer["planes"]] == [(root, 0), (root, 1)]
+        bottom = answer["position"]["z"]
+        assert [plane["z_um"] for plane in answer["planes"]] == [bottom, bottom + 0.5]
+
     def test_never_overwrites(self, mic):
         first = mic.acquire(acquisition_type="t", position_label="A1")["report"]["files"]
         second = mic.acquire(acquisition_type="t", position_label="A1")["report"]["files"]
@@ -344,6 +375,7 @@ class TestDataHandling:
         )
         assert answer["success"] is False
         assert answer["report"]["files"] == []
+        assert answer["report"]["planes"] == []
         # An acquisition is never sent twice by itself.
         assert len(_sent(mic, "StartAcquisition")) == 1
 

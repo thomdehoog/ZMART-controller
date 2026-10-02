@@ -61,9 +61,11 @@ def save_acquisition(
 
     ``position_um`` is the user position at which the image was taken.
     ``log_mark`` is the command-log bookmark taken before the acquisition
-    started. Returns ``{"files": [...], "command_log": ...}`` with the saved
-    paths as text: ``files`` lists every file saved, the images first and the
-    command log last, as the contract in docs/driver.md asks.
+    started. Returns ``{"files": [...], "planes": [...], "command_log": ...}``
+    with the saved paths as text: ``files`` lists every file saved, the images
+    first and the command log last, and ``planes`` says for each image plane
+    which file holds it and where on the sample it was taken, as the contract
+    in docs/driver.md asks.
     """
     if image_format not in FORMATS:
         raise ValueError(f"unknown format {image_format!r}; choose one of {list(FORMATS)}")
@@ -107,6 +109,7 @@ def save_acquisition(
             extra=extra,
         )
         files.append(str(target))
+        held_in = [str(target)] * len(planes)
     else:
         many = len(planes) > 1
         suffixes = [".commands.json"] + (
@@ -127,8 +130,38 @@ def save_acquisition(
             target = folder / f"{name}.ome.tif"
             write_ome_tiff(target, plane, width, height, description)
             files.append(str(target))
+        held_in = list(files)
     log_path = folder / f"{stem}.commands.json"
     log_path.write_text(json.dumps(ctx.log.since(log_mark), indent=2))
     # Every file saved is listed, the log too, so whoever moves or archives
     # this acquisition leaves nothing behind.
-    return {"files": [*files, str(log_path)], "command_log": str(log_path)}
+    return {
+        "files": [*files, str(log_path)],
+        "planes": describe_planes(held_in, position_um, float(header["z_step_um"])),
+        "command_log": str(log_path),
+    }
+
+
+def describe_planes(
+    held_in: list[str], position_um: dict[str, float], z_step_um: float
+) -> list[dict]:
+    """Say where on the sample each saved plane was taken, one entry per plane.
+
+    ``held_in`` names the file each plane is in, bottom plane first. The
+    pretend microscope has one channel and takes a stack upwards from where
+    the stage stands, so plane ``z`` sits ``z`` steps above the stage height,
+    at the stage's x and y. A saved file cannot tell this; the driver can,
+    because it knows where it sent the stage.
+    """
+    return [
+        {
+            "path": path,
+            "c": 0,
+            "z": index,
+            "t": 0,
+            "x_um": float(position_um["x"]),
+            "y_um": float(position_um["y"]),
+            "z_um": float(position_um["z"]) + index * z_step_um,
+        }
+        for index, path in enumerate(held_in)
+    ]

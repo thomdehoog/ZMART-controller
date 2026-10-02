@@ -376,9 +376,10 @@ def acquire(
 
     Options left out keep their active value. The report lists every saved
     file under ``files`` (the images, then the ``command_log`` that records
-    how they were made, which is also named on its own). When
-    the acquisition cannot be confirmed, ``success`` is False and no files
-    are listed.
+    how they were made, which is also named on its own), and under ``planes``
+    which file, channel and depth each image plane is and the stage position
+    it was taken at. When the acquisition cannot be confirmed, ``success`` is
+    False and no files or planes are listed.
     """
     _require_open(handle)
     options = _with_defaults(options)
@@ -400,7 +401,9 @@ def acquire(
         "confirmed": outcome.confirmed,
     }
     if not outcome.confirmed:
-        return _answer({**report, "files": [], "reason": outcome.reason}, success=False)
+        return _answer(
+            {**report, "files": [], "planes": [], "reason": outcome.reason}, success=False
+        )
     saved = save_acquisition(
         handle,
         vendor_file=outcome.result,
