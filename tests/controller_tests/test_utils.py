@@ -530,6 +530,28 @@ def _answer(**report):
     return {"success": True, "report": {**base, **report}}
 
 
+def _plane(path, **entries):
+    """One plane entry as the contract describes it, with any entry replaced."""
+    return {
+        "path": str(path),
+        "c": 0,
+        "z": 0,
+        "t": 0,
+        "x_um": 100.0,
+        "y_um": 50.0,
+        "z_um": 3.0,
+        **entries,
+    }
+
+
+@pytest.fixture
+def saved(tmp_path):
+    """One saved image file, as an acquisition leaves it."""
+    path = tmp_path / "A1.ome.tif"
+    path.write_bytes(b"")
+    return path
+
+
 def test_the_mocks_acquisition_fits():
     assert check_acquire_answer(_acquire()) == []
 
@@ -552,10 +574,10 @@ def test_an_answer_without_files_is_reported():
     ]
 
 
-def test_a_file_that_is_not_there_is_reported(tmp_path):
-    saved = tmp_path / "A1.ome.tif"
-    saved.write_bytes(b"")
-    problems = check_acquire_answer(_answer(files=[str(saved), str(tmp_path / "gone.tif")]))
+def test_a_file_that_is_not_there_is_reported(tmp_path, saved):
+    problems = check_acquire_answer(
+        _answer(files=[str(saved), str(tmp_path / "gone.tif")], planes=[_plane(saved)])
+    )
     assert problems == [f"acquire: files names {tmp_path / 'gone.tif'}, which does not exist"]
 
 
@@ -566,19 +588,101 @@ def test_files_must_be_a_list_of_paths():
 
 
 def test_a_successful_acquisition_must_name_at_least_one_file():
-    assert check_acquire_answer(_answer(files=[])) == [
-        "acquire: a successful acquisition must list at least one file in files"
+    assert check_acquire_answer(_answer(files=[], planes=[])) == [
+        "acquire: a successful acquisition must list at least one file in files",
+        "acquire: a successful acquisition must describe at least one image plane in planes",
     ]
 
 
 def test_a_failed_acquisition_may_list_no_files():
-    answer = _answer(files=[], reason="the image never arrived")
+    answer = _answer(files=[], planes=[], reason="the image never arrived")
     answer["success"] = False
     assert check_acquire_answer(answer) == []
 
 
+# ---- planes: which channel, depth and stage position each saved image is
+
+
+def test_the_mock_describes_every_plane_of_a_stack():
+    answer = _acquire(z_planes=3, z_step_um=2.0)
+    assert check_acquire_answer(answer) == []
+    report = answer["report"]
+    bottom = report["position"]["z"]
+    assert [(plane["z"], plane["z_um"]) for plane in report["planes"]] == [
+        (0, bottom),
+        (1, bottom + 2.0),
+        (2, bottom + 4.0),
+    ]
+    assert {(plane["x_um"], plane["y_um"]) for plane in report["planes"]} == {
+        (report["position"]["x"], report["position"]["y"])
+    }
+
+
+def test_an_answer_without_planes_is_reported(saved):
+    assert check_acquire_answer(_answer(files=[str(saved)])) == [
+        "acquire: the report must contain planes, one entry per saved image saying which "
+        "file, channel, depth and stage position it is"
+    ]
+
+
+def test_planes_must_be_a_list_of_entries(saved):
+    assert check_acquire_answer(_answer(files=[str(saved)], planes=3)) == [
+        "acquire: planes must be a list with one entry (a dict) per saved image plane"
+    ]
+
+
+def test_a_plane_missing_an_entry_is_reported(saved):
+    plane = _plane(saved)
+    del plane["z_um"], plane["c"]
+    assert check_acquire_answer(_answer(files=[str(saved)], planes=[plane])) == [
+        "acquire: planes[0] must contain c, z_um"
+    ]
+
+
+def test_a_plane_must_name_one_of_the_saved_files(tmp_path, saved):
+    elsewhere = tmp_path / "B1.ome.tif"
+    problems = check_acquire_answer(_answer(files=[str(saved)], planes=[_plane(elsewhere)]))
+    assert problems == [f"acquire: planes[0] names {elsewhere}, which is not in files"]
+
+
+@pytest.mark.parametrize("key, value", [("c", -1), ("z", 1.5), ("t", True), ("c", "GFP")])
+def test_channel_depth_and_time_are_counted_from_zero(saved, key, value):
+    problems = check_acquire_answer(
+        _answer(files=[str(saved)], planes=[_plane(saved, **{key: value})])
+    )
+    assert problems == [f"acquire: planes[0] {key} must be a whole number from 0, got {value!r}"]
+
+
+@pytest.mark.parametrize("key, value", [("x_um", "12"), ("z_um", float("nan")), ("y_um", False)])
+def test_a_position_must_be_a_number_of_micrometres(saved, key, value):
+    problems = check_acquire_answer(
+        _answer(files=[str(saved)], planes=[_plane(saved, **{key: value})])
+    )
+    assert problems == [
+        f"acquire: planes[0] {key} must be a number of micrometres, or None when unknown, "
+        f"got {value!r}"
+    ]
+
+
+def test_a_position_the_driver_cannot_know_may_be_none(saved):
+    plane = _plane(saved, x_um=None, y_um=None, z_um=None)
+    assert check_acquire_answer(_answer(files=[str(saved)], planes=[plane])) == []
+
+
+def test_a_driver_may_add_its_own_entries_to_a_plane(saved):
+    plane = _plane(saved, channel_name="GFP", exposure_ms=20)
+    assert check_acquire_answer(_answer(files=[str(saved)], planes=[plane])) == []
+
+
+def test_two_planes_in_the_same_place_are_reported(saved):
+    planes = [_plane(saved), _plane(saved, z_um=4.0)]
+    assert check_acquire_answer(_answer(files=[str(saved)], planes=planes)) == [
+        "acquire: planes[1] repeats channel 0, depth 0 and time 0 of an earlier plane"
+    ]
+
+
 def test_the_name_and_label_must_come_back():
-    report = {"files": []}
+    report = {"files": [], "planes": []}
     problems = check_acquire_answer({"success": False, "report": report})
     assert problems == [
         "acquire: the report must contain acquisition_type",

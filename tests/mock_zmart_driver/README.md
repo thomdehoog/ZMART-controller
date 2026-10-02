@@ -24,6 +24,7 @@ zmart_controller.set_instrument(instrument)
 zmart_controller.set_xyz(100, 50, 0)
 answer = zmart_controller.acquire(acquisition_type="overview", position_label="A1")
 answer["report"]["files"]   # real OME-TIFF files you can open in Fiji or napari
+answer["report"]["planes"]  # for each picture: its file, channel, depth and stage position
 ```
 
 The pictures show a slide of small bright spots, like fluorescent beads.
