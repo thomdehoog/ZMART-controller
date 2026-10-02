@@ -4,6 +4,7 @@
 [![license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 [![dependencies](https://img.shields.io/badge/dependencies-none-brightgreen)](pyproject.toml)
 [![tests](https://img.shields.io/badge/tests-pytest-blue)](#testing)
+[![status](https://img.shields.io/badge/status-release%20candidate-orange)](#status)
 
 <img src="docs/zmart-controller-icon.png" align="left" width="150" alt="ZMART Controller">
 
