@@ -80,6 +80,12 @@ Plug it in once on the microscope computer with
 remembers the driver for later sessions. A missing function or a wrong file is
 refused at once, by name.
 
+The three identity keys must name your instrument and no other. An operator
+picks a microscope from the list by that name, so a second driver that claimed
+a name already taken would quietly be driven in its place. The controller
+therefore refuses a different driver asking for a name another driver holds,
+and names both folders; plugging the same driver in again is harmless.
+
 ## Does it fit?
 
 Once the driver connects, let the controller check the answers:
@@ -93,6 +99,14 @@ problems = zmart_controller.validate_driver(instrument)
 It calls every `get_*` function and compares each report with the contract
 below. The answer is a list of problems in plain words; an empty list means
 the driver fits. It moves nothing and acquires nothing.
+
+Because it acquires nothing, it cannot check `acquire`. Do that in your
+driver's own tests, after an acquisition on a simulator or a test bench:
+
+```python
+answer = session.acquire(acquisition_type="overview", position_label="A1")
+assert zmart_controller.check_acquire_answer(answer) == []
+```
 
 ## The contract
 
@@ -113,9 +127,17 @@ ones listed here.
 | `get_state` | handle | `{"changeable": {...}, "observed": {...}}` |
 | `set_state` | handle, state | what was applied; act on `changeable` only |
 | `get_acquisition_options` | handle | `{name: {"options": [...], "active": value}}` |
-| `acquire` | handle, `acquisition_type=`, `position_label=`, `options=` | `acquisition_type`, `position_label` and the saved file paths |
+| `acquire` | handle, `acquisition_type=`, `position_label=`, `options=` | `acquisition_type`, `position_label`, and `files`: a list with the path of every file the acquisition saved |
 | `get_procedures` | handle | `{name: {"description", ...}}` |
 | `run_procedure` | handle, `{"name": ..., ...}` | `ran`, the name of the procedure; raise `ValueError` for an unknown name |
+
+`files` lists everything the acquisition saved: the images, and any file the
+driver saved beside them for this acquisition. A format kept as a folder, such
+as OME-Zarr, is listed by its folder. The name is fixed so that a workflow
+finds the pictures on any microscope: one written for a Leica keeps working on
+a Nikon only if both say where their images are in the same words. Every path
+must exist when `acquire` returns. An acquisition that did not succeed may
+list none.
 
 A *state* has two parts. `"changeable"` holds the settings that `set_state`
 applies. `"observed"` is a read-only report, such as which objective is in

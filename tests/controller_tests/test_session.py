@@ -96,9 +96,9 @@ class TestAcquire:
         assert rec["settle"] == "backlash-corrected"  # active default
         assert rec["format"] == "ome-tiff"  # active default
         assert rec["confirmed"] is True
-        assert [Path(f).name for f in rec["files"]] == ["A1.ome.tif"]
+        assert [Path(f).name for f in rec["files"]] == ["A1.ome.tif", "A1.commands.json"]
         assert all(Path(f).is_file() for f in rec["files"])
-        assert Path(rec["command_log"]).is_file()
+        assert rec["files"][-1] == rec["command_log"]
 
     def test_acquire_options_override(self, mic):
         rec = mic.acquire(
@@ -108,7 +108,7 @@ class TestAcquire:
         )["report"]
         assert rec["settle"] == "direct"
         assert rec["format"] == "ome-zarr"
-        assert [Path(f).name for f in rec["files"]] == ["B2.ome.zarr"]
+        assert [Path(f).name for f in rec["files"]] == ["B2.ome.zarr", "B2.commands.json"]
         assert (Path(rec["files"][0]) / ".zattrs").is_file()
 
     def test_acquisition_options_discovered(self, mic):

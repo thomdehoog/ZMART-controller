@@ -12,7 +12,7 @@ from pathlib import Path
 
 import pytest
 
-from zmart_controller import utils, validate_driver
+from zmart_controller import check_acquire_answer, utils, validate_driver
 
 MOCK_FOLDER = Path(__file__).parents[1] / "mock_zmart_driver"
 
@@ -41,11 +41,11 @@ class TestRegister:
         assert "microscope" in str(err.value)
         assert "hunter2" not in str(err.value)
 
-    def test_duplicate_identity_overwrites_with_warning(self, scratch_identity, caplog):
-        utils.register(scratch_identity, ops=_full_ops())
-        with caplog.at_level("WARNING"):
-            utils.register(scratch_identity, ops=_full_ops())
-        assert "already registered" in caplog.text
+    def test_the_same_functions_registered_again_are_harmless(self, scratch_identity):
+        ops = _full_ops()
+        utils.register(scratch_identity, ops=ops)
+        utils.register(scratch_identity, ops=ops)
+        assert utils.REGISTRY[utils._identity(scratch_identity)]["ops"] is ops
 
     def test_connection_dict_is_copied(self, scratch_identity):
         utils.register(scratch_identity, ops=_full_ops())
@@ -177,6 +177,64 @@ class TestRegisterDriver:
         added = utils.register_driver("mock_zmart_driver", remember=False)
         assert [i["vendor"] for i in added] == ["mock"]
         assert utils.remembered_drivers() == []
+
+
+def own_functions(note: str) -> str:
+    """The text of a driver module that defines every function itself, so it is a driver of its own."""
+    lines = [f"NOTE = {note!r}"]
+    for name in utils.OPS + ("disconnect",):
+        lines.append(f"def {name}(*args, **kwargs):\n    return NOTE")
+    return "\n".join(lines) + "\n"
+
+
+class TestTwoDriversWithOneName:
+    """Two different drivers must never share an instrument's name.
+
+    The name (vendor, microscope, api) is how an operator picks a microscope
+    from the list. If a second driver could take over a name, choosing that
+    microscope would quietly drive a different one.
+    """
+
+    def test_a_different_driver_taking_a_name_already_held_is_refused(self, tmp_path, forget_acme):
+        first = make_driver(tmp_path / "first", "shared", functions=own_functions("first"))
+        second = make_driver(tmp_path / "second", "shared", functions=own_functions("second"))
+        utils.register_driver(first, remember=False)
+        with pytest.raises(ValueError) as refused:
+            utils.register_driver(second, remember=False)
+        message = str(refused.value)
+        assert "acme / shared / acme-sdk" in message
+        assert str((first / "zmart_controller").resolve()) in message
+        assert str((second / "zmart_controller").resolve()) in message
+        ops = utils.REGISTRY[("acme", "shared", "acme-sdk")]["ops"]
+        assert ops["connect"]() == "first"
+
+    def test_the_refused_driver_is_not_remembered(self, tmp_path, forget_acme):
+        first = make_driver(tmp_path / "first", "kept-name", functions=own_functions("first"))
+        second = make_driver(tmp_path / "second", "kept-name", functions=own_functions("second"))
+        utils.register_driver(first)
+        with pytest.raises(ValueError):
+            utils.register_driver(second)
+        assert utils.remembered_drivers() == [str(first.resolve())]
+
+    def test_the_same_driver_by_folder_and_by_name_is_harmless(self):
+        utils.register_driver("mock_zmart_driver", remember=False)
+        utils.register_driver(MOCK_FOLDER, remember=False)
+        assert sum(i["microscope"] == "mock-scope" for i in utils.get_instruments()) == 1
+
+    def test_a_driver_set_up_earlier_cannot_take_the_name_of_one_plugged_in_now(
+        self, tmp_path, forget_acme, monkeypatch, caplog
+    ):
+        """A remembered driver that clashes is skipped with the reason, and the others still load."""
+        first = make_driver(tmp_path / "first", "taken", functions=own_functions("first"))
+        second = make_driver(tmp_path / "second", "taken", functions=own_functions("second"))
+        utils._save_remembered([str(second.resolve())])
+        utils.register_driver(first, remember=False)
+        monkeypatch.setattr(utils, "_discovered", False)
+        with caplog.at_level("ERROR"):
+            listed = utils.get_instruments()
+        assert sum(i["microscope"] == "taken" for i in listed) == 1
+        assert utils.REGISTRY[("acme", "taken", "acme-sdk")]["ops"]["connect"]() == "first"
+        assert "acme / taken / acme-sdk" in caplog.text
 
 
 class TestRegisterDriverRefusals:
@@ -449,6 +507,88 @@ def test_a_bare_answer_without_the_envelope_is_reported(monkeypatch):
     _break(monkeypatch, "get_procedures", lambda handle: {"autofocus": {}})
     problems = validate_driver(_mock_instrument())
     assert any('get_procedures must return {"success"' in p for p in problems)
+
+
+# ---- check_acquire_answer: does an acquisition say where its files are?
+
+
+def _acquire(**options):
+    """Acquire once on the mock and return its answer, as a driver's own test would."""
+    from zmart_controller import set_instrument
+
+    session = set_instrument(_mock_instrument())
+    try:
+        return session.acquire(
+            acquisition_type="overview", position_label="A1", options=options or None
+        )
+    finally:
+        session.disconnect()
+
+
+def _answer(**report):
+    base = {"acquisition_type": "overview", "position_label": "A1"}
+    return {"success": True, "report": {**base, **report}}
+
+
+def test_the_mocks_acquisition_fits():
+    assert check_acquire_answer(_acquire()) == []
+
+
+def test_files_names_everything_the_acquisition_saved():
+    report = _acquire(z_planes=2)["report"]
+    names = [Path(path).name for path in report["files"]]
+    assert names == ["A1_z000.ome.tif", "A1_z001.ome.tif", "A1.commands.json"]
+    assert report["command_log"] in report["files"]
+
+
+def test_an_ome_zarr_folder_counts_as_a_saved_file():
+    assert check_acquire_answer(_acquire(format="ome-zarr")) == []
+
+
+def test_an_answer_without_files_is_reported():
+    problems = check_acquire_answer(_answer(images=["a.tif"]))
+    assert problems == [
+        "acquire: the report must contain files, the list of paths of every file it saved"
+    ]
+
+
+def test_a_file_that_is_not_there_is_reported(tmp_path):
+    saved = tmp_path / "A1.ome.tif"
+    saved.write_bytes(b"")
+    problems = check_acquire_answer(_answer(files=[str(saved), str(tmp_path / "gone.tif")]))
+    assert problems == [f"acquire: files names {tmp_path / 'gone.tif'}, which does not exist"]
+
+
+def test_files_must_be_a_list_of_paths():
+    assert check_acquire_answer(_answer(files="A1.ome.tif")) == [
+        "acquire: files must be a list of paths, one per saved file"
+    ]
+
+
+def test_a_successful_acquisition_must_name_at_least_one_file():
+    assert check_acquire_answer(_answer(files=[])) == [
+        "acquire: a successful acquisition must list at least one file in files"
+    ]
+
+
+def test_a_failed_acquisition_may_list_no_files():
+    answer = _answer(files=[], reason="the image never arrived")
+    answer["success"] = False
+    assert check_acquire_answer(answer) == []
+
+
+def test_the_name_and_label_must_come_back():
+    report = {"files": []}
+    problems = check_acquire_answer({"success": False, "report": report})
+    assert problems == [
+        "acquire: the report must contain acquisition_type",
+        "acquire: the report must contain position_label",
+    ]
+
+
+def test_an_acquisition_without_the_envelope_is_reported():
+    problems = check_acquire_answer({"files": []})
+    assert problems == ['acquire must return {"success": ..., "report": ...}, got dict']
 
 
 @pytest.fixture(autouse=True)

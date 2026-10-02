@@ -62,7 +62,8 @@ def save_acquisition(
     ``position_um`` is the user position at which the image was taken.
     ``log_mark`` is the command-log bookmark taken before the acquisition
     started. Returns ``{"files": [...], "command_log": ...}`` with the saved
-    paths as text.
+    paths as text: ``files`` lists every file saved, the images first and the
+    command log last, as the contract in docs/driver.md asks.
     """
     if image_format not in FORMATS:
         raise ValueError(f"unknown format {image_format!r}; choose one of {list(FORMATS)}")
@@ -128,4 +129,6 @@ def save_acquisition(
             files.append(str(target))
     log_path = folder / f"{stem}.commands.json"
     log_path.write_text(json.dumps(ctx.log.since(log_mark), indent=2))
-    return {"files": files, "command_log": str(log_path)}
+    # Every file saved is listed, the log too, so whoever moves or archives
+    # this acquisition leaves nothing behind.
+    return {"files": [*files, str(log_path)], "command_log": str(log_path)}

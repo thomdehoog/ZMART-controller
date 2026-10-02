@@ -374,8 +374,9 @@ def acquire(
 ) -> dict:
     """Capture an image (or a z-stack) here and save it, in one step.
 
-    Options left out keep their active value. The report lists the saved
-    ``files`` and the ``command_log`` that records how they were made. When
+    Options left out keep their active value. The report lists every saved
+    file under ``files`` (the images, then the ``command_log`` that records
+    how they were made, which is also named on its own). When
     the acquisition cannot be confirmed, ``success`` is False and no files
     are listed.
     """
