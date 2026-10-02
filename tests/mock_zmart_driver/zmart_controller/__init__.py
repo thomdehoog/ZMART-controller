@@ -180,16 +180,24 @@ def disconnect(handle: MockHandle) -> None:
 # the ZMART AI agent, which builds its picture of the instrument from this. It
 # says what the other answers cannot: what each setting means, in which unit and
 # within which bounds, and which objective sits in which slot. Travel ranges and
-# routines are left to get_xyz and get_procedures, which report them live.
+# routines are left to get_xyz and get_procedures, which report them live. The
+# bounds of the settings come from this microscope's limits file when get_info
+# runs, so the description never promises more than the driver allows.
 DESCRIPTION = """A pretend widefield fluorescence microscope that runs entirely in software (MockScope Control), for trying workflows without hardware. It images a sample of scattered fluorescent spots on a slide that is slightly tilted, so the sharp height changes a little from place to place.
 
 Stage: x and y move the slide, z moves the focus, all in micrometres from the origin. z has two motors: "motoric" for long moves and "piezo" for fine, fast steps around the current height.
 
 Objectives, by slot: 1 is 10x/0.30 Air (1.0 um per pixel), 2 is 20x/0.75 Air (0.5 um per pixel), 3 is 40x/0.95 Air (0.25 um per pixel). Every image is 64 x 64 pixels, so the field of view shrinks as the magnification grows. Changing objective shifts the view slightly; the driver corrects for it.
 
-Settings (the changeable part of the state): objective is the slot number above; laser_power is the excitation in percent, 0 to 100; gain is the detector gain, 0 to 1000; exposure_ms is the exposure time in milliseconds, 0.1 to 10000. The image gets brighter with more laser power, gain or exposure; very bright settings saturate it.
+Settings (the changeable part of the state): objective is the slot number above; laser_power is the excitation in percent, {laser_power}; gain is the detector gain, {gain}; exposure_ms is the exposure time in milliseconds, {exposure_ms}. The image gets brighter with more laser power, gain or exposure; very bright settings saturate it.
 
 Acquiring saves each image under the output folder, in a folder named by the acquisition type and a file named by the position label. A z-stack of several planes around the current height is one acquisition."""
+
+
+def _described(limits: dict) -> str:
+    """The description, with each setting's bounds as this microscope's limits set them."""
+    bounds = {name: f"{low:g} to {high:g}" for name, (low, high) in limits["settings"].items()}
+    return DESCRIPTION.format(**bounds)
 
 
 def get_info(handle: MockHandle) -> dict:
@@ -198,7 +206,7 @@ def get_info(handle: MockHandle) -> dict:
     return _answer(
         {
             "output_root": str(handle.output_root),
-            "description": DESCRIPTION,
+            "description": _described(handle.config.limits),
             "client": handle.client,
             "serial": handle.config.machine_description["serial"],
             "software": dict(handle.software),
