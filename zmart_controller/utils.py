@@ -449,6 +449,12 @@ def _envelope(name: str, answer: Any, problems: list[str]):
 def _check_info(report, problems):
     if not isinstance(report, dict) or "output_root" not in report:
         problems.append("get_info: the report must contain output_root")
+        return
+    # Optional: a driver may leave the description out. When it is there it
+    # has to say something, because whoever drives the microscope reads it.
+    description = report.get("description")
+    if "description" in report and not (isinstance(description, str) and description.strip()):
+        problems.append("get_info: description must be text that describes the microscope")
 
 
 def _check_actuators(report, problems):
