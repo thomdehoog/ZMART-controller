@@ -148,6 +148,15 @@ what it knows: its objectives, its camera and its stack limits. The interface
 and the viewer use it to lay out the whole specimen area before the first
 picture is taken, so nothing has to grow or shift once pictures arrive.
 
+The positions and the pictures share one frame, the one in which you observe
+the specimen: in a saved image, **right is +x and down is +y**. A picture
+taken further along +x shows the part of the specimen that lay to its right.
+The driver arranges this, whatever way the camera or the stage is mounted, so
+that "left", "right", "up" and "down" mean the same on every microscope, to a
+person reading the images and to anything that drives the stage from them.
+Which way +z points (towards the objective or away from it) is the
+microscope's own; a driver says so in its `description`.
+
 `files` lists everything the acquisition saved: the images, and any file the
 driver saved beside them for this acquisition. A format kept as a folder, such
 as OME-Zarr, is listed by its folder. The name is fixed so that a workflow
