@@ -256,6 +256,27 @@ class TestTravelRange:
         finally:
             session.disconnect()
 
+    def test_reach_is_the_travel_widened_by_half_the_widest_field(self):
+        """At the edge of travel a picture still shows half a field further out.
+
+        The mock's widest field is the 10x objective's: 64 pixels of 1.0 um,
+        so x and y reach 32 um past the travel. Its z-stacks must stay inside
+        the travel, so z reaches exactly as far as the stage goes.
+        """
+        from mock_zmart_driver.configuration import save
+
+        from zmart_controller.session import set_instrument as open_session
+
+        save("origin", {"x": 51_000.0, "y": 37_500.0, "z": 5_000.0})
+        session = open_session(_mock_instrument())
+        try:
+            report = session.get_xyz()["report"]
+            assert report["x"]["reach"] == [-6032.0, 4032.0]
+            assert report["y"]["reach"] == [-5032.0, 5032.0]
+            assert report["z"]["reach"] == report["z"]["range"]
+        finally:
+            session.disconnect()
+
     def test_a_move_outside_the_range_is_refused_before_moving(self, mic):
         mic.set_xyz(10, 0, 0)
         with pytest.raises(ValueError, match="outside the travel range"):

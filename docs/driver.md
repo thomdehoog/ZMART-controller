@@ -49,6 +49,8 @@ anything else is handed to `connect` as it is:
 
 ```python
 TRAVEL = {"x": (-5000.0, 5000.0), "y": (-5000.0, 5000.0), "z": (-500.0, 500.0)}
+# Half the widest field (x, y) and half the deepest stack (z) this microscope takes.
+HALF_PICTURE = {"x": 650.0, "y": 650.0, "z": 100.0}
 
 def connect(connection):
     client = MyVendorClient(host=connection["host"])
@@ -64,6 +66,10 @@ def get_xyz(handle, *, with_actuators=None):
             "actuator": "motoric",
             "unit": "um",
             "range": [lo - handle["origin"][axis], hi - handle["origin"][axis]],
+            "reach": [
+                lo - handle["origin"][axis] - HALF_PICTURE[axis],
+                hi - handle["origin"][axis] + HALF_PICTURE[axis],
+            ],
         }
         for axis, (lo, hi) in TRAVEL.items()
     }
@@ -122,7 +128,7 @@ ones listed here.
 | `disconnect` *(optional)* | handle | *(returns nothing; afterwards every other call raises `RuntimeError`, and a second `disconnect` is harmless)* |
 | `get_info` | handle | `output_root`, the folder where images are saved; and, recommended, `description` |
 | `get_actuators` | handle | `{axis: [actuator names]}` for `x`, `y`, `z` |
-| `get_xyz` | handle, `with_actuators=` | `{axis: {"value", "actuator", "unit", "range"}}` for `x`, `y`, `z`; `value` and `range` (`[min, max]`, how far the axis can travel) in micrometers from the origin |
+| `get_xyz` | handle, `with_actuators=` | `{axis: {"value", "actuator", "unit", "range", "reach"}}` for `x`, `y`, `z`; `value`, `range` (`[min, max]`, how far the axis can travel) and `reach` (`[min, max]`, everywhere a picture can show on that axis; see below) in micrometers from the origin |
 | `set_xyz` | handle, `x`, `y`, `z`, `with_actuators=` | `position` and `actuators`; raise if the move cannot be confirmed |
 | `get_state` | handle | `{"changeable": {...}, "observed": {...}}` |
 | `set_state` | handle, state | what was applied; act on `changeable` only |
@@ -130,6 +136,17 @@ ones listed here.
 | `acquire` | handle, `acquisition_type=`, `position_label=`, `options=` | `acquisition_type`, `position_label`; `files`, a list with the path of every file the acquisition saved; and `planes`, one entry per saved image plane (see below) |
 | `get_procedures` | handle | `{name: {"description", ...}}` |
 | `run_procedure` | handle, `{"name": ..., ...}` | `ran`, the name of the procedure; raise `ValueError` for an unknown name |
+
+`reach` is the area a picture can cover. The stage stops at the end of its
+travel, but a picture taken there still shows half a field beyond it, and a
+z-stack started at the top or bottom of the focus can reach half a stack
+further. So `reach` is the travel widened by half the largest field the driver
+can take (for x and y) and half the deepest stack (for z), and it always
+contains `range`. When the stage, or the limits, keep every picture inside the
+travel on some axis, `reach` equals `range` there. The driver works it out from
+what it knows: its objectives, its camera and its stack limits. The interface
+and the viewer use it to lay out the whole specimen area before the first
+picture is taken, so nothing has to grow or shift once pictures arrive.
 
 `files` lists everything the acquisition saved: the images, and any file the
 driver saved beside them for this acquisition. A format kept as a folder, such

@@ -73,6 +73,8 @@ class MockHandle:
     the pretend software itself, for tests). ``get`` and ``set`` are the two
     dispatchers, ``config`` the configuration loaded at connect, ``log`` the
     command log, and ``output_root`` the folder where images are saved.
+    ``camera`` is the camera's frame in pixels, read once at connect: it
+    never changes while the software runs.
     """
 
     vendor: MockScopeConnection
@@ -85,6 +87,7 @@ class MockHandle:
     client: Any = None
     closed: bool = False
     software: dict[str, str] = field(default_factory=dict)
+    camera: dict[str, int] = field(default_factory=dict)
 
     @property
     def scope(self):
@@ -140,17 +143,21 @@ def connect(connection: dict) -> MockHandle:
             client=connection.get("client"),
         )
         handle.software = get.version(handle).value_or_raise("the software version")
-        _check_machine(handle)
+        hardware = get.hardware(handle).value_or_raise("the hardware description")
+        _check_machine(handle, hardware["serial"])
+        handle.camera = {
+            "width": hardware["camera"]["width"],
+            "height": hardware["camera"]["height"],
+        }
     except BaseException:
         vendor.close()
         raise
     return handle
 
 
-def _check_machine(handle: MockHandle) -> None:
+def _check_machine(handle: MockHandle, serial: str) -> None:
     """Refuse a configuration that belongs to another microscope; warn about an untested version."""
     machine = handle.config.machine_description
-    serial = get.hardware(handle).value_or_raise("the hardware description")["serial"]
     if serial != machine["serial"]:
         raise RuntimeError(
             f"this microscope reports serial {serial}, but the configuration in "
@@ -235,12 +242,14 @@ def _actuators(with_actuators: dict | None) -> dict[str, str]:
 
 
 def get_xyz(handle: MockHandle, *, with_actuators: dict | None = None) -> dict:
-    """The position in micrometers from the origin, and how far each axis may travel."""
+    """The position in micrometers from the origin, how far each axis may travel,
+    and how far a picture can reach along it."""
     _require_open(handle)
     chosen = _actuators(with_actuators)
     raw = get.raw_position(handle).value_or_raise("the position")
     user = get.user_position(handle).value_or_raise("the position")
     ranges = user_range(handle.config, raw["objective"])
+    reaches = _reach(handle, ranges)
     return _answer(
         {
             axis: {
@@ -248,10 +257,29 @@ def get_xyz(handle: MockHandle, *, with_actuators: dict | None = None) -> dict:
                 "actuator": chosen[axis],
                 "unit": "um",
                 "range": ranges[axis],
+                "reach": reaches[axis],
             }
             for axis in ("x", "y", "z")
         }
     )
+
+
+def _reach(handle: MockHandle, ranges: dict[str, list[float]]) -> dict[str, list[float]]:
+    """Everywhere a picture can show, per axis: the travel widened by half the widest field.
+
+    A picture is centred on the stage position, so one taken at the edge of
+    travel shows half a field beyond it. The widest field belongs to the
+    objective with the largest pixels among those the limits allow; its
+    longest side is used for x and y alike, so a turned camera is covered
+    too. z is not widened: this microscope's z-stacks go upwards from the
+    stage height and the limits keep the whole stack inside the travel, so
+    no plane is ever taken outside it.
+    """
+    pixel_sizes = handle.config.image_stage_registration["pixel_size_um"]
+    widest_pixel = max(float(pixel_sizes[str(slot)]) for slot in handle.config.limits["objectives"])
+    half_field = max(handle.camera["width"], handle.camera["height"]) * widest_pixel / 2
+    widen = {"x": half_field, "y": half_field, "z": 0.0}
+    return {axis: [low - widen[axis], high + widen[axis]] for axis, (low, high) in ranges.items()}
 
 
 def set_xyz(
