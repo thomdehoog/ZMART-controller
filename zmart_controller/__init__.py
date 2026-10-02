@@ -43,10 +43,17 @@ __affiliation__ = "Center for Microscopy and Image Analysis (ZMB), University of
 
 from .session import Session
 from .session import set_instrument as _set_instrument
-from .utils import forget_driver, get_instruments, register_driver, validate_driver
+from .utils import (
+    check_acquire_answer,
+    forget_driver,
+    get_instruments,
+    register_driver,
+    validate_driver,
+)
 
 __all__ = [
     "Session",
+    "check_acquire_answer",
     "validate_driver",
     "disconnect",
     "forget_driver",

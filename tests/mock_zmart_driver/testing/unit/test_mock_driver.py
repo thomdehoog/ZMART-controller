@@ -271,7 +271,12 @@ class TestDataHandling:
             acquisition_type="stack", position_label="cell 1", options={"z_planes": 3}
         )["report"]
         names = [Path(f).name for f in answer["files"]]
-        assert names == ["cell_1_z000.ome.tif", "cell_1_z001.ome.tif", "cell_1_z002.ome.tif"]
+        assert names == [
+            "cell_1_z000.ome.tif",
+            "cell_1_z001.ome.tif",
+            "cell_1_z002.ome.tif",
+            "cell_1.commands.json",
+        ]
         description = _tiff_description(Path(answer["files"][1]))
         assert 'PhysicalSizeX="1.0"' in description
         assert 'PositionZ="1.0"' in description

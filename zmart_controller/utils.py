@@ -6,8 +6,8 @@ A driver registers a table of functions, one per command, under a
 ``connect`` unchanged.
 
 The registry checks only that a driver fits: every required function is
-there, and the three identity keys are present. Everything else is the
-driver's job.
+there, the three identity keys are present, and no other driver already
+holds that name. Everything else is the driver's job.
 
 A driver is a folder with a ``zmart.json`` naming its instruments and a
 module holding its functions. :func:`register_driver` reads the file, checks
@@ -18,7 +18,9 @@ through an entry point; see :func:`discover_installed_drivers`.
 
 :func:`validate_driver` is for whoever writes a driver: it calls the
 driver's ``get_*`` commands and checks the answers against the contract in
-``docs/driver.md``.
+``docs/driver.md``. :func:`check_acquire_answer` does the same for one
+acquisition, which the driver's own tests take, since checking it means
+taking a picture.
 
 Author: Thom de Hoog, Center for Microscopy and Image Analysis (ZMB),
 University of Zurich (thom.dehoog@zmb.uzh.ch, thomdehoog@gmail.com).
@@ -79,18 +81,55 @@ def register(connection: dict[str, Any], *, ops: dict[str, Any]) -> None:
     ``connection`` names the instrument and holds whatever the driver needs to
     connect. ``ops`` maps every name in :data:`OPS` to a function;
     ``disconnect`` is optional. Raises ``ValueError`` if a function or an
-    identity key is missing. Registering the same instrument twice replaces
-    the earlier entry, with a warning.
+    identity key is missing.
+
+    Registering the same driver again is harmless: its entry is simply
+    refreshed. A *different* driver asking for a name another driver already
+    holds is refused with ``ValueError``, naming both folders. The name is how
+    an operator picks a microscope from the list, so letting a second driver
+    take it over would quietly drive a different microscope than the one
+    chosen.
     """
     missing = [name for name in OPS if name not in ops]
     if missing:
         raise ValueError(f"driver {_identity(connection)} missing ops: {missing}")
     key = _identity(connection)
-    if key in REGISTRY:
-        logger.warning("driver %s already registered; overwriting", key)
+    _refuse_a_name_held_by_another_driver(key, ops)
     # A full copy, nested settings included: later edits to the caller's dict,
     # or to a dict from get_instruments(), must never change what is stored.
     REGISTRY[key] = {"connection": copy.deepcopy(connection), "ops": ops}
+
+
+def _refuse_a_name_held_by_another_driver(key: tuple[str, ...], ops: dict[str, Any]) -> None:
+    """Raise ``ValueError`` when a different driver already holds this instrument's name."""
+    held = REGISTRY.get(key)
+    if held is not None and _origin(held["ops"]) != _origin(ops):
+        raise ValueError(
+            f"two drivers both call their instrument {' / '.join(key)}. The driver in "
+            f"{_folder_of(held['ops'])} was plugged in first, and the driver in "
+            f"{_folder_of(ops)} asks for the same name. Give one of them a different "
+            f"vendor, microscope or api in its zmart.json."
+        )
+
+
+def _origin(ops: dict[str, Any]) -> dict[str, tuple[str, str]]:
+    """Where each of a driver's functions was written: its module and its name there.
+
+    Two tables with the same origins are the same driver, even when they were
+    collected twice (once by folder, once by module name) or after the
+    driver's module was loaded again.
+    """
+    return {
+        name: (getattr(func, "__module__", ""), getattr(func, "__qualname__", repr(func)))
+        for name, func in ops.items()
+    }
+
+
+def _folder_of(ops: dict[str, Any]) -> str:
+    """The folder a driver's ``connect`` lives in, to name the driver in a message."""
+    module = sys.modules.get(getattr(ops["connect"], "__module__", ""))
+    path = getattr(module, "__file__", None)
+    return str(Path(path).resolve().parent) if path else f"module {module!r}"
 
 
 # The folder with the driver's controller-facing functions, inside a driver.
@@ -198,14 +237,18 @@ def register_driver(driver: str | Path, *, remember: bool = True) -> list[dict[s
     ``remember=False`` to plug it in for this session only. Calling it twice
     is harmless.
 
-    Raises ``ValueError`` when nothing is found, the file is wrong, or a
-    function is missing, and says which.
+    Raises ``ValueError`` when nothing is found, the file is wrong, a
+    function is missing, or a different driver already holds one of the
+    instrument names, and says which.
     """
     plugin_dir, module = _locate_plugin(driver)
     manifest = _read_manifest(plugin_dir / MANIFEST)
     if module is None:
         module = _import_plugin(plugin_dir)
     ops = _collect_ops(module, plugin_dir)
+    # Every name is checked before any is registered, so a refused driver adds nothing.
+    for instrument in manifest["instruments"]:
+        _refuse_a_name_held_by_another_driver(_identity(instrument), ops)
     added = []
     for instrument in manifest["instruments"]:
         register(instrument, ops=ops)
@@ -507,3 +550,50 @@ def _check_procedures(report, problems):
     for name, spec in report.items():
         if not isinstance(spec, dict) or "description" not in spec:
             problems.append(f'get_procedures: {name!r} must have a "description"')
+
+
+# ---- checking one acquisition against the contract
+
+
+def check_acquire_answer(answer: Any) -> list[str]:
+    """Check what a driver's ``acquire`` answered against the contract.
+
+    ``answer`` is the whole answer, ``{"success": ..., "report": ...}``. The
+    report must name the ``acquisition_type`` and ``position_label`` it was
+    given, and list under ``files`` the path of every file the acquisition
+    saved: the images and anything saved beside them. A format kept as a
+    folder, such as OME-Zarr, is listed by its folder. Every path must exist.
+    This is how a workflow finds the pictures on any microscope, so a driver
+    that keeps them under a name of its own works with none of them.
+
+    An acquisition that did not succeed may list no files. Returns the
+    problems found, one sentence each; empty means the answer fits.
+
+    :func:`validate_driver` cannot take a picture, because it must never move
+    or expose anything. A driver's own tests call this after an acquisition
+    instead, on a simulator or a test bench.
+    """
+    problems: list[str] = []
+    report = _envelope("acquire", answer, problems)
+    if report is None:
+        return problems
+    if not isinstance(report, dict):
+        return problems + ["acquire: the report must be a dict"]
+    for key in ("acquisition_type", "position_label"):
+        if key not in report:
+            problems.append(f"acquire: the report must contain {key}")
+    if "files" not in report:
+        problems.append(
+            "acquire: the report must contain files, the list of paths of every file it saved"
+        )
+        return problems
+    files = report["files"]
+    if not isinstance(files, list) or not all(isinstance(path, str) for path in files):
+        problems.append("acquire: files must be a list of paths, one per saved file")
+        return problems
+    if answer.get("success") is True and not files:
+        problems.append("acquire: a successful acquisition must list at least one file in files")
+    for path in files:
+        if not Path(path).exists():
+            problems.append(f"acquire: files names {path}, which does not exist")
+    return problems
