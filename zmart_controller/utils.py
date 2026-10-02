@@ -520,12 +520,47 @@ def _check_xyz(report, problems):
         if not isinstance(reading, dict):
             problems.append(f"get_xyz: axis {axis!r} is missing")
             continue
-        for key in ("value", "actuator", "unit", "range"):
+        for key in ("value", "actuator", "unit", "range", "reach"):
             if key not in reading:
                 problems.append(f"get_xyz: axis {axis!r} is missing {key!r}")
         rng = reading.get("range")
         if rng is not None and not (isinstance(rng, (list, tuple)) and len(rng) == 2):
             problems.append(f"get_xyz: axis {axis!r} range must be [min, max]")
+            rng = None
+        reach = reading.get("reach")
+        if reach is not None:
+            _check_reach(axis, reach, rng, problems)
+
+
+def _is_number(value) -> bool:
+    """True for an int or a float; True and False are not numbers here."""
+    return isinstance(value, (int, float)) and not isinstance(value, bool)
+
+
+def _check_reach(axis, reach, travel, problems):
+    """Check one axis's ``reach``: everywhere a picture can show along it.
+
+    A picture taken at the edge of travel still shows half a field (or half
+    a stack) further out, so reach is [min, max] in micrometers and always
+    holds the travel range.
+    """
+    if not (
+        isinstance(reach, (list, tuple))
+        and len(reach) == 2
+        and all(_is_number(end) for end in reach)
+        and reach[0] <= reach[1]
+    ):
+        problems.append(
+            f"get_xyz: axis {axis!r} reach must be [min, max] in micrometers, "
+            f"with min no larger than max"
+        )
+        return
+    if travel is not None and all(_is_number(end) for end in travel):
+        if not (reach[0] <= travel[0] and travel[1] <= reach[1]):
+            problems.append(
+                f"get_xyz: axis {axis!r} reach {list(reach)} must contain "
+                f"the travel range {list(travel)}"
+            )
 
 
 def _check_state(report, problems):

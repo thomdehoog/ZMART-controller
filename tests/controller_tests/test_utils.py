@@ -469,6 +469,55 @@ def test_problems_are_named(monkeypatch):
     assert not any(p.startswith("get_state") for p in problems)
 
 
+def _xyz_with(**reach_per_axis):
+    """A get_xyz whose travel is [-100, 100] on every axis, with the reach given per axis.
+
+    An axis left out of ``reach_per_axis`` reports a reach of [-150, 150].
+    The value ``"absent"`` leaves the key out altogether.
+    """
+
+    def get_xyz(handle, **kw):
+        report = {}
+        for axis in ("x", "y", "z"):
+            reading = {"value": 0.0, "actuator": "motoric", "unit": "um", "range": [-100.0, 100.0]}
+            reach = reach_per_axis.get(axis, [-150.0, 150.0])
+            if reach != "absent":
+                reading["reach"] = reach
+            report[axis] = reading
+        return {"success": True, "report": report}
+
+    return get_xyz
+
+
+def test_a_driver_without_reach_is_told_so(monkeypatch):
+    _break(monkeypatch, "get_xyz", _xyz_with(z="absent"))
+    assert validate_driver(_mock_instrument()) == ["get_xyz: axis 'z' is missing 'reach'"]
+
+
+@pytest.mark.parametrize(
+    "reach", [[-150.0], "far", [-150.0, "far"], [True, 150.0], [150.0, -150.0]]
+)
+def test_a_reach_that_is_not_min_then_max_is_reported(monkeypatch, reach):
+    _break(monkeypatch, "get_xyz", _xyz_with(x=reach))
+    assert validate_driver(_mock_instrument()) == [
+        "get_xyz: axis 'x' reach must be [min, max] in micrometers, with min no larger than max"
+    ]
+
+
+@pytest.mark.parametrize("reach", [[-50.0, 150.0], [-150.0, 50.0], [-50.0, 50.0]])
+def test_a_reach_smaller_than_the_travel_is_reported(monkeypatch, reach):
+    """A picture can always show at least where the stage can go, so reach holds the travel."""
+    _break(monkeypatch, "get_xyz", _xyz_with(y=reach))
+    assert validate_driver(_mock_instrument()) == [
+        f"get_xyz: axis 'y' reach {reach} must contain the travel range [-100.0, 100.0]"
+    ]
+
+
+def test_a_reach_equal_to_the_travel_fits(monkeypatch):
+    _break(monkeypatch, "get_xyz", _xyz_with(z=[-100.0, 100.0]))
+    assert validate_driver(_mock_instrument()) == []
+
+
 def test_a_driver_without_a_description_still_fits(monkeypatch):
     """The description is for whoever drives the microscope; the controller runs without it."""
     _break(monkeypatch, "get_info", lambda handle: {"success": True, "report": {"output_root": "x"}})
