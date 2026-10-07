@@ -114,7 +114,7 @@ zmart_controller.mock.__all__
 These twelve names are the whole connection between the controller and a
 microscope. `disconnect` is optional; the other eleven are required.
 
-**`driver.py`** holds those functions. Each one is short: it takes the
+**`zmart_controller_plugin.py`** holds those functions. Each one is short: it takes the
 request, hands it to the parts of the driver below it (moving the stage,
 reading back the position, writing the file), and wraps the result as
 `{"success": ..., "content": ...}`. The other folders are those parts. A real
@@ -141,6 +141,9 @@ where and how it was taken.
 import json
 import tempfile
 from pathlib import Path
+
+# The driver's name in the controller's list of drivers.
+NAME = "pretend-scope"
 
 # How far each axis can travel, in micrometres from the origin.
 TRAVEL = {"x": [-1000.0, 1000.0], "y": [-1000.0, 1000.0], "z": [-100.0, 100.0]}
@@ -318,7 +321,29 @@ the line with `"canvas"` in `get_xyz`, restart Python and validate again:
 Put the line back. This is the loop to work in when you write a driver: change
 a function, validate, read the problems, repeat.
 
-## Step 7: from a pretend microscope to a real one
+## Step 7: register it
+
+So far you handed the module to `set_instrument` yourself, which is handy
+while you write a driver. To use it like any other driver, register it once.
+In a real driver this file is called `zmart_controller_plugin.py`; any name
+works for registering:
+
+```python
+zmart_controller.register_driver("pretend_scope.py")
+zmart_controller.get_drivers()
+```
+
+```
+['mock', 'pretend-scope']
+```
+
+From now on, every Python session on this computer can plug it in by name:
+
+```python
+zmart_controller.set_instrument("pretend-scope")
+```
+
+## Step 8: from a pretend microscope to a real one
 
 Your file already works with every workflow written for the controller. For a
 real microscope, each function does the same job, but by talking to

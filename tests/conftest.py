@@ -9,7 +9,7 @@ University of Zurich (thom.dehoog@zmb.uzh.ch, thomdehoog@gmail.com).
 
 import pytest
 
-import zmart_controller.mock.driver as mock_driver
+import zmart_controller.mock.zmart_controller_plugin as mock_driver
 
 
 @pytest.fixture(autouse=True)

@@ -91,37 +91,37 @@ own microscope.
 
 ## Where the functions go
 
-**A small driver can be a single Python file.** Put the functions in it and
-import it:
-
-```
-pretend_scope.py        connect, get_info, get_xyz, set_xyz, acquire, ...
-```
+The functions the controller calls live in one file in the driver,
+`zmart_controller_plugin.py`. The same file gives the driver's name and,
+if it needs one, its configuration on this computer:
 
 ```python
-import pretend_scope
+# zmart_controller_plugin.py
 
-zmart_controller.set_instrument(pretend_scope)
+NAME = "my-scope"
+CONNECTION = {"host": "localhost", "output_root": "D:/images"}   # optional
+
+def connect(connection): ...
+def get_xyz(handle, *, with_actuators=None): ...
+# ... one function per command, as in the table below
 ```
 
 The controller finds the functions by their names, so the names must be
 exactly those in the table below. Anything else in the file (helper
-functions, constants) is ignored. A dictionary from command name to function
-works too, which is handy in tests.
+functions, constants) is ignored. `CONNECTION` is handed to `connect` every
+time the driver is plugged in.
 
-**A larger driver is a package**, a folder of Python files, whose
-`__init__.py` makes the functions available by name:
+The rest of the driver lives beside it, organised however you like:
 
 ```
 my_driver/
-    __init__.py      from .driver import connect, get_info, get_xyz, ...
-    driver.py        the functions the controller calls, one per command
-    ...              the rest of your driver, organised as you like
+    zmart_controller_plugin.py   NAME, CONNECTION, and the functions the controller calls
+    ...                          the rest of the driver
 ```
 
-Then `zmart_controller.set_instrument(my_driver)` finds every function on the
-package itself. The mock driver, `zmart_controller.mock`, is built this way.
-How our own drivers are organised inside is described in
+For a small driver, this one file can be the whole driver. The mock driver,
+`zmart_controller.mock`, is built this way. How our own drivers are
+organised inside is described in
 [the anatomy of a ZMART driver](https://github.com/thomdehoog/ZMART-drivers/blob/main/docs/driver-anatomy.md).
 
 ## The requirements
@@ -350,46 +350,30 @@ find gaps.
 
 ## Register a driver
 
-A driver is a folder: the whole set of files that talks to one microscope.
-To plug it into the controller, the folder holds one small file,
-`zmart_controller_plugin.json`, which says how:
-
-```json
-{
-  "name": "my-scope",
-  "functions": "driver.py",
-  "connection": {"host": "localhost", "output_root": "D:/images"}
-}
-```
-
-- `name` is what the driver is listed and plugged in as.
-- `functions` is the file in the folder that holds the functions the
-  controller calls. The rest of the driver can be organised however you like.
-- `connection` (optional) is the driver's configuration on this computer,
-  such as where the microscope software runs and where images go. It is
-  handed to `connect` every time the driver is plugged in.
-
-Register the folder once, on the microscope computer:
+Register the driver once, on the microscope computer, by pointing the
+controller at its `zmart_controller_plugin.py` (or at the folder that holds
+it):
 
 ```python
 import zmart_controller
 
-zmart_controller.register_driver("C:/drivers/my-scope")
+zmart_controller.register_driver("C:/drivers/my-scope/zmart_controller_plugin.py")
 ```
 
-`register_driver` reads the json, imports the functions and checks that every
-one is there before it writes anything down, so a folder without the json, or
-a driver missing a function, is refused with a clear message. From then on,
-every session on this computer can list the driver and plug it in by name:
+`register_driver` imports the file and checks that every function and the
+`NAME` are there before it writes anything down, so a file that cannot be
+imported, or is missing something, is refused with a clear message. From then
+on, every session on this computer can list the driver and plug it in by
+name:
 
 ```python
 zmart_controller.get_drivers()               # ['mock', 'my-scope']
 zmart_controller.set_instrument("my-scope")
 ```
 
-The mock driver is always on the list, as `"mock"`. Registering a folder
-again reads its json again, so after you change the configuration, register
-it once more. `remove_driver("my-scope")` takes a driver off the list.
+The mock driver is always on the list, as `"mock"`. `CONNECTION` is read
+every time the driver is plugged in, so after you change it there is nothing
+to register again. `remove_driver("my-scope")` takes a driver off the list.
 
 The list is a small file, `drivers.json`, in the computer's ZMART
 configuration folder (`C:\ProgramData\zmart-microscopy\` on Windows), so
@@ -398,20 +382,19 @@ folder cannot be written, for example on a Mac or Linux account without
 administrator rights, the list is kept in `.zmart-microscopy` in your home
 folder instead.
 
-While you write a driver, you can skip the list and hand the module with its
-functions to `set_instrument` directly:
+While you write a driver, you can skip the list and hand the module to
+`set_instrument` directly:
 
 ```python
-import my_driver
+import zmart_controller_plugin
 
-zmart_controller.set_instrument(my_driver, {"host": "localhost"})
+zmart_controller.set_instrument(zmart_controller_plugin)
 ```
 
 The drivers for the microscopes we use at the ZMB are in
 [ZMART drivers](https://github.com/thomdehoog/ZMART-drivers). Each driver's
-folder has its `zmart_controller_plugin.json`, and its README says what goes
-in the connection and how to run its setup step once on the microscope
-computer.
+README says where its `zmart_controller_plugin.py` is, what goes in its
+`CONNECTION`, and how to run its setup step once on the microscope computer.
 
 ---
 

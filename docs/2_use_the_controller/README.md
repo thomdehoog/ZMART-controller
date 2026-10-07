@@ -84,8 +84,9 @@ the module afterwards, such as `zmart_controller.set_xyz(...)`, goes to it.
   zmart_controller.set_instrument("mock", {"output_root": "my_images"})
   ```
 
-  A registered driver gets the connection from its
-  `zmart_controller_plugin.json`, so you usually leave this out.
+  A driver's own configuration, the `CONNECTION` in its
+  `zmart_controller_plugin.py`, is used when you leave this out, so you
+  usually do.
 
 If the driver is missing one of the functions the controller needs,
 `set_instrument` refuses it at once with a `ValueError` naming the missing
