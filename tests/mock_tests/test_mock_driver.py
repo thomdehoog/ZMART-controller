@@ -571,7 +571,7 @@ ALLOWED = {
     "set_actions": {"error_handling", "configuration", "get_actions"},
     "data_handling": {"get_actions"},
     "procedures": {"get_actions", "set_actions", "configuration", "data_handling"},
-    "driver": {
+    "zmart_controller_plugin": {
         "vendor_interface",
         "error_handling",
         "configuration",

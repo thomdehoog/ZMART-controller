@@ -147,7 +147,7 @@ def set_instrument(driver: Any, connection: dict[str, Any] | None = None) -> Ses
     the driver itself: a module such as ``zmart_controller.mock``, or a dict
     from command name to function. ``connection`` is handed to the driver's
     ``connect`` unchanged; it holds whatever that driver needs, such as a host
-    name. Left out, a registered driver gets the connection saved with it.
+    name. Left out, the driver's own ``CONNECTION`` is used, if it has one.
     Raises ``ValueError`` naming any function the driver is missing.
     """
     name = None
@@ -155,6 +155,8 @@ def set_instrument(driver: Any, connection: dict[str, Any] | None = None) -> Ses
         name = driver
         driver, saved = find_driver(name)
         connection = saved if connection is None else connection
+    elif connection is None:
+        connection = getattr(driver, "CONNECTION", None)
     ops = driver_functions(driver)
     handle = ops["connect"](dict(connection or {}))
     return Session(ops, handle, {"driver": name or driver_name(driver)})

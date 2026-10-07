@@ -280,24 +280,23 @@ class TestCanvas:
 
 
 def _driver_folder(tmp_path, name="bench", connection=None, package=False):
-    """A driver folder on disk: its functions file, and the json that says how it plugs in.
+    """A driver folder on disk, with its zmart_controller_plugin.py.
 
-    The functions pass every call on to the mock. With ``package``, the folder
-    is a package and its functions file uses a relative import, as real
+    The plug-in passes every call on to the mock. With ``package``, the
+    folder is a package and the plug-in uses a relative import, as real
     drivers do.
     """
-    import json
-
     folder = tmp_path / "drivers" / f"{name}_driver"
     folder.mkdir(parents=True)
+    header = f"NAME = {name!r}\nCONNECTION = {connection or {}!r}\n"
     if package:
         (folder / "__init__.py").write_text("")
         (folder / "helpers.py").write_text("from zmart_controller.mock import *  # noqa\n")
-        (folder / "driver.py").write_text("from .helpers import *  # noqa\n")
+        body = "from .helpers import *  # noqa\n"
     else:
-        (folder / "driver.py").write_text("from zmart_controller.mock import *  # noqa\n")
-    plugin = {"name": name, "functions": "driver.py", "connection": connection or {}}
-    (folder / "zmart_controller_plugin.json").write_text(json.dumps(plugin))
+        body = "from zmart_controller.mock import *  # noqa\n"
+    # The mock's own NAME and CONNECTION come in with the *, so this file's go last.
+    (folder / "zmart_controller_plugin.py").write_text(body + header)
     return folder
 
 
@@ -315,7 +314,7 @@ class TestRegisteredDrivers:
         assert zmart_controller.get_drivers() == ["mock", "bench"]
         session = zmart_controller.set_instrument("bench")
         assert session.context == {"driver": "bench"}
-        assert session.get_info()["content"]["client"] == "bench-pc"  # from the json
+        assert session.get_info()["content"]["client"] == "bench-pc"  # its CONNECTION
 
     def test_a_driver_that_is_a_package_with_relative_imports(self, tmp_path):
         import zmart_controller
@@ -324,10 +323,10 @@ class TestRegisteredDrivers:
         session = zmart_controller.set_instrument("pkg")
         assert session.get_xyz()["success"] is True
 
-    def test_a_folder_without_the_json_is_refused(self, tmp_path):
+    def test_a_folder_without_the_plugin_file_is_refused(self, tmp_path):
         import zmart_controller
 
-        with pytest.raises(ValueError, match="zmart_controller_plugin.json"):
+        with pytest.raises(ValueError, match="zmart_controller_plugin.py"):
             zmart_controller.register_driver(tmp_path)
         assert zmart_controller.get_drivers() == ["mock"]
 
@@ -335,10 +334,28 @@ class TestRegisteredDrivers:
         import zmart_controller
 
         folder = _driver_folder(tmp_path)
-        (folder / "driver.py").write_text("def connect(connection):\n    return None\n")
+        (folder / "zmart_controller_plugin.py").write_text(
+            "NAME = 'bench'\ndef connect(connection):\n    return None\n"
+        )
         with pytest.raises(ValueError, match="missing functions"):
             zmart_controller.register_driver(folder)
         assert zmart_controller.get_drivers() == ["mock"]
+
+    def test_the_plugin_file_itself_can_be_given(self, tmp_path):
+        import zmart_controller
+
+        plugin = _driver_folder(tmp_path) / "zmart_controller_plugin.py"
+        assert zmart_controller.register_driver(plugin) == "bench"
+
+    def test_a_plugin_without_a_name_is_refused(self, tmp_path):
+        import zmart_controller
+
+        folder = _driver_folder(tmp_path)
+        (folder / "zmart_controller_plugin.py").write_text(
+            "from zmart_controller.mock import *\nNAME = ''\n"
+        )
+        with pytest.raises(ValueError, match="must give the driver's NAME"):
+            zmart_controller.register_driver(folder)
 
     def test_an_unknown_name_is_refused(self):
         import zmart_controller

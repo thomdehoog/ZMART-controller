@@ -11,8 +11,8 @@ driver's ``get_*`` commands and checks the answers against the contract in
 one acquisition, which the driver's own tests take, since checking it means
 taking a picture.
 
-:func:`register_driver` adds a driver folder to this computer's list once,
-under the name its ``zmart_controller_plugin.json`` gives; :func:`get_drivers`
+:func:`register_driver` adds a driver's ``zmart_controller_plugin.py`` to this
+computer's list once, under the ``NAME`` it gives; :func:`get_drivers`
 lists the registered names, and ``set_instrument`` accepts any of them. The list is a small file in
 :func:`config_root`, or in your home folder when that folder cannot be written.
 
@@ -135,44 +135,40 @@ def get_drivers() -> list[str]:
     return [MOCK, *sorted(name for name in _registered() if name != MOCK)]
 
 
-#: The file in a driver's folder that says how the driver plugs in.
-PLUGIN_FILE = "zmart_controller_plugin.json"
+#: The file in a driver that plugs into the controller.
+PLUGIN_FILE = "zmart_controller_plugin.py"
 
 
-def register_driver(folder: str | Path, connection: dict[str, Any] | None = None) -> str:
-    """Add the driver in ``folder`` to this computer's list of drivers, once.
+def register_driver(plugin: str | Path, connection: dict[str, Any] | None = None) -> str:
+    """Add a driver to this computer's list of drivers, once.
 
-    The folder holds the whole driver, and a ``zmart_controller_plugin.json``
-    that says how it plugs in::
+    ``plugin`` is the driver's ``zmart_controller_plugin.py``, or the folder
+    holding it: the file with the functions the controller calls. It also
+    gives the driver's name, and may give its configuration::
 
-        {"name": "stellaris", "functions": "driver.py", "connection": {...}}
+        NAME = "stellaris"
+        CONNECTION = {"output_root": "D:/images"}   # optional
 
-    ``name`` is what the driver is listed and plugged in as, ``functions`` is
-    the file (inside the folder) holding the functions the controller calls,
-    and ``connection`` (optional) is handed to the driver every time it is
-    plugged in. A ``connection`` given here replaces the one in the file.
-
-    The functions are imported and checked first, so a driver that cannot be
-    imported, or is missing a function, is refused with a clear message and
-    nothing is written. Registering a driver again replaces its entry.
-    Returns the name it was registered under.
+    The functions are imported and checked first, so a file that cannot be
+    imported, or is missing a function or its ``NAME``, is refused with a
+    clear message and nothing is written. ``CONNECTION`` is read each time
+    the driver is plugged in; a ``connection`` given here is saved instead.
+    Registering a driver again replaces its entry. Returns its name.
     """
-    folder = Path(folder).resolve()
-    try:
-        plugin = json.loads((folder / PLUGIN_FILE).read_text())
-    except FileNotFoundError:
-        raise ValueError(f"{folder} has no {PLUGIN_FILE}, so it is not a driver folder") from None
-    for key in ("name", "functions"):
-        if not isinstance(plugin.get(key), str) or not plugin[key].strip():
-            raise ValueError(f"{folder / PLUGIN_FILE} must give {key!r}")
-    name = plugin["name"]
+    file = Path(plugin).resolve()
+    if file.is_dir():
+        file = file / PLUGIN_FILE
+    module, root = _module_of(file)
+    loaded = _import(module, root)
+    driver_functions(loaded)
+    name = getattr(loaded, "NAME", None)
+    if not isinstance(name, str) or not name.strip():
+        raise ValueError(f'{file} must give the driver\'s NAME, such as NAME = "stellaris"')
     if name == MOCK:
-        raise ValueError(f"{MOCK!r} is the mock driver's name; choose another in {PLUGIN_FILE}")
-    module, root = _module_of(folder / plugin["functions"])
-    driver_functions(_import(module, root))
-    if connection is None:
-        connection = plugin.get("connection") or {}
-    entry = {"folder": str(folder), "module": module, "root": root, "connection": dict(connection)}
+        raise ValueError(f"{MOCK!r} is the mock driver's name; choose another NAME in {file}")
+    entry = {"file": str(file), "module": module, "root": root}
+    if connection is not None:
+        entry["connection"] = dict(connection)
     for path in _registry_files():
         try:
             path.parent.mkdir(parents=True, exist_ok=True)
@@ -191,7 +187,7 @@ def _module_of(file: Path) -> tuple[str, str]:
     A file inside a package is imported under its full package name, so the
     driver's own imports, relative ones included, work as usual. A file in a
     plain folder gets a name made from its full path, so two drivers that
-    both call their file ``driver.py`` never get mixed up.
+    both call their file ``zmart_controller_plugin.py`` never get mixed up.
     """
     if not file.is_file():
         raise ValueError(f"the functions file {file} does not exist")
@@ -249,7 +245,9 @@ def find_driver(name: str) -> tuple[Any, dict[str, Any]]:
     if entry is None:
         raise ValueError(f"no driver registered as {name!r}; registered: {get_drivers()}")
     module = _import(entry["module"], entry["root"])
-    return module, dict(entry.get("connection") or {})
+    if "connection" in entry:
+        return module, dict(entry["connection"])
+    return module, dict(getattr(module, "CONNECTION", None) or {})
 
 
 # ---- validating a driver against the contract

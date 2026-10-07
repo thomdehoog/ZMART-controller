@@ -15,7 +15,7 @@ The mock is a complete driver, built from the same parts a real one has::
     procedures/         recipes: autofocus, backlash takeup, parking the piezo
     data_handling/      turns the vendor's files into OME-TIFF or OME-Zarr
     configuration/      origin, registration, limits, calibration
-    driver.py           this file
+    zmart_controller_plugin.py   this file
     testing/            the mock API and everything else for testing
 
 Plug it in like any driver::
@@ -60,6 +60,12 @@ from zmart_controller.mock.set_actions import Gate, SetDispatcher
 from zmart_controller.mock.vendor_interface import NAME_LIMIT, MockScopeConnection
 
 logger = logging.getLogger("zmart_controller.mock")
+
+# The driver's name in the controller's list, and its configuration. The
+# mock needs none; a real driver would put, for example, where its vendor
+# software runs and where images go here.
+NAME = "mock"
+CONNECTION: dict[str, Any] = {}
 
 # Where images go when the connection does not say: a folder in the
 # computer's temporary space, so trying the mock never litters a project.

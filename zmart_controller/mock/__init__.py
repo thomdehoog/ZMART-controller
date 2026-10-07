@@ -7,11 +7,14 @@ and use it to try workflows without hardware. Plug it in with::
 
     zmart_controller.set_instrument(zmart_controller.mock)
 
-The functions the controller calls, one per command, are in ``driver.py`` and
+The functions the controller calls, one per command, are in
+``zmart_controller_plugin.py`` and
 are listed here, which is how the controller finds them.
 """
 
-from .driver import (
+from .zmart_controller_plugin import (
+    CONNECTION,
+    NAME,
     acquire,
     connect,
     disconnect,
@@ -27,6 +30,8 @@ from .driver import (
 )
 
 __all__ = [
+    "CONNECTION",
+    "NAME",
     "acquire",
     "connect",
     "disconnect",
