@@ -10,6 +10,7 @@ readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
 authors = [{ name = "Thom de Hoog", email = "thom.dehoog@zmb.uzh.ch" }]
+keywords = ["microscopy", "smart-microscopy", "microscope-control", "automation"]
 # The controller only forwards calls to a driver, so it needs nothing beyond
 # the Python standard library.
 dependencies = []
@@ -19,6 +20,12 @@ classifiers = [
     "Intended Audience :: Science/Research",
     "Topic :: Scientific/Engineering :: Image Acquisition",
 ]
+
+[project.urls]
+Homepage = "https://github.com/thomdehoog/ZMART-controller"
+Repository = "https://github.com/thomdehoog/ZMART-controller"
+Issues = "https://github.com/thomdehoog/ZMART-controller/issues"
+"ZMART microscopy" = "https://github.com/thomdehoog/ZMART-microscopy"
 
 [project.optional-dependencies]
 test = ["pytest"]
@@ -43,5 +50,7 @@ select = ["E", "F", "W", "I", "UP", "B"]
 ignore = ["E501", "B008"]
 
 [tool.ruff.format]
+# Code blocks in the markdown pages are examples, laid out for reading.
+exclude = ["*.md"]
 quote-style = "double"
 indent-style = "space"
