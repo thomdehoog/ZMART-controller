@@ -68,7 +68,7 @@ def save_acquisition(
     with the saved paths as text: ``files`` lists every file saved, the images
     first and the command log last, and ``planes`` says for each image plane
     which file holds it and where on the sample it was taken, as the contract
-    in docs/driver.md asks.
+    in docs/1_plug_in_a_driver/README.md asks.
     """
     if image_format not in FORMATS:
         raise ValueError(f"unknown format {image_format!r}; choose one of {list(FORMATS)}")
