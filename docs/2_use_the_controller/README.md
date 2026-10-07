@@ -54,16 +54,27 @@ with the previous one.
 ```python
 import zmart_controller
 
-zmart_controller.set_instrument(zmart_controller.mock)
+zmart_controller.get_drivers()
+```
+```
+['mock']
+```
+
+`get_drivers()` lists the drivers installed on this computer, by name. The mock
+driver, a simulated microscope, is always there; part 1 explains how to
+install the driver of a real microscope, once, with `add_driver`.
+
+```python
+zmart_controller.set_instrument("mock")
 ```
 
 `set_instrument(driver, connection=None)` plugs in a driver, connects to its
 microscope, and makes it the *active* microscope: every command you call on
 the module afterwards, such as `zmart_controller.set_xyz(...)`, goes to it.
 
-- `driver` is the driver: a Python module with one function per command.
-  `zmart_controller.mock` is one; a real microscope's driver is plugged in the
-  same way (part 1 explains how to get or write one).
+- `driver` is a name from `get_drivers()`. It can also be the driver module
+  itself, such as `zmart_controller.mock`, which is handy while you write a
+  driver.
 - `connection` is an optional dictionary that is handed to the driver
   unchanged. It holds whatever that driver needs to connect, such as the name
   of the computer the microscope software runs on. Each driver's README lists
@@ -72,8 +83,11 @@ the module afterwards, such as `zmart_controller.set_xyz(...)`, goes to it.
   pretend login):
 
   ```python
-  zmart_controller.set_instrument(zmart_controller.mock, {"output_root": "my_images"})
+  zmart_controller.set_instrument("mock", {"output_root": "my_images"})
   ```
+
+  An installed driver gets the connection saved with it by `add_driver`, so
+  you usually leave this out.
 
 If the driver is missing one of the functions the controller needs,
 `set_instrument` refuses it at once with a `ValueError` naming the missing
@@ -102,11 +116,11 @@ Two cautions for this short, module-level style:
 to it. Its one attribute, `context`, names the driver:
 
 ```python
-session = zmart_controller.set_instrument(zmart_controller.mock)
+session = zmart_controller.set_instrument("mock")
 session.context
 ```
 ```
-{'driver': 'zmart_controller.mock'}
+{'driver': 'mock'}
 ```
 
 ## Every answer has the same shape
@@ -482,8 +496,8 @@ a session for each. A session has the same commands as the module:
 ```python
 from zmart_controller.session import set_instrument
 
-left = set_instrument(zmart_controller.mock, {"output_root": "left"})
-right = set_instrument(zmart_controller.mock, {"output_root": "right"})
+left = set_instrument("mock", {"output_root": "left"})
+right = set_instrument("mock", {"output_root": "right"})
 
 left.set_xyz(0, 0, 0)
 right.set_xyz(200, 0, 0)

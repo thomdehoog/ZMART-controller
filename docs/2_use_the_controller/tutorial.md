@@ -46,7 +46,7 @@ type the lines below one at a time.
 ```python
 import zmart_controller
 
-zmart_controller.set_instrument(zmart_controller.mock)
+zmart_controller.set_instrument("mock")
 ```
 
 `set_instrument` plugs in a driver and connects to its microscope. From now
@@ -285,7 +285,7 @@ plug in its driver instead and keep the rest.
 ```python
 import zmart_controller
 
-zmart_controller.set_instrument(zmart_controller.mock)
+zmart_controller.set_instrument("mock")
 
 for i in range(5):
     zmart_controller.set_xyz(i * 200, 0, 0)  # 200 um apart
@@ -299,7 +299,7 @@ zmart_controller.disconnect()
 ```python
 import zmart_controller
 
-zmart_controller.set_instrument(zmart_controller.mock)
+zmart_controller.set_instrument("mock")
 
 step = 64  # one field of view of the 10x objective, so the pictures just touch
 for row in range(3):
@@ -323,7 +323,7 @@ import json
 
 import zmart_controller
 
-zmart_controller.set_instrument(zmart_controller.mock)
+zmart_controller.set_instrument("mock")
 
 # Today: capture the settings you are happy with.
 state = zmart_controller.get_state()["content"]
@@ -344,7 +344,7 @@ import time
 
 import zmart_controller
 
-zmart_controller.set_instrument(zmart_controller.mock)
+zmart_controller.set_instrument("mock")
 
 for t in range(6):  # six pictures, 10 seconds apart
     zmart_controller.acquire(
@@ -361,7 +361,7 @@ zmart_controller.disconnect()
 ```python
 import zmart_controller
 
-zmart_controller.set_instrument(zmart_controller.mock)
+zmart_controller.set_instrument("mock")
 
 answer = zmart_controller.acquire(position_label="checked")
 if answer["success"]:
@@ -389,7 +389,7 @@ zmart_controller.disconnect()
 - **Where the mock saves.** Unless you choose a folder, the mock saves in your
   computer's temporary folder, so trying things never fills up a project.
   Choose your own with
-  `zmart_controller.set_instrument(zmart_controller.mock, {"output_root": "my_images"})`.
+  `zmart_controller.set_instrument("mock", {"output_root": "my_images"})`.
 - **A faster mock.** The mock takes a little time for every move and picture,
   like a real microscope. For quick tests, plug it in with
   `{"mock_timing": "instant"}`.

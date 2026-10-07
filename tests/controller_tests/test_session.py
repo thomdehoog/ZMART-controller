@@ -6,6 +6,7 @@ University of Zurich (thom.dehoog@zmb.uzh.ch, thomdehoog@gmail.com).
 
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 
 import pytest
@@ -276,3 +277,58 @@ class TestCanvas:
         with pytest.raises(ValueError, match="outside the travel range"):
             mic.set_xyz(9999, 0, 0)
         assert mic.get_xyz()["content"]["x"]["value"] == 10  # did not move
+
+
+class TestInstalledDrivers:
+    def test_the_mock_is_always_listed(self):
+        import zmart_controller
+
+        assert zmart_controller.get_drivers() == ["mock"]
+
+    def test_install_once_then_plug_in_by_name(self):
+        import zmart_controller
+
+        zmart_controller.add_driver("bench", "zmart_controller.mock", {"client": "bench-pc"})
+        assert zmart_controller.get_drivers() == ["mock", "bench"]
+        session = zmart_controller.set_instrument("bench")
+        assert session.context == {"driver": "bench"}
+        assert session.get_info()["content"]["client"] == "bench-pc"  # the saved connection
+
+    def test_a_driver_that_cannot_be_imported_is_refused_and_not_saved(self):
+        import zmart_controller
+
+        with pytest.raises(ModuleNotFoundError):
+            zmart_controller.add_driver("ghost", "no_such_driver_anywhere")
+        assert zmart_controller.get_drivers() == ["mock"]
+
+    def test_an_unknown_name_is_refused(self):
+        import zmart_controller
+
+        with pytest.raises(ValueError, match="no driver installed as 'ghost'"):
+            zmart_controller.set_instrument("ghost")
+
+    def test_remove_driver(self):
+        import zmart_controller
+
+        zmart_controller.add_driver("bench", "zmart_controller.mock")
+        assert zmart_controller.remove_driver("bench") is True
+        assert zmart_controller.remove_driver("bench") is False
+        assert zmart_controller.get_drivers() == ["mock"]
+
+    @pytest.mark.skipif(sys.platform == "win32", reason="Windows folders ignore chmod")
+    def test_falls_back_to_the_home_folder_when_the_computers_folder_is_read_only(
+        self, tmp_path, monkeypatch
+    ):
+        import zmart_controller
+        from zmart_controller import utils
+
+        shared = tmp_path / "read-only"
+        shared.mkdir()
+        shared.chmod(0o500)
+        monkeypatch.setenv("ZMART_MICROSCOPY_ROOT", str(shared))
+        try:
+            saved = zmart_controller.add_driver("bench", "zmart_controller.mock")
+            assert saved == utils.user_root() / "drivers.json"
+            assert zmart_controller.get_drivers() == ["mock", "bench"]
+        finally:
+            shared.chmod(0o700)

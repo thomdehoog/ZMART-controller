@@ -55,8 +55,9 @@ Everything you can say to a microscope:
 ```python
 import zmart_controller
 
-# 1) Plug in a driver and connect to its microscope
-zmart_controller.set_instrument(driver, connection=Dict)
+# 1) See which drivers are installed, and plug one in to connect to its microscope
+zmart_controller.get_drivers()
+zmart_controller.set_instrument(String)
 
 # 2) Learn about the connected setup: where images go, and the microscope in plain words
 zmart_controller.get_info()
