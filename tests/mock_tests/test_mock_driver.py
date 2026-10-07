@@ -194,7 +194,7 @@ class TestLimitsGate:
         save("origin", {"x": 54_000.0, "y": 37_500.0, "z": 5_000.0})
         session = _open(tmp_path, mock_timing="instant")
         try:
-            assert session.get_xyz()["content"]["x"]["range"] == [-9000.0, 1000.0]
+            assert session.get_xyz()["content"]["x"]["canvas"] == [-9032.0, 1032.0]
             with pytest.raises(ValueError):
                 session.set_xyz(1500, 0, 0)
         finally:

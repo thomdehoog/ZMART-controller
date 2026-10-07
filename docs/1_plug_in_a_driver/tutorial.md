@@ -184,7 +184,6 @@ def get_xyz(handle, *, with_actuators=None):
         reading[axis] = {
             "value": handle["position"][axis],
             "actuator": "motor",
-            "range": [low, high],
             "canvas": [low - HALF_PICTURE[axis], high + HALF_PICTURE[axis]],
         }
     return _answer(reading)
