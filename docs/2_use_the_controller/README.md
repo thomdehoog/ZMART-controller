@@ -178,12 +178,12 @@ driver says so in its `description`.
 zmart_controller.get_xyz()["content"]
 ```
 ```
-{'x': {'value': 0.0, 'actuator': 'motoric', 'unit': 'um',
-       'range': [-5000.0, 5000.0], 'reach': [-5032.0, 5032.0]},
- 'y': {'value': 0.0, 'actuator': 'motoric', 'unit': 'um',
-       'range': [-5000.0, 5000.0], 'reach': [-5032.0, 5032.0]},
- 'z': {'value': 0.0, 'actuator': 'motoric', 'unit': 'um',
-       'range': [-500.0, 500.0], 'reach': [-500.0, 500.0]}}
+{'x': {'value': 0.0, 'actuator': 'motoric',
+       'range': [-5000.0, 5000.0], 'canvas': [-5032.0, 5032.0]},
+ 'y': {'value': 0.0, 'actuator': 'motoric',
+       'range': [-5000.0, 5000.0], 'canvas': [-5032.0, 5032.0]},
+ 'z': {'value': 0.0, 'actuator': 'motoric',
+       'range': [-500.0, 500.0], 'canvas': [-500.0, 500.0]}}
 ```
 
 For each axis:
@@ -192,12 +192,12 @@ For each axis:
 - `actuator` is the motor that was read (see below).
 - `range` is how far the axis may travel, as `[min, max]`. A move outside it
   is refused.
-- `reach` is everywhere a picture can show on that axis. A picture taken at
-  the edge of the travel still shows half a field beyond it, so `reach` is
-  `range` widened by half the largest field of view (here 64 µm wide, so 32 µm
+- `canvas` is everywhere a picture can show on that axis. A picture taken at
+  the edge of the travel still shows half a field beyond it, so the `canvas`
+  is `range` widened by half the largest field of view (here 64 µm wide, so 32 µm
   on each side). For z, it is widened by half the deepest stack the driver
   takes, unless the limits already keep every stack inside the travel, as on
-  the mock. The interface and the viewer use `reach` to lay out the whole
+  the mock. The interface and the viewer use `canvas` to lay out the whole
   specimen area before the first picture arrives.
 
 ### get_actuators and with_actuators
@@ -509,7 +509,7 @@ must give:
 - the commands themselves, with the arguments shown on this page;
 - the `{"success", "content"}` answer, and the errors described above;
 - `output_root` (and `description`, if the driver has one) in `get_info`;
-- `value`, `actuator`, `unit`, `range` and `reach` per axis in `get_xyz`;
+- `value`, `actuator`, `range` and `canvas` per axis in `get_xyz`;
 - `changeable` and `observed` in `get_state`;
 - `options` and `active` per setting in `get_acquisition_settings`;
 - `position_label`, `files` and `planes` in the answer of `acquire`;
@@ -531,7 +531,7 @@ clearly when a microscope lacks something.
 | `disconnect()` | Close the connection | nothing |
 | `get_info()` | Describe the setup | `output_root`, `description` |
 | `get_actuators()` | The motors of each axis | `{axis: [motor names]}` |
-| `get_xyz(with_actuators=None)` | Read the position and travel | per axis: `value`, `actuator`, `unit`, `range`, `reach` |
+| `get_xyz(with_actuators=None)` | Read the position and travel | per axis: `value`, `actuator`, `range`, `canvas` |
 | `set_xyz(x, y, z, with_actuators=None)` | Move, in µm from the origin | `position`, `actuators` |
 | `get_state()` | Capture the settings | `changeable`, `observed` |
 | `set_state(state)` | Apply the `changeable` settings | what was applied |

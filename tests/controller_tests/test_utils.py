@@ -53,51 +53,51 @@ def test_problems_are_named(monkeypatch):
     assert not any(p.startswith("get_state") for p in problems)
 
 
-def _xyz_with(**reach_per_axis):
-    """A get_xyz whose travel is [-100, 100] on every axis, with the reach given per axis.
+def _xyz_with(**canvas_per_axis):
+    """A get_xyz whose travel is [-100, 100] on every axis, with the canvas given per axis.
 
-    An axis left out of ``reach_per_axis`` reports a reach of [-150, 150].
+    An axis left out of ``canvas_per_axis`` reports a canvas of [-150, 150].
     The value ``"absent"`` leaves the key out altogether.
     """
 
     def get_xyz(handle, **kw):
         content = {}
         for axis in ("x", "y", "z"):
-            reading = {"value": 0.0, "actuator": "motoric", "unit": "um", "range": [-100.0, 100.0]}
-            reach = reach_per_axis.get(axis, [-150.0, 150.0])
-            if reach != "absent":
-                reading["reach"] = reach
+            reading = {"value": 0.0, "actuator": "motoric", "range": [-100.0, 100.0]}
+            canvas = canvas_per_axis.get(axis, [-150.0, 150.0])
+            if canvas != "absent":
+                reading["canvas"] = canvas
             content[axis] = reading
         return {"success": True, "content": content}
 
     return get_xyz
 
 
-def test_a_driver_without_reach_is_told_so(monkeypatch):
+def test_a_driver_without_canvas_is_told_so(monkeypatch):
     _break(monkeypatch, "get_xyz", _xyz_with(z="absent"))
-    assert validate_driver(mock) == ["get_xyz: axis 'z' is missing 'reach'"]
+    assert validate_driver(mock) == ["get_xyz: axis 'z' is missing 'canvas'"]
 
 
 @pytest.mark.parametrize(
-    "reach", [[-150.0], "far", [-150.0, "far"], [True, 150.0], [150.0, -150.0]]
+    "canvas", [[-150.0], "far", [-150.0, "far"], [True, 150.0], [150.0, -150.0]]
 )
-def test_a_reach_that_is_not_min_then_max_is_reported(monkeypatch, reach):
-    _break(monkeypatch, "get_xyz", _xyz_with(x=reach))
+def test_a_canvas_that_is_not_min_then_max_is_reported(monkeypatch, canvas):
+    _break(monkeypatch, "get_xyz", _xyz_with(x=canvas))
     assert validate_driver(mock) == [
-        "get_xyz: axis 'x' reach must be [min, max] in micrometers, with min no larger than max"
+        "get_xyz: axis 'x' canvas must be [min, max] in micrometers, with min no larger than max"
     ]
 
 
-@pytest.mark.parametrize("reach", [[-50.0, 150.0], [-150.0, 50.0], [-50.0, 50.0]])
-def test_a_reach_smaller_than_the_travel_is_reported(monkeypatch, reach):
-    """A picture can always show at least where the stage can go, so reach holds the travel."""
-    _break(monkeypatch, "get_xyz", _xyz_with(y=reach))
+@pytest.mark.parametrize("canvas", [[-50.0, 150.0], [-150.0, 50.0], [-50.0, 50.0]])
+def test_a_canvas_smaller_than_the_travel_is_reported(monkeypatch, canvas):
+    """A picture can always show at least where the stage can go, so canvas holds the travel."""
+    _break(monkeypatch, "get_xyz", _xyz_with(y=canvas))
     assert validate_driver(mock) == [
-        f"get_xyz: axis 'y' reach {reach} must contain the travel range [-100.0, 100.0]"
+        f"get_xyz: axis 'y' canvas {canvas} must contain the travel range [-100.0, 100.0]"
     ]
 
 
-def test_a_reach_equal_to_the_travel_fits(monkeypatch):
+def test_a_canvas_equal_to_the_travel_fits(monkeypatch):
     _break(monkeypatch, "get_xyz", _xyz_with(z=[-100.0, 100.0]))
     assert validate_driver(mock) == []
 
