@@ -35,7 +35,7 @@ def _result(reply):
 
 
 def _picture(scope, clock, name, **arguments):
-    """Acquire, wait until done, and return the first plane and the description."""
+    """Acquire, wait until done, and return the file's description and its planes."""
     file = _result(scope.send("StartAcquisition", name=name, **arguments))["file"]
     clock.advance(10.0)
     assert _result(scope.send("GetStatus"))["last_acquisition"]["state"] == "done"

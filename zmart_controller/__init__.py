@@ -15,8 +15,9 @@ controller it offers one function per command. Register a driver's folder on
 the computer once, then plug it in by name::
 
     zmart_controller.register_driver("path/to/zmart_controller_plugin.py")
-    zmart_controller.set_instrument("stellaris") To drive several microscopes at once,
-hold a session for each::
+    zmart_controller.set_instrument("stellaris")
+
+To drive several microscopes at once, hold a session for each::
 
     from zmart_controller.session import set_instrument
 
@@ -26,8 +27,10 @@ hold a session for each::
 
 Two cautions for the short way. Call through the module each time, as in
 ``zmart_controller.set_xyz(...)``; a command saved in a variable keeps pointing
-at the old microscope after a switch. And it assumes one thread; from several
-threads, hold a session each.
+at the old microscope after a switch. And it assumes that one thread drives the
+microscope (a thread is one line of execution in a program; most scripts have
+just one). A program that drives microscopes from several threads holds a
+session for each.
 
 Author: Thom de Hoog, Center for Microscopy and Image Analysis (ZMB),
 University of Zurich (thom.dehoog@zmb.uzh.ch, thomdehoog@gmail.com).

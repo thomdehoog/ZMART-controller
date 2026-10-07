@@ -1,4 +1,4 @@
-"""Tests for the utilities: registering, finding and forgetting drivers.
+"""Tests for the utilities: the configuration folder, and checking a driver against the contract.
 
 Author: Thom de Hoog, Center for Microscopy and Image Analysis (ZMB),
 University of Zurich (thom.dehoog@zmb.uzh.ch, thomdehoog@gmail.com).
@@ -22,7 +22,7 @@ class TestConfigRoot:
     def test_per_os_default(self, monkeypatch):
         monkeypatch.delenv("ZMART_MICROSCOPY_ROOT", raising=False)
         monkeypatch.setattr(utils.platform, "system", lambda: "Windows")
-        monkeypatch.setenv("PROGRAMDATA", r"C:\\ProgramData")
+        monkeypatch.setenv("PROGRAMDATA", r"C:\ProgramData")
         assert str(utils.config_root()).endswith("zmart-microscopy")
         monkeypatch.setattr(utils.platform, "system", lambda: "Darwin")
         assert utils.config_root() == utils.Path("/Library/Application Support/zmart-microscopy")
@@ -84,7 +84,7 @@ def test_a_driver_without_canvas_is_told_so(monkeypatch):
 def test_a_canvas_that_is_not_min_then_max_is_reported(monkeypatch, canvas):
     _break(monkeypatch, "get_xyz", _xyz_with(x=canvas))
     assert validate_driver(mock) == [
-        "get_xyz: axis 'x' canvas must be [min, max] in micrometers, with min no larger than max"
+        "get_xyz: axis 'x' canvas must be [min, max] in micrometres, with min no larger than max"
     ]
 
 
@@ -249,7 +249,7 @@ def test_an_answer_without_planes_is_reported(saved):
 
 def test_planes_must_be_a_list_of_entries(saved):
     assert check_acquire_answer(_answer(files=[str(saved)], planes=3)) == [
-        "acquire: planes must be a list with one entry (a dict) per saved image plane"
+        "acquire: planes must be a list with one dictionary per saved image plane"
     ]
 
 

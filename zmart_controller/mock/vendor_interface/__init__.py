@@ -1,9 +1,9 @@
-"""Part 1 of the driver anatomy: the vendor interface.
+"""Part 1 of the driver anatomy (``docs/driver-anatomy.md`` in ZMART-drivers): the vendor interface.
 
 This is the only part of the driver that knows MockScope Control, the
 pretend vendor software. It starts the software, logs in, and offers the
 rest of the driver a short list of *primitives*: plain Python functions that
-each do one thing, with plain values in micrometers.
+each do one thing, with plain values in micrometres.
 
 It keeps the three promises from the driver anatomy:
 

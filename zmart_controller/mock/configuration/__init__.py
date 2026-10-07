@@ -1,4 +1,4 @@
-"""Part 7 of the driver anatomy: configuration.
+"""Part 7 of the driver anatomy (``docs/driver-anatomy.md`` in ZMART-drivers): configuration.
 
 Everything the person at the microscope sets up once and saves, loaded every
 time the driver connects:
@@ -13,9 +13,10 @@ time the driver connects:
 - ``optical_calibration``: how far each objective's view is shifted from
   objective 1.
 
-Each item is a folder here, holding its shipped ``default.json`` and a
-check that refuses a malformed file, and a saved copy in the computer's ZMART configuration
-folder. The arithmetic between stage and user coordinates lives in
+Each item has a folder here, holding the ``default.json`` the driver ships
+and a check that refuses a malformed file. Once measured, the item is saved
+in the computer's ZMART configuration folder and loaded from there. The
+arithmetic between stage and user coordinates lives in
 :mod:`.coordinates`.
 """
 

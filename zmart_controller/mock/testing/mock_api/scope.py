@@ -10,7 +10,7 @@ To be a useful stand-in it behaves like vendor software, not like ZMART:
 
 - **It speaks its own language.** Commands have their own names
   (``MoveStage``, ``SetSetting``, ``StartAcquisition``), positions are raw
-  stage micrometers with no origin, and focus is split over two drives, a
+  stage micrometres with no origin, and focus is split over two drives, a
   coarse ``focus`` drive and a fine ``piezo``. The driver's vendor interface
   has to translate.
 - **It answers with status codes.** Every command returns a reply,
@@ -68,11 +68,12 @@ from . import mraw
 from .faults import Faults
 from .sample import Tilt, render
 
+# What the pretend vendor software reports about itself and its microscope.
 SOFTWARE = "MockScope Control"
 VERSION = "2.4.1"
 SERIAL = "MOCK-0001"
 
-# How far each drive can travel, in raw micrometers. The vendor software
+# How far each drive can travel, in raw micrometres. The vendor software
 # refuses anything outside these with error 201. These are the hardware's
 # own end stops, wider than the limits an operator sets in ZMART.
 STAGE_TRAVEL: dict[str, tuple[float, float]] = {"x": (0.0, 100_000.0), "y": (0.0, 75_000.0)}
@@ -96,7 +97,7 @@ OBJECTIVES: dict[int, dict[str, Any]] = {
 }
 
 # What the vendor software does NOT report: how far each objective's view is
-# shifted from objective 1, in micrometers. Optical calibration has to
+# shifted from objective 1, in micrometres. Optical calibration has to
 # measure these.
 OBJECTIVE_OFFSETS_UM: dict[int, dict[str, float]] = {
     1: {"x": 0.0, "y": 0.0, "z": 0.0},
@@ -105,13 +106,13 @@ OBJECTIVE_OFFSETS_UM: dict[int, dict[str, float]] = {
 }
 
 # How the camera sits on the stage, as a small table ((a, b), (c, d)). A step
-# of u micrometers to the right in the picture and v micrometers down is a
+# of u micrometres to the right in the picture and v micrometres down is a
 # stage step of (a*u + b*v) in x and (c*u + d*v) in y. The default is a
 # mirror image: right in the picture is +y on the stage, and down is +x.
 # Image-to-stage registration has to find this.
 DEFAULT_ORIENTATION: tuple[tuple[int, int], tuple[int, int]] = ((0, 1), (1, 0))
 
-# How quickly things happen. All in seconds or micrometers per second.
+# How quickly things happen. All in seconds or micrometres per second.
 DEFAULT_TIMING: dict[str, float] = {
     "stage_speed_um_s": 50_000.0,
     "focus_speed_um_s": 2_000.0,
@@ -256,7 +257,7 @@ class MockScope:
     returning the time in seconds; pass a :class:`FakeClock` for exact
     tests. ``image_size`` is the camera's ``(width, height)`` in pixels.
     ``orientation``, ``objective_offsets`` and ``tilt`` set the hidden facts
-    that setup notebooks measure (see :meth:`truth`). ``seed`` chooses the
+    that the setup step has to measure (see :meth:`truth`). ``seed`` chooses the
     pattern of spots on the slide. ``noise=False`` gives clean pictures.
     ``timing`` overrides any of :data:`DEFAULT_TIMING`.
 
@@ -698,7 +699,7 @@ class MockScope:
 
         Returns the camera ``orientation``, the ``objective_offsets_um``
         (relative to objective 1), the slide ``tilt``, and the ``seed`` of the
-        spot pattern. A test can compare what a setup notebook measured with
+        spot pattern. A test can compare what the setup step measured with
         these answers.
         """
         return {

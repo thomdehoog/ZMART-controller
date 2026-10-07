@@ -55,6 +55,8 @@ CHECKS = {
     "optical_calibration": optical_calibration.check,
 }
 
+#: Which configuration to load: the driver, the microscope and its vendor
+#: software. The three names give the folder under the configuration root.
 IDENTITY = ("mock", "mock-scope", "mock-api")
 
 

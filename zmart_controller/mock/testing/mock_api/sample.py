@@ -7,7 +7,7 @@ for setup work: registering images to the stage, calibrating objectives and
 autofocus all depend on the sample staying put.
 
 Three things are hidden in how the picture is made, on purpose. A real
-microscope never tells you these either; the setup notebooks have to measure
+microscope never tells you these either; the setup step has to measure
 them:
 
 - **The camera orientation.** The camera may be turned by 90° or mirrored
@@ -19,7 +19,7 @@ them:
   the slide, the way a real slide is never perfectly flat.
 
 :meth:`MockScope.truth` hands these answers out, so a test can check that a
-setup notebook found the right ones.
+setup step found the right ones.
 
 Author: Thom de Hoog, Center for Microscopy and Image Analysis (ZMB),
 University of Zurich (thom.dehoog@zmb.uzh.ch, thomdehoog@gmail.com).
@@ -40,11 +40,11 @@ from dataclasses import dataclass
 CELL_UM = 20.0
 
 # A spot is a soft round blob this wide (one standard deviation, in
-# micrometers) when it is perfectly in focus.
+# micrometres) when it is perfectly in focus.
 SPOT_SIGMA_UM = 1.2
 
 # How quickly a spot spreads out when it is out of focus: its width grows by
-# this many micrometers for every micrometer of defocus.
+# this many micrometres for every micrometre of defocus.
 BLUR_PER_UM_DEFOCUS = 0.35
 
 # Spots blurred wider than this are too faint to matter and are left out,
@@ -106,8 +106,8 @@ def render(
     """Draw one camera picture and return it as ``array("H")``, row after row.
 
     ``centre_x`` and ``centre_y`` are the point on the slide (in raw stage
-    micrometers) that appears in the middle of the picture. ``defocus_um`` is
-    how far the focus is from the sharp height; spots blur as it grows.
+    micrometres) that appears in the middle of the picture. ``defocus_um`` is
+    how far the focus is from the height of sharpest focus; spots blur as it grows.
     ``orientation`` says how the camera sits on the stage (see
     :class:`MockScope`). ``signal`` scales the brightness of the spots.
     ``noise`` adds camera noise when given; pass ``None`` for a clean picture,

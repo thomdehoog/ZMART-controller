@@ -88,7 +88,7 @@ class MockScopeConnection:
     # --- the session -----------------------------------------------------
 
     def version(self) -> dict[str, str]:
-        """``{"software", "version"}`` of the vendor software."""
+        """The name and version of the vendor software, as ``{"software", "version"}``."""
         return dict(self._call("GetVersion"))
 
     def close(self) -> None:
@@ -102,16 +102,20 @@ class MockScopeConnection:
     # --- reading ---------------------------------------------------------
 
     def hardware(self) -> dict[str, Any]:
-        """Serial number, travel ranges, objectives, camera and setting ranges."""
+        """What the vendor software knows about the hardware.
+
+        The serial number, the travel ranges, the objectives, the camera and
+        the allowed range of each setting.
+        """
         return self._call("GetHardware")
 
     def stage_position(self) -> dict[str, float]:
-        """The stage position, ``{"x", "y"}``, in raw stage micrometers."""
+        """The stage position, ``{"x", "y"}``, in raw stage micrometres."""
         result = self._call("GetStagePosition")
         return {"x": float(result["x"]), "y": float(result["y"])}
 
     def focus_position(self) -> dict[str, float]:
-        """The two focus drives, ``{"focus", "piezo"}``, in raw micrometers."""
+        """The two focus drives, ``{"focus", "piezo"}``, in raw micrometres."""
         result = self._call("GetFocus")
         return {"focus": float(result["focus"]), "piezo": float(result["piezo"])}
 

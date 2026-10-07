@@ -12,9 +12,10 @@ one acquisition, which the driver's own tests take, since checking it means
 taking a picture.
 
 :func:`register_driver` adds a driver's ``zmart_controller_plugin.py`` to this
-computer's list once, under the ``NAME`` it gives; :func:`get_drivers`
-lists the registered names, and ``set_instrument`` accepts any of them. The list is a small file in
-:func:`config_root`, or in your home folder when that folder cannot be written.
+computer's list once, under the ``NAME`` it gives. :func:`get_drivers`
+lists the registered names, and ``set_instrument`` accepts any of them. The
+list is a small file in :func:`config_root`, or in your home folder when that
+folder cannot be written.
 
 :func:`config_root` is also the folder where drivers keep what they measure
 once per microscope: the origin, the travel limits and the calibration.
@@ -99,6 +100,7 @@ def config_root() -> Path:
 
 #: The name the mock driver is always listed under.
 MOCK = "mock"
+#: The file that lists the registered drivers, kept in the configuration folder.
 REGISTRY_FILE = "drivers.json"
 
 
@@ -205,8 +207,8 @@ _FILE_PREFIX = "file:"
 
 
 def _import(module: str, root: str):
-    # ponytail: adds the driver's folder to the import path for this session,
-    # so the driver's own imports work; a driver installed with pip needs none.
+    # Add the driver's folder to the import path for this session, so the
+    # driver's own imports work. A driver installed with pip needs none of this.
     if root not in sys.path:
         sys.path.insert(0, root)
     if not module.startswith(_FILE_PREFIX):
@@ -252,6 +254,7 @@ def find_driver(name: str) -> tuple[Any, dict[str, Any]]:
 
 # ---- validating a driver against the contract
 
+#: The three axes every driver reports.
 AXES = ("x", "y", "z")
 
 
@@ -317,7 +320,7 @@ def _check_info(content, problems):
 
 def _check_actuators(content, problems):
     if not isinstance(content, dict):
-        problems.append("get_actuators: the content must be a dict of axis -> list of motors")
+        problems.append("get_actuators: the content must map each axis to a list of motor names")
         return
     for axis in AXES:
         motors = content.get(axis)
@@ -327,7 +330,7 @@ def _check_actuators(content, problems):
 
 def _check_xyz(content, problems):
     if not isinstance(content, dict):
-        problems.append("get_xyz: the content must be a dict of axis -> reading")
+        problems.append("get_xyz: the content must map each axis to its reading")
         return
     for axis in AXES:
         reading = content.get(axis)
@@ -356,22 +359,24 @@ def _check_canvas(axis, canvas, problems):
         and canvas[0] <= canvas[1]
     ):
         problems.append(
-            f"get_xyz: axis {axis!r} canvas must be [min, max] in micrometers, "
+            f"get_xyz: axis {axis!r} canvas must be [min, max] in micrometres, "
             f"with min no larger than max"
         )
 
 
 def _check_state(content, problems):
     if not isinstance(content, dict) or not isinstance(content.get("changeable"), dict):
-        problems.append('get_state: the content must contain a "changeable" dict')
+        problems.append(
+            'get_state: the content must contain "changeable", a dictionary of settings'
+        )
     if not isinstance(content, dict) or not isinstance(content.get("observed"), dict):
-        problems.append('get_state: the content must contain an "observed" dict')
+        problems.append('get_state: the content must contain "observed", a dictionary')
 
 
 def _check_acquisition_settings(content, problems):
     if not isinstance(content, dict):
         problems.append(
-            "get_acquisition_settings: the content must be a dict of setting -> choices"
+            "get_acquisition_settings: the content must map each setting to its choices"
         )
         return
     for name, spec in content.items():
@@ -381,7 +386,9 @@ def _check_acquisition_settings(content, problems):
 
 def _check_procedures(content, problems):
     if not isinstance(content, dict):
-        problems.append("get_procedures: the content must be a dict of name -> description")
+        problems.append(
+            "get_procedures: the content must map each procedure name to its description"
+        )
         return
     for name, spec in content.items():
         if not isinstance(spec, dict) or "description" not in spec:
@@ -395,8 +402,9 @@ def check_acquire_answer(answer: Any) -> list[str]:
     """Check what a driver's ``acquire`` answered against the contract.
 
     ``answer`` is the whole answer, ``{"success": ..., "content": ...}``. The
-    content must name the ``position_label`` it was given, and list under ``files`` the path of every file the acquisition
-    saved: the images and anything saved beside them. A format kept as a
+    content must name the ``position_label`` it was given, and list under
+    ``files`` the path of every file the acquisition saved: the images and
+    anything saved beside them. A format kept as a
     folder, such as OME-Zarr, is listed by its folder. Every path must exist.
     This is how a workflow finds the pictures on any microscope, so a driver
     that keeps them under a name of its own works with none of them.
@@ -464,7 +472,7 @@ def _plane_problems(succeeded: bool, content: dict, files: list[str]) -> list[st
         ]
     planes = content["planes"]
     if not isinstance(planes, list) or not all(isinstance(plane, dict) for plane in planes):
-        return ["acquire: planes must be a list with one entry (a dict) per saved image plane"]
+        return ["acquire: planes must be a list with one dictionary per saved image plane"]
     problems: list[str] = []
     if succeeded and not planes:
         problems.append(

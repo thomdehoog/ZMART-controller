@@ -1,9 +1,8 @@
 # The mock driver
 
 The mock driver lets you try every ZMART command without a microscope. It is
-also the template for a new driver anatomy that we are testing out. It is built from the same parts as every
-ZMART driver, so you can read it to learn how a driver works inside, and copy
-its layout when you start your own.
+built from the same parts as every ZMART driver, so you can read it to learn
+how a driver works inside, and copy its layout when you start your own.
 
 Underneath it runs **MockScope Control**, pretend vendor software with a
 pretend microscope behind it (see [`testing/mock_api/`](testing/mock_api/README.md)).
@@ -43,7 +42,10 @@ zmart_controller.set_instrument(
 
 The driver follows the anatomy of a ZMART driver, described in full in
 [the anatomy of a ZMART driver](https://github.com/thomdehoog/ZMART-drivers/blob/main/docs/driver-anatomy.md).
-Each part is a folder, and each part only uses the parts below it.
+Each part is a folder. The parts build on one another in the order of the
+table: the vendor interface at the bottom knows only the vendor software, and
+the functions the controller calls at the top only put the other parts to
+work.
 
 | Folder | Part | What it does here |
 |---|---|---|
@@ -54,7 +56,7 @@ Each part is a folder, and each part only uses the parts below it.
 | [`procedures/`](procedures/) | 5. Procedures | Recipes built only from get and set actions: autofocus, backlash takeup, parking the piezo, and recording the origin. |
 | [`data_handling/`](data_handling/) | 6. Data handling | Waits for the vendor's file, turns the picture to line up with the stage, writes OME-TIFF or OME-Zarr, and saves the log of the commands behind it. |
 | [`configuration/`](configuration/) | 7. Configuration | The machine description, image-to-stage registration, origin, limits and optical calibration, each with shipped defaults and a check. Also the arithmetic between stage and user coordinates. |
-| [`zmart_controller_plugin.py`](zmart_controller_plugin.py) | 8. The functions the controller calls | The 11 functions, plus `disconnect`. They only map commands onto the parts above. [`__init__.py`](__init__.py) imports them, which is how the controller finds them. |
+| [`zmart_controller_plugin.py`](zmart_controller_plugin.py) | 8. The functions the controller calls | The 11 functions, plus `disconnect`. They only map commands onto the parts listed before them. [`__init__.py`](__init__.py) imports them, which is how the controller finds them. |
 | [`testing/`](testing/) | 9. Testing | The mock API, MockScope Control. The mock driver's own tests are in the repository's [`tests/mock_tests/`](../../tests/mock_tests/). |
 
 ## How a move travels through the driver
@@ -64,7 +66,7 @@ Each part is a folder, and each part only uses the parts below it.
 1. **`zmart_controller_plugin.py`** picks the motor for each axis and hands the request to the
    set actions.
 2. **The set command** reads the current position through the get
-   dispatcher, and turns the user position (micrometers from the origin)
+   dispatcher, and turns the user position (micrometres from the origin)
    into a stage position, using the configuration.
 3. **The set dispatcher** asks the limits gate. A position outside the
    limits is refused here, before anything is sent.
@@ -85,8 +87,8 @@ On a real microscope, the operator runs a setup step once, and the driver
 saves the result in the computer's configuration folder. The mock works the
 same way, through `zmart_controller.mock.configuration.save` and
 `zmart_controller.mock.procedures.record_origin`. Until something is saved, the
-shipped defaults, one `default.json` in each item's folder under [`configuration/`](configuration/), are
-used, and `get_info()` says so.
+shipped defaults are used, one `default.json` in each item's folder under
+[`configuration/`](configuration/), and `get_info()` says so.
 
 The defaults are deliberately the defaults of an *uncalibrated* microscope.
 The registration assumes the camera is mounted straight, and the

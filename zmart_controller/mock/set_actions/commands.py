@@ -36,7 +36,11 @@ def _not_acquiring(ctx) -> bool:
 
 
 def move(ctx, *, x: float, y: float, focus: float, piezo: float) -> Outcome:
-    """Move every drive to a raw stage position. The limits check x, y and focus plus piezo."""
+    """Move every drive to a raw stage position.
+
+    The limits gate checks x and y, and the focus and piezo drives together as
+    one height, before anything is sent.
+    """
 
     def send():
         # When the stage's reply is lost, the stage may well be moving, so

@@ -1,6 +1,6 @@
 """The mock microscope's ZMART controller plugin: the 11 functions.
 
-This is part 8 of the driver anatomy. It presents the driver to the ZMART
+This is part 8 of the driver anatomy (``docs/driver-anatomy.md`` in ZMART-drivers). It presents the driver to the ZMART
 Controller in the shape every microscope shares, and it does nothing else:
 no coordinate arithmetic and no safety checks of its own. Those happened
 further down. Each function here only maps a controller command onto the
@@ -10,20 +10,20 @@ The mock is a complete driver, built from the same parts a real one has::
 
     vendor_interface/   talks to MockScope Control, the pretend vendor software
     error_handling/     sorts every problem into a kind, and says what to do
-    get_actions/       asks the microscope things, through the get dispatcher
-    set_actions/       changes the microscope, through the set dispatcher
+    get_actions/        asks the microscope things, through the get dispatcher
+    set_actions/        changes the microscope, through the set dispatcher
     procedures/         recipes: autofocus, backlash takeup, parking the piezo
     data_handling/      turns the vendor's files into OME-TIFF or OME-Zarr
     configuration/      origin, registration, limits, calibration
-    zmart_controller_plugin.py   this file
+    zmart_controller_plugin.py  this file
     testing/            the mock API and everything else for testing
 
 Plug it in like any driver::
 
     zmart_controller.set_instrument(zmart_controller.mock)
 
-The connection dictionary is optional. It may hold ``output_root`` (where images are
-saved), ``token`` (the vendor login, default ``"mock-token"``) and
+The connection dictionary is optional. It may hold ``output_root`` (where
+images are saved), ``token`` (the vendor login, default ``"mock-token"``) and
 ``mock_timing``: ``"realistic"`` (the default) lets moves and acquisitions
 take time, ``"instant"`` makes them finish at once.
 
@@ -202,11 +202,11 @@ def disconnect(handle: MockHandle) -> None:
 # routines are left to get_xyz and get_procedures, which report them live. The
 # bounds of the settings come from this microscope's limits file when get_info
 # runs, so the description never promises more than the driver allows.
-DESCRIPTION = """A pretend widefield fluorescence microscope that runs entirely in software (MockScope Control), for trying workflows without hardware. It images a sample of scattered fluorescent spots on a slide that is slightly tilted, so the sharp height changes a little from place to place.
+DESCRIPTION = """A pretend widefield fluorescence microscope that runs entirely in software (MockScope Control), for trying workflows without hardware. It images a sample of scattered fluorescent spots on a slide that is slightly tilted, so the height at which the spots are sharp changes a little from place to place.
 
 Stage: x and y move the slide, z moves the focus, all in micrometres from the origin. z has two motors: "motoric" for long moves and "piezo" for fine, fast steps around the current height.
 
-Objectives, by slot: 1 is 10x/0.30 Air (1.0 um per pixel), 2 is 20x/0.75 Air (0.5 um per pixel), 3 is 40x/0.95 Air (0.25 um per pixel). Every image is 64 x 64 pixels, so the field of view shrinks as the magnification grows. Changing objective shifts the view slightly; the driver corrects for it.
+Objectives, by slot: 1 is 10x/0.30 Air (1.0 µm per pixel), 2 is 20x/0.75 Air (0.5 µm per pixel), 3 is 40x/0.95 Air (0.25 µm per pixel). Every image is 64 x 64 pixels, so the field of view shrinks as the magnification grows. Changing objective shifts the view slightly; the driver corrects for it.
 
 Settings (the changeable part of the state): objective is the slot number above; laser_power is the excitation in percent, {laser_power}; gain is the detector gain, {gain}; exposure_ms is the exposure time in milliseconds, {exposure_ms}. The image gets brighter with more laser power, gain or exposure; very bright settings saturate it.
 
@@ -241,7 +241,10 @@ def get_actuators(handle: MockHandle) -> dict:
 
 
 def _actuators(with_actuators: dict | None) -> dict[str, str]:
-    """The motor per axis: the one named, or the first in the list. Never sticky."""
+    """The motor to use per axis: the one named, or else the first in the list.
+
+    A choice made for one call does not carry over to the next call.
+    """
     chosen = {axis: names[0] for axis, names in get.ACTUATORS.items()}
     for axis, name in (with_actuators or {}).items():
         if axis not in get.ACTUATORS or name not in get.ACTUATORS[axis]:
@@ -254,7 +257,7 @@ def _actuators(with_actuators: dict | None) -> dict[str, str]:
 
 
 def get_xyz(handle: MockHandle, *, with_actuators: dict | None = None) -> dict:
-    """The position in micrometers from the origin, and the canvas: everywhere a
+    """The position in micrometres from the origin, and the canvas: everywhere a
     picture can show along each axis."""
     _require_open(handle)
     chosen = _actuators(with_actuators)
@@ -295,7 +298,7 @@ def _canvas(handle: MockHandle, ranges: dict[str, list[float]]) -> dict[str, lis
 def set_xyz(
     handle: MockHandle, x: float, y: float, z: float, *, with_actuators: dict | None = None
 ) -> dict:
-    """Move to a position in micrometers from the origin, and confirm it.
+    """Move to a position in micrometres from the origin, and confirm it.
 
     Raises ``ValueError`` for a position outside the limits or an unknown
     motor, and ``RuntimeError`` when the move cannot be confirmed: carrying
@@ -416,8 +419,8 @@ def acquire(
     """Capture an image (or a z-stack) here and save it, in one step.
 
     The files are named after ``position_label``. Settings left out keep their
-    active value; ``folder`` puts the files in a folder of that name. The content lists every saved
-    file under ``files`` (the images, then the ``command_log`` that records
+    active value; ``folder`` puts the files in a folder of that name. The
+    content lists every saved file under ``files`` (the images, then the ``command_log`` that records
     how they were made, which is also named on its own), and under ``planes``
     which file, channel and depth each image plane is and the stage position
     it was taken at. When the acquisition cannot be confirmed, ``success`` is

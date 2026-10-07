@@ -34,20 +34,22 @@ ACTUATORS: dict[str, list[str]] = {"x": ["motoric"], "y": ["motoric"], "z": ["mo
 
 
 def version(ctx) -> Reading:
+    """The name and version of the vendor software."""
     return ctx.get.read("software version", ctx.vendor.version)
 
 
 def hardware(ctx) -> Reading:
+    """What the vendor software knows about the hardware: serial number, ranges, objectives, camera."""
     return ctx.get.read("hardware description", ctx.vendor.hardware)
 
 
 def stage(ctx) -> Reading:
-    """The stage position ``{"x", "y"}`` in raw micrometers."""
+    """The stage position ``{"x", "y"}`` in raw micrometres."""
     return ctx.get.read("stage position", ctx.vendor.stage_position)
 
 
 def focus(ctx) -> Reading:
-    """The focus drives ``{"focus", "piezo"}`` in raw micrometers."""
+    """The focus drives ``{"focus", "piezo"}`` in raw micrometres."""
     return ctx.get.read("focus position", ctx.vendor.focus_position)
 
 
@@ -70,7 +72,7 @@ def _combine(*readings: Reading) -> Reading | None:
 
 
 def raw_position(ctx) -> Reading:
-    """Where every drive is, in raw micrometers, with the objective in use.
+    """Where every drive is, in raw micrometres, with the objective in use.
 
     The value is ``{"x", "y", "z", "focus", "piezo", "objective"}``, where
     ``z`` is the focus height that matters for the sample: the coarse drive

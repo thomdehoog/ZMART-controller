@@ -53,7 +53,7 @@ class TestSetInstrument:
         assert zmart_controller.mock is mock
 
 
-class TestFrame:
+class TestPosition:
     def test_set_get_roundtrip(self, mic):
         rec = mic.set_xyz(10, 20, 5)
         assert rec["success"] is True
@@ -75,7 +75,7 @@ class TestFrame:
             session.set_xyz(10, 0, 0)
             assert session.get_xyz()["content"]["x"]["value"] == 10
             stage = session._handle.scope.send("GetStagePosition")["result"]
-            assert stage["x"] == 50_110.0  # raw position = saved origin + frame value
+            assert stage["x"] == 50_110.0  # raw stage position = saved origin + user position
         finally:
             session.disconnect()
 
@@ -85,7 +85,7 @@ class TestFrame:
     def test_actuator_selector_reported_back(self, mic):
         pos = mic.get_xyz(with_actuators={"z": "piezo"})["content"]
         assert pos["z"]["actuator"] == "piezo"
-        assert pos["x"]["actuator"] == "motoric"  # untouched axes use the reference one
+        assert pos["x"]["actuator"] == "motoric"  # axes left out use the first motor in the list
 
     def test_unknown_actuator_raises(self, mic):
         with pytest.raises(ValueError, match="unknown actuator"):
@@ -154,7 +154,7 @@ class TestState:
 
     def test_observed_is_a_report_never_an_instruction(self, mic):
         # A mismatching observed part does not block applying the changeable
-        # part (operator decision: set_state acts on changeable only).
+        # part, because set_state acts on the changeable part only.
         rec = mic.set_state({"changeable": {"laser_power": 5.0}, "observed": {"serial": "OTHER"}})
         assert rec["content"]["applied"]["laser_power"] == 5.0
 
@@ -196,8 +196,9 @@ class TestDisconnect:
             mic.get_xyz()
 
     def test_actuator_selection_does_not_persist(self, mic):
-        """Defaults are fixed (the reference actuator), never sticky —
-        a per-call selection applies to that call only."""
+        """A motor chosen for one call applies to that call only.
+
+        The next call is back to the default, the first motor in the list."""
         mic.set_xyz(0, 0, 0, with_actuators={"z": "piezo"})
         assert mic.get_xyz()["content"]["z"]["actuator"] == "motoric"
 
@@ -255,8 +256,8 @@ class TestCanvas:
     def test_the_canvas_is_the_travel_widened_by_half_the_widest_field(self):
         """At the edge of travel a picture still shows half a field further out.
 
-        The mock's widest field is the 10x objective's: 64 pixels of 1.0 um,
-        so on x and y the canvas reaches 32 um past the travel. Its z-stacks
+        The mock's widest field is the 10x objective's: 64 pixels of 1.0 µm,
+        so on x and y the canvas reaches 32 µm past the travel. Its z-stacks
         must stay inside the travel, so on z the canvas is the travel itself.
         """
         from zmart_controller.mock.configuration import save

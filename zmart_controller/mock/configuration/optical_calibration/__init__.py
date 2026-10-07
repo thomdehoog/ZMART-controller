@@ -12,6 +12,7 @@ from ..checks import AXES, _keys, _number, _slots
 
 
 def check(value: Any, where: str) -> None:
+    """Refuse a malformed the calibration, naming the file (``where``) and what is wrong."""
     _keys(value, {"objective_offsets_um"}, where)
     _slots(value["objective_offsets_um"], where, "objective_offsets_um")
     for slot, offset in value["objective_offsets_um"].items():
