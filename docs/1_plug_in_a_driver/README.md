@@ -110,38 +110,17 @@ functions, constants) is ignored. A dictionary from command name to function
 works too, which is handy in tests.
 
 **A larger driver is a package**, a folder of Python files, whose
-`__init__.py` makes the functions available by name. The mock driver is
-built this way, and is the example to copy:
+`__init__.py` makes the functions available by name:
 
 ```
-zmart_controller/mock/
-    __init__.py          imports the functions from driver.py, which makes this folder a driver
-    driver.py            the functions the controller calls, one per command
-    vendor_interface/    talks to the vendor software
-    error_handling/      sorts every problem into a kind, and says what to do
-    get_actions/         asks the microscope things
-    set_actions/         changes the microscope, then confirms the change
-    procedures/          recipes such as autofocus
-    data_handling/       turns the vendor's files into OME-TIFF or OME-Zarr
-    configuration/       origin, limits, registration, calibration
-    testing/mock_api/    the pretend vendor software the mock runs on
+my_driver/
+    __init__.py      from .driver import connect, get_info, get_xyz, ...
+    driver.py        the functions the controller calls, one per command
+    ...              the rest of your driver, organised as you like
 ```
 
-Its `__init__.py` holds little more than this:
-
-```python
-from .driver import (
-    acquire,
-    connect,
-    disconnect,
-    get_acquisition_settings,
-    ...
-)
-```
-
-so `zmart_controller.set_instrument(zmart_controller.mock)` finds every
-function on the package itself. Your own driver works the same way:
-`set_instrument(my_driver)`, where `my_driver` is the package.
+Then `zmart_controller.set_instrument(my_driver)` finds every function on the
+package itself. The mock driver, `zmart_controller.mock`, is built this way.
 
 ## The requirements
 
