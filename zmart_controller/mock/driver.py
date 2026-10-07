@@ -204,7 +204,7 @@ Objectives, by slot: 1 is 10x/0.30 Air (1.0 um per pixel), 2 is 20x/0.75 Air (0.
 
 Settings (the changeable part of the state): objective is the slot number above; laser_power is the excitation in percent, {laser_power}; gain is the detector gain, {gain}; exposure_ms is the exposure time in milliseconds, {exposure_ms}. The image gets brighter with more laser power, gain or exposure; very bright settings saturate it.
 
-Acquiring saves each image under the output folder, in a folder named by the acquisition type and a file named by the position label. A z-stack of several planes around the current height is one acquisition."""
+Acquiring saves each image under the output folder, in a file named by the position label. The acquisition setting folder puts it in a folder of that name instead. A z-stack of several planes around the current height is one acquisition."""
 
 
 def _described(limits: dict) -> str:
