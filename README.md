@@ -131,15 +131,6 @@ use. Today it is the layer between our workflows and the Leica Stellaris: the wo
 controller's commands, and the Stellaris driver turns them into actions on the microscope. The mock driver,
 `zmart_controller.mock`, lets you try everything without a microscope.
 
-## Testing
-
-The tests run on the mock driver, so they need no microscope. From a clone of this repository:
-
-```bash
-pip install -e ".[test]"
-python -m pytest
-```
-
 ## Author
 Thom de Hoog, Center for Microscopy and Image Analysis (ZMB), University of
 Zurich (thom.dehoog@zmb.uzh.ch, thomdehoog@gmail.com).
