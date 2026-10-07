@@ -23,8 +23,9 @@ When you want to implement an automated workflow on a microscope, you run into t
    and microscope time is often limited.
 
 2. **You want to share the workflow, but it only runs on your specific microscope.** Once it works, you want
-   to report it and share it, so that others can use it. But every microscope comes with its own programming interface,
-   and a workflow written for yours does not run on theirs.
+   to report it and share it, so that others can review it and use it. But every microscope setup is different,
+   with its own programming interface, so a workflow written for yours does not run on theirs. That makes your
+   findings very hard to reproduce.
 
 
 ## The Solution
