@@ -10,8 +10,13 @@ driver's ``get_*`` commands and checks the answers against the contract in
 one acquisition, which the driver's own tests take, since checking it means
 taking a picture.
 
-:func:`config_root` is the folder where drivers keep what they measure once
-per microscope: the origin, the travel limits and the calibration.
+:func:`add_driver` installs a driver on this computer once, under a name of
+your choosing; :func:`get_drivers` lists the installed names, and
+``set_instrument`` accepts any of them. The list is a small file in
+:func:`config_root`, or in your home folder when that folder cannot be written.
+
+:func:`config_root` is also the folder where drivers keep what they measure
+once per microscope: the origin, the travel limits and the calibration.
 
 Author: Thom de Hoog, Center for Microscopy and Image Analysis (ZMB),
 University of Zurich (thom.dehoog@zmb.uzh.ch, thomdehoog@gmail.com).
@@ -19,6 +24,8 @@ University of Zurich (thom.dehoog@zmb.uzh.ch, thomdehoog@gmail.com).
 
 from __future__ import annotations
 
+import importlib
+import json
 import logging
 import math
 import os
@@ -83,6 +90,97 @@ def config_root() -> Path:
     if system == "Darwin":
         return Path("/Library/Application Support/zmart-microscopy")
     return Path("/etc/zmart-microscopy")
+
+
+# ---- the drivers installed on this computer
+
+#: The name the mock driver is always listed under.
+MOCK = "mock"
+REGISTRY_FILE = "drivers.json"
+
+
+def user_root() -> Path:
+    """The folder in your home folder used when :func:`config_root` cannot be written."""
+    return Path.home() / ".zmart-microscopy"
+
+
+def _registry_files() -> list[Path]:
+    """The two places the list of drivers can live: the computer's, then your own."""
+    return [config_root() / REGISTRY_FILE, user_root() / REGISTRY_FILE]
+
+
+def _read(path: Path) -> dict[str, Any]:
+    try:
+        return json.loads(path.read_text())
+    except FileNotFoundError:
+        return {}
+
+
+def _installed() -> dict[str, dict[str, Any]]:
+    """Every installed driver, by name. An entry in your own list wins over the computer's."""
+    entries: dict[str, dict[str, Any]] = {}
+    for path in _registry_files():
+        entries.update(_read(path))
+    return entries
+
+
+def get_drivers() -> list[str]:
+    """The names of the drivers installed on this computer, the mock first.
+
+    Pass any of them to ``set_instrument``.
+    """
+    return [MOCK, *sorted(name for name in _installed() if name != MOCK)]
+
+
+def add_driver(name: str, driver: str, connection: dict[str, Any] | None = None) -> Path:
+    """Install a driver on this computer once, under ``name``.
+
+    ``driver`` is the name you would import it by, such as
+    ``"zmart_drivers.leica.stellaris"``. It is imported and checked first, so
+    a driver that is not installed, or is missing a function, is refused
+    with a clear message and nothing is written. ``connection`` is kept with
+    it and handed to the driver every time it is plugged in. Adding a name
+    again replaces its entry. Returns the file the list was saved in: the
+    computer's, or your own when the computer's cannot be written.
+    """
+    if not isinstance(name, str) or not name.strip():
+        raise ValueError("a driver needs a name, such as 'stellaris'")
+    if name == MOCK:
+        raise ValueError(f"{MOCK!r} is the mock driver's name; choose another")
+    driver_functions(importlib.import_module(driver))
+    entry = {"driver": driver, "connection": dict(connection or {})}
+    for path in _registry_files():
+        try:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            entries = _read(path)
+            entries[name] = entry
+            path.write_text(json.dumps(entries, indent=2) + "\n")
+            return path
+        except OSError:
+            logger.info("cannot write %s, trying the next place", path)
+    raise PermissionError(f"could not write the list of drivers in {_registry_files()}")
+
+
+def remove_driver(name: str) -> bool:
+    """Take ``name`` off the list of installed drivers. Returns False if it was not there."""
+    removed = False
+    for path in _registry_files():
+        entries = _read(path)
+        if name in entries:
+            del entries[name]
+            path.write_text(json.dumps(entries, indent=2) + "\n")
+            removed = True
+    return removed
+
+
+def find_driver(name: str) -> tuple[Any, dict[str, Any]]:
+    """The driver installed as ``name``, imported, and the connection saved with it."""
+    if name == MOCK:
+        return importlib.import_module("zmart_controller.mock"), {}
+    entry = _installed().get(name)
+    if entry is None:
+        raise ValueError(f"no driver installed as {name!r}; installed: {get_drivers()}")
+    return importlib.import_module(entry["driver"]), dict(entry.get("connection") or {})
 
 
 # ---- validating a driver against the contract

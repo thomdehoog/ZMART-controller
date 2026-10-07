@@ -6,7 +6,7 @@ date, the program crashes. A driver has to handle every one of these calmly,
 and the only way to be sure it does is to make them happen in a test.
 
 Each fault below matches one kind of error from the driver anatomy
-(``docs/1_plug_in_a_driver/driver-anatomy.md``), so a
+(``docs/driver-anatomy.md`` in ZMART-drivers), so a
 test can check that the driver's error handling sorts it into the right kind
 and does the right thing.
 

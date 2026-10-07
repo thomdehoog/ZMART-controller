@@ -35,3 +35,10 @@ def _reset_active_session():
     import zmart_controller
 
     zmart_controller._active = None
+
+
+@pytest.fixture(autouse=True)
+def _home_in_a_temporary_folder(tmp_path, monkeypatch):
+    """Never let a test write to the real home folder's list of drivers."""
+    monkeypatch.setenv("HOME", str(tmp_path / "home"))
+    monkeypatch.setenv("USERPROFILE", str(tmp_path / "home"))

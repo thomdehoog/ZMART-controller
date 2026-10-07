@@ -20,8 +20,7 @@ your own. This page is the complete documentation of part 1.
 8. [Rules every driver follows](#rules-every-driver-follows)
 9. [Configuration: what a driver measures once](#configuration-what-a-driver-measures-once)
 10. [Check that a driver fits](#check-that-a-driver-fits)
-11. [How a driver is built inside](#how-a-driver-is-built-inside)
-12. [Install a driver](#install-a-driver)
+11. [Install a driver](#install-a-driver)
 
 ## The idea
 
@@ -121,6 +120,8 @@ my_driver/
 
 Then `zmart_controller.set_instrument(my_driver)` finds every function on the
 package itself. The mock driver, `zmart_controller.mock`, is built this way.
+How our own drivers are organised inside is described in
+[the anatomy of a ZMART driver](https://github.com/thomdehoog/ZMART-drivers/blob/main/docs/driver-anatomy.md).
 
 ## The requirements
 
@@ -346,45 +347,49 @@ The controller's own tests, in `tests/`, also show the behaviour a workflow
 relies on. Running your driver through the same scenarios is a quick way to
 find gaps.
 
-## How a driver is built inside
-
-A driver for a real microscope does more than map commands: it talks to
-vendor software that is slow, busy, or sometimes wrong. The ZMART drivers
-share one layout for this, so that the safety behaviour is the same on every
-microscope and an unfamiliar driver is easy to find your way around. Each
-part only uses the parts below it:
-
-```
-  driver.py             the functions the controller calls
-  procedures            recipes such as autofocus, built from get and set actions
-  set actions           change the microscope, then confirm the change
-  get actions           ask the microscope something
-  error handling        sort every problem into a kind, then follow the rule
-  vendor interface      the only part that knows the vendor software
-  ────────────────────────────────────────────────────────────────
-  alongside: data handling, configuration, testing
-```
-
-[The anatomy of a ZMART driver](driver-anatomy.md) describes every part and
-its rules. The mock driver is built exactly this way; its
-[README](../../zmart_controller/mock/README.md) walks through the parts, and
-shows how one move travels through them.
-
-You do not need all of this to start. A driver that is a single file with the
-functions above already works with every workflow; the
-[tutorial](tutorial.md) builds one.
-
 ## Install a driver
 
 A driver is an ordinary Python package. Install it into the same Python
-environment as the controller, import it, and hand it to `set_instrument`:
+environment as the controller:
 
 ```bash
 pip install "git+https://github.com/<owner>/<my-driver>"
 ```
 
+Then add it to the controller's list of drivers, once, under a name of your
+choosing. Give the connection dictionary here too, if the driver needs one:
+
 ```python
 import zmart_controller
+
+zmart_controller.add_driver("my-scope", "my_driver", {"host": "localhost"})
+```
+
+`add_driver` imports the driver and checks that every function is there
+before it writes anything down, so a driver that is not installed, or is
+missing a function, is refused with a clear message. From then on, every
+session on this computer can list it and plug it in by name:
+
+```python
+zmart_controller.get_drivers()               # ['mock', 'my-scope']
+zmart_controller.set_instrument("my-scope")
+```
+
+The mock driver is always on the list, as `"mock"`. `remove_driver("my-scope")`
+takes a driver off the list again; adding a name a second time replaces its
+entry.
+
+The list is a small file, `drivers.json`, in the computer's ZMART
+configuration folder (`C:\ProgramData\zmart-microscopy\` on Windows), so
+everyone who uses the microscope computer sees the same drivers. When that
+folder cannot be written, for example on a Mac or Linux account without
+administrator rights, the list is kept in `.zmart-microscopy` in your home
+folder instead.
+
+While you write a driver, you can skip the list and hand the module itself to
+`set_instrument`:
+
+```python
 import my_driver
 
 zmart_controller.set_instrument(my_driver, {"host": "localhost"})

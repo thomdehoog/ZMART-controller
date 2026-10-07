@@ -334,10 +334,9 @@ the vendor software instead of a dictionary:
   `files` and `planes`.
 
 Once a driver grows beyond one file, make it a package, a folder whose
-`__init__.py` imports the functions, exactly as the mock does. The README
-section [How a driver is built inside](README.md#how-a-driver-is-built-inside)
-and [the anatomy of a ZMART driver](driver-anatomy.md) describe the parts a
-real driver is made of; the mock driver is a complete example to copy.
+`__init__.py` imports the functions, exactly as the mock does.
+[The anatomy of a ZMART driver](https://github.com/thomdehoog/ZMART-drivers/blob/main/docs/driver-anatomy.md) describes how our own drivers are
+built inside; the mock driver is a complete example of it.
 
 ## When something goes wrong
 

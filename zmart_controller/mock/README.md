@@ -42,7 +42,7 @@ zmart_controller.set_instrument(
 ## The parts
 
 The driver follows the anatomy of a ZMART driver, described in full in
-[the anatomy of a ZMART driver](../../docs/1_plug_in_a_driver/driver-anatomy.md).
+[the anatomy of a ZMART driver](https://github.com/thomdehoog/ZMART-drivers/blob/main/docs/driver-anatomy.md).
 Each part is a folder, and each part only uses the parts below it.
 
 | Folder | Part | What it does here |

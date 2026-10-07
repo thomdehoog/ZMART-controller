@@ -24,7 +24,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from .utils import driver_functions, driver_name
+from .utils import driver_functions, driver_name, find_driver
 
 
 class Session:
@@ -143,12 +143,18 @@ class Session:
 def set_instrument(driver: Any, connection: dict[str, Any] | None = None) -> Session:
     """Plug in a driver, connect to its microscope, and return the :class:`Session`.
 
-    ``driver`` holds the driver's functions, one per command: a module such as
-    ``zmart_controller.mock``, or a dict from command name to function.
-    ``connection`` is handed to the driver's ``connect`` unchanged; it holds
-    whatever that driver needs, such as a host name, and may be left out.
+    ``driver`` is the name of an installed driver, from ``get_drivers()``, or
+    the driver itself: a module such as ``zmart_controller.mock``, or a dict
+    from command name to function. ``connection`` is handed to the driver's
+    ``connect`` unchanged; it holds whatever that driver needs, such as a host
+    name. Left out, an installed driver gets the connection saved with it.
     Raises ``ValueError`` naming any function the driver is missing.
     """
+    name = None
+    if isinstance(driver, str):
+        name = driver
+        driver, saved = find_driver(name)
+        connection = saved if connection is None else connection
     ops = driver_functions(driver)
     handle = ops["connect"](dict(connection or {}))
-    return Session(ops, handle, {"driver": driver_name(driver)})
+    return Session(ops, handle, {"driver": name or driver_name(driver)})

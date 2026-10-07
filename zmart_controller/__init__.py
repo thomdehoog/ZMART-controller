@@ -4,13 +4,17 @@ Plug in a driver, then drive the microscope through the module itself::
 
     import zmart_controller
 
-    zmart_controller.set_instrument(zmart_controller.mock)   # the simulated microscope
+    zmart_controller.get_drivers()            # ["mock", ...]: the drivers installed here
+    zmart_controller.set_instrument("mock")   # the simulated microscope
     zmart_controller.set_xyz(10, 20, 5)
     zmart_controller.acquire(position_label="A1")
     zmart_controller.disconnect()
 
-A driver is a module with one function per command; the mock is one, and
-any other is plugged in the same way. To drive several microscopes at once,
+A driver is a module with one function per command. Install one on the
+computer once, then plug it in by name::
+
+    zmart_controller.add_driver("stellaris", "zmart_drivers.leica.stellaris")
+    zmart_controller.set_instrument("stellaris") To drive several microscopes at once,
 hold a session for each::
 
     from zmart_controller.session import set_instrument
@@ -35,10 +39,13 @@ __affiliation__ = "Center for Microscopy and Image Analysis (ZMB), University of
 
 from .session import Session
 from .session import set_instrument as _set_instrument
-from .utils import check_acquire_answer, validate_driver
+from .utils import add_driver, check_acquire_answer, get_drivers, remove_driver, validate_driver
 
 __all__ = [
     "Session",
+    "add_driver",
+    "get_drivers",
+    "remove_driver",
     "check_acquire_answer",
     "validate_driver",
     "disconnect",
@@ -52,7 +59,8 @@ _active: Session | None = None
 def set_instrument(driver, connection=None) -> Session:
     """Plug in a driver, connect to its microscope, and make it the active one.
 
-    ``driver`` is a module with one function per command, such as
+    ``driver`` is the name of an installed driver, from :func:`get_drivers`,
+    or a module with one function per command, such as
     ``zmart_controller.mock``; ``connection`` is handed to its ``connect``.
     Module-level commands then go to it. The previously active microscope is
     disconnected. Returns the :class:`Session` as well, for those who want to

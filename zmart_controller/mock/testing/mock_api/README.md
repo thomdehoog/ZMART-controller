@@ -5,7 +5,7 @@ pretend microscope behind it. It plays the part that LAS X plays for a Leica
 microscope, NIS-Elements for a Nikon, or ZEN for a ZEISS. It lets you build
 and test every part of a driver on a laptop, without hardware.
 
-In the [driver anatomy](../../../../docs/1_plug_in_a_driver/driver-anatomy.md),
+In the [driver anatomy](https://github.com/thomdehoog/ZMART-drivers/blob/main/docs/driver-anatomy.md),
 this is the **mock API**: the stand-in at the
 very bottom of a driver, below the vendor interface. The driver's vendor
 interface talks to MockScope exactly the way a real driver talks to real
