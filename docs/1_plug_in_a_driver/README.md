@@ -260,8 +260,8 @@ depends on it will not run on other microscopes.
   showed up, answer `success: False` with `"confirmed": False` and the reason.
   A move is the exception: `set_xyz` raises `RuntimeError`, because carrying
   on at an unknown position is never safe.
-- **Reject what you do not understand.** An unknown procedure or acquisition
-  setting raises `ValueError`. A typo that passes silently can cost someone
+- **Reject what you do not understand.** An unknown setting name, acquisition
+  setting or procedure raises `ValueError`. A typo that passes silently can cost someone
   an experiment.
 - **Keep secrets out of error messages.** The connection dictionary may hold
   passwords. Name the keys, never the values.

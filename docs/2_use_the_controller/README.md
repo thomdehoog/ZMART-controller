@@ -275,7 +275,7 @@ zmart_controller.set_state(overview)["content"]
 ```
 ```
 {'applied': {'objective': 1, 'laser_power': 20.0, 'gain': 100.0, 'exposure_ms': 10.0},
- 'unconfirmed': {}, 'ignored': []}
+ 'unconfirmed': {}}
 ```
 
 You can also apply only a few settings. The rest stay as they are.
@@ -284,13 +284,14 @@ You can also apply only a few settings. The rest stay as they are.
 zmart_controller.set_state({"changeable": {"gain": 200.0}})["content"]
 ```
 ```
-{'applied': {'gain': 200.0}, 'unconfirmed': {}, 'ignored': []}
+{'applied': {'gain': 200.0}, 'unconfirmed': {}}
 ```
 
 A value outside the microscope's limits is refused with `ValueError`. When a
 setting was sent but the microscope never showed it, the answer is
 `success: False`. The mock then lists that setting under `unconfirmed`, with
-the reason. A setting the mock does not know is listed under `ignored`.
+the reason. A setting name the microscope does not know is refused with
+`ValueError` before anything is applied, so a typo never passes silently.
 
 A state is a plain dictionary. Save it to a file with `json`, and apply it
 again on another day.

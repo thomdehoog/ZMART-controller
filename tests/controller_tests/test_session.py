@@ -146,11 +146,19 @@ class TestState:
         assert rec["content"]["applied"]["laser_power"] == 7.0
 
     def test_soft_outcome_is_reported_not_raised(self, mic):
-        # Nothing the mock knows was in "changeable": nothing changed, and it
-        # is safe to carry on, so the driver says so instead of raising.
-        rec = mic.set_state({"changeable": {"unknown_setting": 1}})
+        # An empty "changeable" changes nothing, and it is safe to carry on,
+        # so the driver says so instead of raising.
+        rec = mic.set_state({"changeable": {}})
         assert rec["success"] is False
         assert rec["content"]["applied"] == {}
+
+    def test_unknown_setting_name_is_refused(self, mic):
+        # A misspelled name is refused before anything is applied, so a typo
+        # never passes silently, not even beside a setting that is correct.
+        before = mic.get_state()["content"]["changeable"]["gain"]
+        with pytest.raises(ValueError, match="unknown settings \\['gian'\\]"):
+            mic.set_state({"changeable": {"gain": before + 1, "gian": 1}})
+        assert mic.get_state()["content"]["changeable"]["gain"] == before
 
     def test_observed_is_a_report_never_an_instruction(self, mic):
         # A mismatching observed part does not block applying the changeable

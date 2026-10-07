@@ -17,12 +17,13 @@ from __future__ import annotations
 from typing import Any
 
 from ..configuration import user_from_raw
+from ..configuration.checks import SETTING_NAMES
 from .dispatch import Reading
 
-# The settings an experiment can change, by their ZMART name, with the name
-# MockScope uses for each. Translating names is part of giving values a
-# meaning, so it lives here and not in the vendor interface.
-SETTING_NAMES: dict[str, str] = {
+# The name MockScope uses for each setting in SETTING_NAMES. Translating
+# names is part of giving values a meaning, so it lives here and not in the
+# vendor interface.
+VENDOR_NAMES: dict[str, str] = {
     "laser_power": "laser_power_percent",
     "gain": "detector_gain",
     "exposure_ms": "exposure_ms",
@@ -107,6 +108,6 @@ def state(ctx) -> Reading:
     current = settings(ctx)
     if not current.known:
         return current
-    value: dict[str, Any] = {name: current.value[vendor] for name, vendor in SETTING_NAMES.items()}
+    value: dict[str, Any] = {name: current.value[VENDOR_NAMES[name]] for name in SETTING_NAMES}
     value["objective"] = int(current.value["objective_slot"])
     return Reading(value, current.observed_at, current.source)

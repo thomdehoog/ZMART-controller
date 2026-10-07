@@ -223,7 +223,7 @@ class TestProcedures:
     def test_autofocus_finds_the_sharp_height(self, mic):
         mic.set_xyz(0, 0, 6)
         answer = mic.run_procedure({"name": "autofocus", "range_um": 20, "step_um": 2})
-        assert abs(answer["content"]["frame_z_um"]) <= 2
+        assert abs(answer["content"]["z_um"]) <= 2
         assert abs(mic.get_xyz()["content"]["z"]["value"]) <= 2
 
     def test_unknown_entries_are_refused(self, mic):
