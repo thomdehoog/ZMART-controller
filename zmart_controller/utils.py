@@ -46,7 +46,7 @@ logger = logging.getLogger(__name__)
 # Every driver must provide a function for each of these. disconnect is optional.
 OPS: tuple[str, ...] = (
     "connect",
-    "get_acquisition_options",
+    "get_acquisition_settings",
     "get_actuators",
     "get_xyz",
     "set_xyz",
@@ -461,7 +461,7 @@ def validate_driver(instrument: dict[str, Any]) -> list[str]:
             "get_actuators": _check_actuators,
             "get_xyz": _check_xyz,
             "get_state": _check_state,
-            "get_acquisition_options": _check_acquisition_options,
+            "get_acquisition_settings": _check_acquisition_settings,
             "get_procedures": _check_procedures,
         }
         for name, check in checks.items():
@@ -570,13 +570,13 @@ def _check_state(report, problems):
         problems.append('get_state: the report must contain an "observed" dict')
 
 
-def _check_acquisition_options(report, problems):
+def _check_acquisition_settings(report, problems):
     if not isinstance(report, dict):
-        problems.append("get_acquisition_options: the report must be a dict of option -> choices")
+        problems.append("get_acquisition_settings: the report must be a dict of setting -> choices")
         return
     for name, spec in report.items():
         if not isinstance(spec, dict) or "options" not in spec or "active" not in spec:
-            problems.append(f'get_acquisition_options: {name!r} must have "options" and "active"')
+            problems.append(f'get_acquisition_settings: {name!r} must have "options" and "active"')
 
 
 def _check_procedures(report, problems):
@@ -595,8 +595,7 @@ def check_acquire_answer(answer: Any) -> list[str]:
     """Check what a driver's ``acquire`` answered against the contract.
 
     ``answer`` is the whole answer, ``{"success": ..., "report": ...}``. The
-    report must name the ``acquisition_type`` and ``position_label`` it was
-    given, and list under ``files`` the path of every file the acquisition
+    report must name the ``position_label`` it was given, and list under ``files`` the path of every file the acquisition
     saved: the images and anything saved beside them. A format kept as a
     folder, such as OME-Zarr, is listed by its folder. Every path must exist.
     This is how a workflow finds the pictures on any microscope, so a driver
@@ -624,9 +623,8 @@ def check_acquire_answer(answer: Any) -> list[str]:
         return problems
     if not isinstance(report, dict):
         return problems + ["acquire: the report must be a dict"]
-    for key in ("acquisition_type", "position_label"):
-        if key not in report:
-            problems.append(f"acquire: the report must contain {key}")
+    if "position_label" not in report:
+        problems.append("acquire: the report must contain position_label")
     if "files" not in report:
         problems.append(
             "acquire: the report must contain files, the list of paths of every file it saved"

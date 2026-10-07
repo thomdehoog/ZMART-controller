@@ -307,8 +307,9 @@ confirms that the capture finished. Data handling starts after that.
 2. **Wait until it is complete.** A file must have stopped growing and the
    export must have finished, so that we never read a half-written file.
 3. **Convert** it to flat OME-TIFF (one plane per file) or OME-Zarr.
-4. **Name and place** it in the experiment's folder layout, using the
-   acquisition type and the position label.
+4. **Name and place** it in the experiment's folder layout, named after the
+   position label. Any further grouping is the driver's choice, offered as
+   an acquisition setting (the mock offers `folder`).
 5. **Attach the metadata**: the position in user coordinates, the instrument
    state, and the pixel size.
 6. **Keep the command log**: for each acquisition, what was asked, what
@@ -379,7 +380,7 @@ It is a folder called `zmart_controller/` with two files:
 - `zmart.json`, which names the instruments this driver serves;
 - `__init__.py`, which holds the 11 functions of the controller contract:
   `connect`, `get_info`, `get_actuators`, `get_xyz`, `set_xyz`, `get_state`,
-  `set_state`, `get_acquisition_options`, `acquire`, `get_procedures` and
+  `set_state`, `get_acquisition_settings`, `acquire`, `get_procedures` and
   `run_procedure` (plus an optional `disconnect`).
 
 The full contract is described in the ZMART Controller's `docs/driver.md`.

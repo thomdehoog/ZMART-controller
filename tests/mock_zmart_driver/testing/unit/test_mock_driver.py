@@ -174,9 +174,12 @@ class TestLimitsGate:
         mic.set_xyz(0, 0, 490)
         with pytest.raises(ValueError, match="z-stack"):
             mic.acquire(
-                acquisition_type="t",
                 position_label="p",
-                options={"z_planes": 20, "z_step_um": 1.0, "backlash_correction": False},
+                acquisition_settings={
+                    "z_planes": 20,
+                    "z_step_um": 1.0,
+                    "backlash_correction": False,
+                },
             )
 
     def test_without_limits_everything_is_refused(self):
@@ -267,9 +270,9 @@ def _tiff_description(path: Path) -> str:
 
 class TestDataHandling:
     def test_a_z_stack_is_one_file_per_plane(self, mic):
-        answer = mic.acquire(
-            acquisition_type="stack", position_label="cell 1", options={"z_planes": 3}
-        )["report"]
+        answer = mic.acquire(position_label="cell 1", acquisition_settings={"z_planes": 3})[
+            "report"
+        ]
         names = [Path(f).name for f in answer["files"]]
         assert names == [
             "cell_1_z000.ome.tif",
@@ -284,9 +287,8 @@ class TestDataHandling:
     def test_each_plane_says_which_file_channel_depth_and_place_it_is(self, mic):
         mic.set_xyz(100, 50, 3)
         answer = mic.acquire(
-            acquisition_type="stack",
             position_label="cell 2",
-            options={"z_planes": 3, "z_step_um": 2.0},
+            acquisition_settings={"z_planes": 3, "z_step_um": 2.0},
         )["report"]
         assert answer["planes"] == [
             {
@@ -303,24 +305,30 @@ class TestDataHandling:
 
     def test_an_ome_zarr_stack_names_its_planes_inside_the_one_folder(self, mic):
         answer = mic.acquire(
-            acquisition_type="t",
             position_label="zp",
-            options={"format": "ome-zarr", "z_planes": 2, "z_step_um": 0.5},
+            acquisition_settings={"format": "ome-zarr", "z_planes": 2, "z_step_um": 0.5},
         )["report"]
         root = answer["files"][0]
         assert [(plane["path"], plane["z"]) for plane in answer["planes"]] == [(root, 0), (root, 1)]
         bottom = answer["position"]["z"]
         assert [plane["z_um"] for plane in answer["planes"]] == [bottom, bottom + 0.5]
 
+    def test_a_folder_option_groups_the_files(self, mic):
+        answer = mic.acquire(position_label="A1", acquisition_settings={"folder": "prescan"})[
+            "report"
+        ]
+        root = Path(mic.get_info()["report"]["output_root"])
+        assert Path(answer["files"][0]).parent == root / "prescan"
+
     def test_never_overwrites(self, mic):
-        first = mic.acquire(acquisition_type="t", position_label="A1")["report"]["files"]
-        second = mic.acquire(acquisition_type="t", position_label="A1")["report"]["files"]
+        first = mic.acquire(position_label="A1")["report"]["files"]
+        second = mic.acquire(position_label="A1")["report"]["files"]
         assert Path(first[0]).name == "A1.ome.tif"
         assert Path(second[0]).name == "A1_001.ome.tif"
 
     def test_the_command_log_is_saved(self, mic):
         mic._handle.scope.faults.add("MoveStage", "busy")
-        answer = mic.acquire(acquisition_type="t", position_label="log")["report"]
+        answer = mic.acquire(position_label="log")["report"]
         lines = json.loads(Path(answer["command_log"]).read_text())
         messages = " ".join(line["message"] for line in lines)
         assert "sending again" in messages
@@ -328,9 +336,8 @@ class TestDataHandling:
 
     def test_ome_zarr_holds_the_stack(self, mic):
         answer = mic.acquire(
-            acquisition_type="t",
             position_label="z",
-            options={"format": "ome-zarr", "z_planes": 4, "z_step_um": 2.0},
+            acquisition_settings={"format": "ome-zarr", "z_planes": 4, "z_step_um": 2.0},
         )["report"]
         root = Path(answer["files"][0])
         array = json.loads((root / "0" / ".zarray").read_text())
@@ -356,9 +363,9 @@ class TestDataHandling:
         session._handle.scope._noise = False
         try:
             options = {"backlash_correction": False}
-            before = session.acquire(acquisition_type="r", position_label="a", options=options)
+            before = session.acquire(position_label="a", acquisition_settings=options)
             session.set_xyz(5, 0, 0)
-            after = session.acquire(acquisition_type="r", position_label="b", options=options)
+            after = session.acquire(position_label="b", acquisition_settings=options)
             first = read_mraw_free_tiff(before["report"]["files"][0])
             second = read_mraw_free_tiff(after["report"]["files"][0])
             width = 64
@@ -371,7 +378,7 @@ class TestDataHandling:
     def test_an_unconfirmed_acquisition_lists_no_files(self, mic):
         mic._handle.scope.faults.add("StartAcquisition", "ignore")
         answer = mic.acquire(
-            acquisition_type="t", position_label="lost", options={"backlash_correction": False}
+            position_label="lost", acquisition_settings={"backlash_correction": False}
         )
         assert answer["success"] is False
         assert answer["report"]["files"] == []
@@ -386,30 +393,30 @@ class TestReviewFindings:
     def test_lost_acquisition_reply_still_saves_the_image(self, mic):
         mic._handle.scope.faults.add("StartAcquisition", "timeout")
         answer = mic.acquire(
-            acquisition_type="t", position_label="lost", options={"backlash_correction": False}
+            position_label="lost", acquisition_settings={"backlash_correction": False}
         )
         assert answer["success"] is True
         assert Path(answer["report"]["files"][0]).is_file()
 
     def test_an_ignored_acquisition_is_never_confirmed_by_an_older_one(self, mic):
         options = {"backlash_correction": False}
-        first = mic.acquire(acquisition_type="t", position_label="same", options=options)
+        first = mic.acquire(position_label="same", acquisition_settings=options)
         assert first["success"] is True
         mic._handle.scope.faults.add("StartAcquisition", "ignore")
-        second = mic.acquire(acquisition_type="t", position_label="same", options=options)
+        second = mic.acquire(position_label="same", acquisition_settings=options)
         assert second["success"] is False
         assert second["report"]["files"] == []
         assert "not running" in second["report"]["reason"]
 
-    def test_a_long_position_label_is_saved_under_its_full_name(self, mic):
+    def test_a_long_label_is_saved_under_its_full_name(self, mic):
         label = "well_B07_field_" + "x" * 100
-        answer = mic.acquire(acquisition_type="overview", position_label=label)
+        answer = mic.acquire(position_label=label)
         assert answer["success"] is True, answer["report"].get("reason")
         assert Path(answer["report"]["files"][0]).name.startswith(label)
 
     def test_acquire_near_the_lower_limit(self, mic):
         mic.set_xyz(-4980, -5000, 0)  # 20 µm from the x limit, right at the y limit
-        answer = mic.acquire(acquisition_type="t", position_label="edge")
+        answer = mic.acquire(position_label="edge")
         assert answer["success"] is True
         assert mic.get_xyz()["report"]["x"]["value"] == -4980
 

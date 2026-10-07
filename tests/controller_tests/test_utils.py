@@ -99,7 +99,7 @@ class TestDiscovery:
 FUNCTIONS = """
 from mock_zmart_driver.zmart_controller import (
     connect, disconnect, get_info, get_actuators, get_xyz, set_xyz, get_state,
-    set_state, get_acquisition_options, acquire, get_procedures, run_procedure,
+    set_state, get_acquisition_settings, acquire, get_procedures, run_procedure,
 )
 """
 
@@ -433,9 +433,7 @@ class TestConfigRoot:
         monkeypatch.setenv("PROGRAMDATA", r"C:\\ProgramData")
         assert str(utils.config_root()).endswith("zmart-microscopy")
         monkeypatch.setattr(utils.platform, "system", lambda: "Darwin")
-        assert utils.config_root() == utils.Path(
-            "/Library/Application Support/zmart-microscopy"
-        )
+        assert utils.config_root() == utils.Path("/Library/Application Support/zmart-microscopy")
         monkeypatch.setattr(utils.platform, "system", lambda: "Linux")
         assert utils.config_root() == utils.Path("/etc/zmart-microscopy")
 
@@ -520,7 +518,9 @@ def test_a_reach_equal_to_the_travel_fits(monkeypatch):
 
 def test_a_driver_without_a_description_still_fits(monkeypatch):
     """The description is for whoever drives the microscope; the controller runs without it."""
-    _break(monkeypatch, "get_info", lambda handle: {"success": True, "report": {"output_root": "x"}})
+    _break(
+        monkeypatch, "get_info", lambda handle: {"success": True, "report": {"output_root": "x"}}
+    )
     assert validate_driver(_mock_instrument()) == []
 
 
@@ -529,7 +529,10 @@ def test_a_description_that_says_nothing_is_reported(monkeypatch, description):
     _break(
         monkeypatch,
         "get_info",
-        lambda handle: {"success": True, "report": {"output_root": "x", "description": description}},
+        lambda handle: {
+            "success": True,
+            "report": {"output_root": "x", "description": description},
+        },
     )
     assert validate_driver(_mock_instrument()) == [
         "get_info: description must be text that describes the microscope"
@@ -567,15 +570,13 @@ def _acquire(**options):
 
     session = set_instrument(_mock_instrument())
     try:
-        return session.acquire(
-            acquisition_type="overview", position_label="A1", options=options or None
-        )
+        return session.acquire(position_label="A1", acquisition_settings=options or None)
     finally:
         session.disconnect()
 
 
 def _answer(**report):
-    base = {"acquisition_type": "overview", "position_label": "A1"}
+    base = {"position_label": "A1"}
     return {"success": True, "report": {**base, **report}}
 
 
@@ -730,11 +731,10 @@ def test_two_planes_in_the_same_place_are_reported(saved):
     ]
 
 
-def test_the_name_and_label_must_come_back():
+def test_the_label_must_come_back():
     report = {"files": [], "planes": []}
     problems = check_acquire_answer({"success": False, "report": report})
     assert problems == [
-        "acquire: the report must contain acquisition_type",
         "acquire: the report must contain position_label",
     ]
 

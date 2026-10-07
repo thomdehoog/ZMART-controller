@@ -364,6 +364,7 @@ def set_state(handle: MockHandle, state: dict) -> dict:
 
 def _menu() -> dict:
     return {
+        "folder": {"options": "any text; empty saves straight into output_root", "active": ""},
         "backlash_correction": {"options": [True, False], "active": True},
         "format": {"options": list(FORMATS), "active": "ome-tiff"},
         "z_planes": {"options": "whole number from 1 up to the limit", "active": 1},
@@ -371,38 +372,41 @@ def _menu() -> dict:
     }
 
 
-def get_acquisition_options(handle: MockHandle) -> dict:
+def get_acquisition_settings(handle: MockHandle) -> dict:
     """The choices for capturing and saving, with allowed values and the active one."""
     _require_open(handle)
     return _answer(_menu())
 
 
-def _with_defaults(options: dict | None) -> dict:
-    """Check the options against the menu and fill in the ones left out."""
+def _with_defaults(settings: dict | None) -> dict:
+    """Check the settings against the menu and fill in the ones left out."""
     menu = _menu()
     resolved = {name: spec["active"] for name, spec in menu.items()}
-    for name, value in (options or {}).items():
+    for name, value in (settings or {}).items():
         if name not in menu:
-            raise ValueError(f"unknown acquisition option {name!r}")
+            raise ValueError(f"unknown acquisition setting {name!r}")
         allowed = menu[name]["options"]
         if isinstance(allowed, list) and value not in allowed:
-            raise ValueError(f"invalid value {value!r} for acquisition option {name!r}")
+            raise ValueError(f"invalid value {value!r} for acquisition setting {name!r}")
         resolved[name] = value
+    if not isinstance(resolved["folder"], str):
+        raise ValueError(f"acquisition setting 'folder' must be text, not {resolved['folder']!r}")
     planes = resolved["z_planes"]
     if isinstance(planes, bool) or not isinstance(planes, int) or planes < 1:
-        raise ValueError(f"invalid value {planes!r} for acquisition option 'z_planes'")
+        raise ValueError(f"invalid value {planes!r} for acquisition setting 'z_planes'")
     step = resolved["z_step_um"]
     if isinstance(step, bool) or not isinstance(step, (int, float)) or not step > 0:
-        raise ValueError(f"invalid value {step!r} for acquisition option 'z_step_um'")
+        raise ValueError(f"invalid value {step!r} for acquisition setting 'z_step_um'")
     return resolved
 
 
 def acquire(
-    handle: MockHandle, *, acquisition_type: str, position_label: str, options: dict | None = None
+    handle: MockHandle, *, position_label: str, acquisition_settings: dict | None = None
 ) -> dict:
     """Capture an image (or a z-stack) here and save it, in one step.
 
-    Options left out keep their active value. The report lists every saved
+    The files are named after ``position_label``. Settings left out keep their
+    active value; ``folder`` puts the files in a folder of that name. The report lists every saved
     file under ``files`` (the images, then the ``command_log`` that records
     how they were made, which is also named on its own), and under ``planes``
     which file, channel and depth each image plane is and the stage position
@@ -410,21 +414,21 @@ def acquire(
     False and no files or planes are listed.
     """
     _require_open(handle)
-    options = _with_defaults(options)
+    settings = _with_defaults(acquisition_settings)
     mark = handle.log.mark()
-    if options["backlash_correction"]:
+    if settings["backlash_correction"]:
         PROCEDURES["backlash_takeup"]["run"](handle)
     position = get.user_position(handle).value_or_raise("the position")
     # The vendor software takes short names only; the saved files keep the full label.
-    vendor_name = safe_name(f"{acquisition_type}_{position_label}")[:NAME_LIMIT]
+    vendor_name = safe_name(f"{settings['folder']}_{position_label}")[:NAME_LIMIT]
     outcome = setter.acquire(
-        handle, name=vendor_name, z_planes=options["z_planes"], z_step_um=options["z_step_um"]
+        handle, name=vendor_name, z_planes=settings["z_planes"], z_step_um=settings["z_step_um"]
     )
     report: dict[str, Any] = {
-        "acquisition_type": acquisition_type,
         "position_label": position_label,
-        "format": options["format"],
-        "settle": "backlash-corrected" if options["backlash_correction"] else "direct",
+        "folder": settings["folder"],
+        "format": settings["format"],
+        "settle": "backlash-corrected" if settings["backlash_correction"] else "direct",
         "position": position,
         "confirmed": outcome.confirmed,
     }
@@ -435,9 +439,9 @@ def acquire(
     saved = save_acquisition(
         handle,
         vendor_file=outcome.result,
-        acquisition_type=acquisition_type,
+        folder=settings["folder"],
         position_label=position_label,
-        image_format=options["format"],
+        image_format=settings["format"],
         position_um=position,
         log_mark=mark,
     )
