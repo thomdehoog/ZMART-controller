@@ -17,14 +17,14 @@ at the Center for Microscopy and Image Analysis (ZMB), University of Zurich.
 
 ## The Problem
 
-Every microscope comes with its own programming interface, so a workflow is written against one microscope.
-That causes two problems:
+When you want to implement a workflow on a microscope, you run into two problems:
 
-1. **You need the microscope to build the workflow.** You can only build and test it while you have time
-   on that microscope.
+1. **You need time on the microscope.** You can only build and test the workflow at the microscope itself,
+   and microscope time is often limited.
 
-2. **The workflow is stuck on that microscope.** It does not work on another one, which is a real obstacle
-   to sharing our workflows and deploying them on all the microscopes we want.
+2. **You want to share the workflow, but it only runs on your specific microscope.** Once it works, you want
+   to report it and share it, so that others can use it. But every microscope comes with its own programming interface,
+   and a workflow written for yours does not run on theirs.
 
 
 ## The Solution
