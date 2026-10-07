@@ -1,8 +1,9 @@
 """Utilities for drivers: what a driver must hold, and whether it fits.
 
-A driver is a Python module (or any object, or a dict) holding one function
-per command, found by name. :func:`driver_functions` collects them and names
-any that are missing. Everything else is the driver's job.
+A driver is the whole set of files that talks to one microscope. Towards the
+controller it offers one function per command, found by name on a module (or
+any object, or a dict). :func:`driver_functions` collects them and names any
+that are missing. Everything else is the driver's job.
 
 :func:`validate_driver` is for whoever writes a driver: it calls the
 driver's ``get_*`` commands and checks the answers against the contract in

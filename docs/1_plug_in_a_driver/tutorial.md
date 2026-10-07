@@ -19,9 +19,11 @@ microscope.
   your workflow ──► zmart_controller ──► driver ──► vendor software ──► microscope
 ```
 
-A driver is just **one Python function per command**: `connect`, `get_xyz`,
-`set_xyz`, `acquire`, and so on. You hand those functions to the controller,
-and the controller calls them. That is all "plugging in" means.
+A driver is the whole set of files that talks to one microscope. Towards the
+controller it offers **one Python function per command**: `connect`,
+`get_xyz`, `set_xyz`, `acquire`, and so on. The controller calls those
+functions, and the rest of the driver does the work behind them. Plugging in
+a driver means telling the controller where those functions are.
 
 ## Before you start
 

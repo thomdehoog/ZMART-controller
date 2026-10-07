@@ -10,8 +10,9 @@ Plug in a driver, then drive the microscope through the module itself::
     zmart_controller.acquire(position_label="A1")
     zmart_controller.disconnect()
 
-A driver is a module with one function per command. Install one on the
-computer once, then plug it in by name::
+A driver is the whole set of files that talks to one microscope; towards the
+controller it offers one function per command. Install one on the computer
+once, then plug it in by name::
 
     zmart_controller.add_driver("stellaris", "zmart_drivers.leica.stellaris")
     zmart_controller.set_instrument("stellaris") To drive several microscopes at once,

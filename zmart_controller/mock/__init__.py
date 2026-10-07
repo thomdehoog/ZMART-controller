@@ -8,7 +8,7 @@ and use it to try workflows without hardware. Plug it in with::
     zmart_controller.set_instrument(zmart_controller.mock)
 
 The functions the controller calls, one per command, are in ``driver.py`` and
-are listed here, which is what makes this module a driver.
+are listed here, which is how the controller finds them.
 """
 
 from .driver import (
