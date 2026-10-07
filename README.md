@@ -101,7 +101,7 @@ something unexpected happens, the answer is `success: False`, and the details ar
 We have not defined a vocabulary for error messages at this point.
 
 
-## Try it yourself
+## Want to give it a try?
 
 1. **[Plug in a driver](docs/1_plug_in_a_driver/README.md).** What a driver is, what it must provide, where its functions go, and how to
    plug it in.
