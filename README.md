@@ -3,7 +3,7 @@
 [![python](https://img.shields.io/badge/python-3.11%2B-blue)](https://www.python.org/downloads/)
 [![license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 [![dependencies](https://img.shields.io/badge/dependencies-none-brightgreen)](pyproject.toml)
-[![tests](https://img.shields.io/badge/tests-pytest-blue)](#testing)
+[![tests](https://github.com/thomdehoog/ZMART-controller/actions/workflows/tests.yml/badge.svg)](https://github.com/thomdehoog/ZMART-controller/actions/workflows/tests.yml)
 [![status](https://img.shields.io/badge/status-early%20use-orange)](#status)
 
 <table>
@@ -45,7 +45,6 @@ The ZMART controller sits between your workflow and the microscope. It addresses
    driver. The driver also keeps the microscope within its safe limits, and gives every microscope the same
    coordinates: the space in which you observe the specimen.
 
-Note: we are aware of the [useq-schema](https://github.com/pymmcore-plus/useq-schema) from the Micro-Manager community and of Anthropic's [Model Hardware Standard](https://www.anthropic.com/news/model-hardware-standard-research-preview). We might switch, because both have real upsides, but currently the useq-schema is not interoperable enough for our needs and the Model Hardware Standard is not released to the public yet.
 <p align="center">
   <img src="docs/zmart-controller-overview-2.png" width="100%" alt="Three microscopes, each with its own driver plugged in, connect through the ZMART Controller, one universal command vocabulary, to a script, an interface and an AI agent">
 </p>
@@ -64,7 +63,7 @@ zmart_controller.set_instrument(String)
 # 2) Learn about the connected setup: where images go, and the microscope in plain words
 zmart_controller.get_info()
 
-# 3) Discover the motors, then read the position and where pictures can show, or move (micrometers)
+# 3) Discover the motors, then read the position and where pictures can show, or move (micrometres)
 zmart_controller.get_actuators()
 zmart_controller.get_xyz()
 zmart_controller.set_xyz(x, y, z, with_actuators=Dict)
@@ -121,6 +120,22 @@ To use it in a project of your own, add it to the project's dependencies, for ex
 ```toml
 dependencies = ["zmart-controller @ git+https://github.com/thomdehoog/ZMART-controller"]
 ```
+
+## Run the tests
+
+The tests run on the mock driver, so they need no microscope:
+
+```bash
+pip install -e ".[test]"
+python -m pytest
+```
+
+## Related standards
+
+We are aware of the [useq-schema](https://github.com/pymmcore-plus/useq-schema) from the Micro-Manager
+community and of Anthropic's [Model Hardware Standard](https://www.anthropic.com/news/model-hardware-standard-research-preview).
+We might switch, because both have real upsides. Today the useq-schema is not interoperable enough for
+our needs, and the Model Hardware Standard is not released to the public yet.
 
 ## Status
 
