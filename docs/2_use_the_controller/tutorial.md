@@ -94,13 +94,14 @@ position = zmart_controller.get_xyz()["content"]
 print(position["x"])
 ```
 ```
-{'value': 0.0, 'actuator': 'motoric', 'range': [-5000.0, 5000.0], 'canvas': [-5032.0, 5032.0]}
+{'value': 0.0, 'actuator': 'motoric', 'canvas': [-5032.0, 5032.0]}
 ```
 
 Positions are in micrometres from the *origin*, a point (0, 0, 0) that was
 chosen once for this microscope. `value` is where the axis is now, and
-`range` is how far it may travel: on the mock, 5 mm to either side in x and
-y, and 0.5 mm up or down in z.
+`canvas` is everywhere a picture can show: on the mock, the stage travels
+5 mm to either side in x and y and 0.5 mm up or down in z, and a picture at
+the edge shows another 32 µm beyond it in x and y.
 
 ## Step 4: move
 

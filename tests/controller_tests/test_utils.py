@@ -54,7 +54,7 @@ def test_problems_are_named(monkeypatch):
 
 
 def _xyz_with(**canvas_per_axis):
-    """A get_xyz whose travel is [-100, 100] on every axis, with the canvas given per axis.
+    """A get_xyz with the canvas given per axis.
 
     An axis left out of ``canvas_per_axis`` reports a canvas of [-150, 150].
     The value ``"absent"`` leaves the key out altogether.
@@ -63,7 +63,7 @@ def _xyz_with(**canvas_per_axis):
     def get_xyz(handle, **kw):
         content = {}
         for axis in ("x", "y", "z"):
-            reading = {"value": 0.0, "actuator": "motoric", "range": [-100.0, 100.0]}
+            reading = {"value": 0.0, "actuator": "motoric"}
             canvas = canvas_per_axis.get(axis, [-150.0, 150.0])
             if canvas != "absent":
                 reading["canvas"] = canvas
@@ -86,20 +86,6 @@ def test_a_canvas_that_is_not_min_then_max_is_reported(monkeypatch, canvas):
     assert validate_driver(mock) == [
         "get_xyz: axis 'x' canvas must be [min, max] in micrometers, with min no larger than max"
     ]
-
-
-@pytest.mark.parametrize("canvas", [[-50.0, 150.0], [-150.0, 50.0], [-50.0, 50.0]])
-def test_a_canvas_smaller_than_the_travel_is_reported(monkeypatch, canvas):
-    """A picture can always show at least where the stage can go, so canvas holds the travel."""
-    _break(monkeypatch, "get_xyz", _xyz_with(y=canvas))
-    assert validate_driver(mock) == [
-        f"get_xyz: axis 'y' canvas {canvas} must contain the travel range [-100.0, 100.0]"
-    ]
-
-
-def test_a_canvas_equal_to_the_travel_fits(monkeypatch):
-    _break(monkeypatch, "get_xyz", _xyz_with(z=[-100.0, 100.0]))
-    assert validate_driver(mock) == []
 
 
 def test_a_driver_without_a_description_still_fits(monkeypatch):

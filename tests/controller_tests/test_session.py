@@ -250,18 +250,7 @@ class TestModuleStyle:
             getattr(m, missing)
 
 
-class TestTravelRange:
-    def test_range_is_reported_in_the_users_frame(self):
-        from zmart_controller.mock.configuration import save
-        from zmart_controller.session import set_instrument as open_session
-
-        save("origin", {"x": 51_000.0, "y": 37_500.0, "z": 5_000.0})
-        session = open_session(mock)
-        try:
-            assert session.get_xyz()["content"]["x"]["range"] == [-6000.0, 4000.0]
-        finally:
-            session.disconnect()
-
+class TestCanvas:
     def test_the_canvas_is_the_travel_widened_by_half_the_widest_field(self):
         """At the edge of travel a picture still shows half a field further out.
 
@@ -278,7 +267,7 @@ class TestTravelRange:
             content = session.get_xyz()["content"]
             assert content["x"]["canvas"] == [-6032.0, 4032.0]
             assert content["y"]["canvas"] == [-5032.0, 5032.0]
-            assert content["z"]["canvas"] == content["z"]["range"]
+            assert content["z"]["canvas"] == [-500.0, 500.0]  # exactly the z travel
         finally:
             session.disconnect()
 

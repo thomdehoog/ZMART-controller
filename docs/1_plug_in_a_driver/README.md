@@ -174,7 +174,7 @@ may add keys of its own; it should not leave out the ones listed here.
 | `disconnect` *(optional)* | handle | *(returns nothing; afterwards every other call raises `RuntimeError`, and a second `disconnect` is harmless)* |
 | `get_info` | handle | `output_root`, the folder where images are saved; and, recommended, `description` |
 | `get_actuators` | handle | `{axis: [motor names]}` for `x`, `y` and `z`, at least one motor each |
-| `get_xyz` | handle, `with_actuators=` | `{axis: {"value", "actuator", "range", "canvas"}}` for `x`, `y` and `z`; `value`, `range` and `canvas` in micrometres from the origin |
+| `get_xyz` | handle, `with_actuators=` | `{axis: {"value", "actuator", "canvas"}}` for `x`, `y` and `z`; `value` and `canvas` in micrometres from the origin |
 | `set_xyz` | handle, `x`, `y`, `z`, `with_actuators=` | `position` and `actuators`; raise if the move cannot be confirmed |
 | `get_state` | handle | `{"changeable": {...}, "observed": {...}}` |
 | `set_state` | handle, state | what was applied; act on `changeable` only |
@@ -193,20 +193,22 @@ Positions are in **micrometres from the origin**: a point on the microscope,
 recorded once during setup, that reads as (0, 0, 0). How the origin is found
 and stored is the driver's business (see [Configuration](#configuration-what-a-driver-measures-once)).
 
-For each axis, `get_xyz` reports three ranges of numbers:
+For each axis, `get_xyz` reports:
 
 - `value`: where the axis is now.
-- `range`: `[min, max]`, how far the axis can travel.
 - `canvas`: `[min, max]`, everywhere a picture can show on that axis.
 
-The `canvas` is wider than `range` because a picture taken at the end of the
-travel still shows half a field of view beyond it, and a z-stack started at
-the top or bottom of the focus shows half a stack further. So the `canvas` is
-the travel widened by half the largest field the driver can take (for x and
-y) and half the deepest stack (for z), and it always contains `range`. When
-nothing can be seen beyond the travel on some axis, `canvas` equals `range`
-there. The interface and the viewer use it to lay out the whole specimen
-area before the first picture arrives, so nothing has to grow or shift later.
+The canvas is the stage's travel widened a little, because a picture taken at
+the end of the travel still shows half a field of view beyond it, and a
+z-stack started at the top or bottom of the focus shows half a stack further.
+So the canvas is the travel widened by half the largest field the driver can
+take (for x and y) and half the deepest stack (for z). When nothing can be
+seen beyond the travel on some axis, the canvas is the travel itself there.
+The interface and the viewer use it to lay out the whole specimen area before
+the first picture arrives, so nothing has to grow or shift later.
+
+The travel limits themselves stay inside the driver: a move outside them is
+refused with a `ValueError` before anything moves.
 
 **One frame for positions and pictures.** The positions and the pictures
 share the frame in which you observe the specimen: in a saved image, **right

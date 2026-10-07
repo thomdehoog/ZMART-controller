@@ -248,8 +248,8 @@ def _actuators(with_actuators: dict | None) -> dict[str, str]:
 
 
 def get_xyz(handle: MockHandle, *, with_actuators: dict | None = None) -> dict:
-    """The position in micrometers from the origin, how far each axis may travel,
-    and the canvas: everywhere a picture can show along it."""
+    """The position in micrometers from the origin, and the canvas: everywhere a
+    picture can show along each axis."""
     _require_open(handle)
     chosen = _actuators(with_actuators)
     raw = get.raw_position(handle).value_or_raise("the position")
@@ -261,7 +261,6 @@ def get_xyz(handle: MockHandle, *, with_actuators: dict | None = None) -> dict:
             axis: {
                 "value": user[axis],
                 "actuator": chosen[axis],
-                "range": ranges[axis],
                 "canvas": canvas[axis],
             }
             for axis in ("x", "y", "z")
