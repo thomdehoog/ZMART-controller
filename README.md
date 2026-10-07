@@ -16,8 +16,14 @@ at the Center for Microscopy and Image Analysis (ZMB), University of Zurich.
 
 ## The Problem
 
-Every microscope comes with its own programming interface, so a workflow that is built for one microscope
-does not work on another. This is a real obstacle to sharing our workflows and deploying them on all the microscopes we want.
+Every microscope comes with its own programming interface, so a workflow is written against one microscope.
+That causes two problems:
+
+1. **You need the microscope to build the workflow.** You can only build and test it while you have time
+   on that microscope.
+
+2. **The workflow is stuck on that microscope.** It does not work on another one, which is a real obstacle
+   to sharing our workflows and deploying them on all the microscopes we want.
 
 
 ## The Solution
@@ -30,6 +36,14 @@ The ZMART controller lives between your workflow and the microscope:
 2. **A schema, not a driver.** It provides a consistent, interoperable vocabulary
    that ZMART-drivers plug into. The drivers take care of interacting with the microscope, enforcing limits,
    and providing a single absolute coordinate system that corresponds to the space in which you observe the specimen.
+
+This solves both problems:
+
+1. **Build without the microscope.** You build and test your workflow on the mock driver, and bring it
+   to the microscope only when it is ready.
+
+2. **Run on any microscope.** The same workflow runs on every microscope that has a driver, so one
+   workflow can scale to many microscopes.
 
 Note: we are aware of the [useq-schema](https://github.com/pymmcore-plus/useq-schema) from the Micro-Manager community and of Anthropic's [Model Hardware Standard](https://www.anthropic.com/news/model-hardware-standard-research-preview). We might switch, because both have real upsides, but currently the useq-schema is not interoperable enough for our needs and the Model Hardware Standard is not released to the public yet.
 <p align="center">
