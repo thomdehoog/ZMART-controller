@@ -12,6 +12,7 @@ from ..checks import AXES, _keys, _number
 
 
 def check(value: Any, where: str) -> None:
+    """Refuse a malformed the origin, naming the file (``where``) and what is wrong."""
     _keys(value, set(AXES), where)
     for axis in AXES:
         _number(value[axis], where, axis)

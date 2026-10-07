@@ -19,14 +19,17 @@ from ..configuration import user_from_raw
 from ..data_handling import wait_for_file
 from .focus_score import brenner
 
+# Counts the autofocus runs in this session, so that each run's z-stack gets
+# a file name of its own in the vendor software.
 _runs = 0
 
 
 def autofocus(ctx, *, range_um: float = 20.0, step_um: float = 2.0) -> dict[str, Any]:
     """Search ``range_um`` around the current height in steps of ``step_um``.
 
-    Returns ``{"ran", "focus_um", "frame_z_um", "scores"}``: the sharp height
-    in stage coordinates, the same height in user coordinates, and the score
+    Returns ``{"ran", "focus_um", "frame_z_um", "scores"}``: the height of
+    sharpest focus in stage coordinates, the same height in user
+    coordinates, and the score
     of every plane. Raises ``ValueError`` for a range or step that makes no
     sense, or a stack outside the limits.
     """
@@ -53,7 +56,9 @@ def autofocus(ctx, *, range_um: float = 20.0, step_um: float = 2.0) -> dict[str,
         ctx, x=here["x"], y=here["y"], focus=sharp - here["piezo"], piezo=here["piezo"]
     )
     if not finish.confirmed:
-        raise RuntimeError(f"autofocus could not move to the sharp height: {finish.reason}")
+        raise RuntimeError(
+            f"autofocus could not move to the height of sharpest focus: {finish.reason}"
+        )
     user = user_from_raw(
         {"x": here["x"], "y": here["y"], "z": sharp}, here["objective"], ctx.config
     )

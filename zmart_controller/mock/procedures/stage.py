@@ -1,4 +1,5 @@
-"""Procedures that only move the stage, and recording the origin.
+"""Procedures that only move drives: taking up backlash, parking the piezo, and
+recording the origin.
 
 Author: Thom de Hoog, Center for Microscopy and Image Analysis (ZMB),
 University of Zurich (thom.dehoog@zmb.uzh.ch, thomdehoog@gmail.com).
@@ -22,7 +23,7 @@ def _require(outcome, what: str) -> None:
 
 
 def backlash_takeup(ctx) -> dict[str, Any]:
-    """Step back by -x and -y, then approach the same position again.
+    """Step back a little in x and y, then approach the same position again.
 
     A stage's screws have a little play. Arriving from the same side every
     time takes that play up in the same direction, so a position visited

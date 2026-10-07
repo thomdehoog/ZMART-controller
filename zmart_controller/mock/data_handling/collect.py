@@ -16,6 +16,7 @@ from typing import Any
 
 from .. import get_actions as get
 
+#: How often, in seconds, to look whether the vendor's file is complete.
 POLL_INTERVAL_S = 0.01
 
 

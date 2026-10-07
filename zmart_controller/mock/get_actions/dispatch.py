@@ -4,9 +4,9 @@ Every reading in the driver passes through :meth:`GetDispatcher.read`. It
 does four things, the same for every microscope:
 
 1. **One read at a time.** Reads wait their turn, so a busy microscope is
-   never flooded with questions. The turn is taken per read, never around a
-   whole confirmation: the Leica driver learned that holding it longer
-   blocks the confirmation's own reads.
+   never flooded with questions. The turn is taken for one read at a time,
+   never for a whole confirmation, because a confirmation needs reads of its
+   own and would otherwise block itself.
 2. **Try again after a temporary problem**, such as "system busy", a few
    times with a short pause.
 3. **Keep to a time limit.** A reading that cannot be had in time is
@@ -38,6 +38,12 @@ from ..error_handling import RULES, Action, Kind
 @dataclass(frozen=True)
 class GetTuning:
     """How patient the get dispatcher is. Set by the driver author, not the operator.
+
+    ``max_retries`` is how often a read is tried again after a temporary
+    problem, ``retry_pause_s`` the pause between tries, ``time_limit_s`` how
+    long one reading may take in all, and ``wait_for_turn_s`` how long a read
+    waits for its turn while another read is under way. All times are in
+    seconds.
 
     ``time_limit_s`` must stay well inside the set dispatcher's confirmation
     window, so that a confirmation always gets its answer in time.

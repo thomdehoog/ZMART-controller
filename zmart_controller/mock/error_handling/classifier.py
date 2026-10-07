@@ -1,8 +1,9 @@
 """Sorting MockScope's errors into the shared kinds.
 
-This is the only microscope-specific piece of error handling. For LAS X the
-classifier reads the command echo text; for ZEN it reads gRPC status codes.
-For MockScope it reads the vendor's error code.
+This is the only microscope-specific piece of error handling, because every
+vendor reports problems in its own way: one as text, another as a numeric
+status code. MockScope reports an error code, and that is what this
+classifier reads.
 
 One rule matters more than any other here: **an error we do not recognise
 counts as permanent.** Trying again after an error we do not understand

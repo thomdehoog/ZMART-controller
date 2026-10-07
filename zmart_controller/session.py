@@ -86,14 +86,14 @@ class Session:
     def get_xyz(self, with_actuators: dict | None = None) -> dict:
         """Read each axis: its position, and how far it can travel.
 
-        Both in micrometers from the origin. ``with_actuators`` names a motor
+        Both in micrometres from the origin. ``with_actuators`` names a motor
         per axis, e.g. ``{"z": "piezo"}``. The names come from
         :meth:`get_actuators`; the driver checks them.
         """
         return self._ops["get_xyz"](self._handle, with_actuators=with_actuators)
 
     def set_xyz(self, x: float, y: float, z: float, with_actuators: dict | None = None) -> dict:
-        """Move to a position, in micrometers from the origin.
+        """Move to a position, in micrometres from the origin.
 
         ``with_actuators`` names the motor to use per axis. Left out, the
         driver uses its default. Any calibration is the driver's job.

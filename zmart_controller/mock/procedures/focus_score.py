@@ -4,8 +4,8 @@ The score adds up how much each pixel differs from the pixel two places to
 its right. A sharp picture has crisp edges and scores high; a blurred one
 scores low. It is a quick, widely used measure in light microscopy.
 
-Nothing here is specific to this microscope. In the driver anatomy, this
-belongs in the algorithms shared by every driver; it sits here until a
+Nothing here is specific to this microscope. In the driver anatomy
+(``docs/driver-anatomy.md`` in ZMART-drivers), this belongs in the algorithms shared by every driver; it sits here until a
 second driver needs it in the same form.
 
 Author: Thom de Hoog, Center for Microscopy and Image Analysis (ZMB),

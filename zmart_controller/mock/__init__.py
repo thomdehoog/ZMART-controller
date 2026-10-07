@@ -1,15 +1,15 @@
 """The mock microscope driver: a complete ZMART driver for a pretend microscope.
 
-It is built from the same parts as every ZMART driver (see the driver
-anatomy in ``docs/1_plug_in_a_driver/README.md``), on top of MockScope Control, pretend vendor
-software in ``testing/mock_api``. Read it as the template for a new driver,
+It is built from the same parts as every ZMART driver, described in
+``docs/driver-anatomy.md`` of the ZMART-drivers repository. Underneath it runs
+MockScope Control, pretend vendor software in ``testing/mock_api``. Read it as the template for a new driver,
 and use it to try workflows without hardware. Plug it in with::
 
     zmart_controller.set_instrument(zmart_controller.mock)
 
 The functions the controller calls, one per command, are in
-``zmart_controller_plugin.py`` and
-are listed here, which is how the controller finds them.
+``zmart_controller_plugin.py``. They are listed here, which is how the
+controller finds them.
 """
 
 from .zmart_controller_plugin import (

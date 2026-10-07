@@ -29,7 +29,7 @@ a real microscope does. So MockScope deliberately does not speak ZMART:
 | does not tell you how the camera sits, or how objectives are offset | these are hidden, and setup has to measure them |
 
 The driver's vendor interface translates all of this into plain values in
-micrometers, and its error handling sorts the codes into kinds.
+micrometres, and its error handling sorts the codes into kinds.
 
 ## Getting started
 
@@ -55,8 +55,8 @@ of a driver's set dispatcher.
 | `Login` | `token` | Opens a session. Every other command needs one. The default token is `"mock-token"`. |
 | `Logout` | – | Closes the session. |
 | `GetHardware` | – | Serial number, travel ranges, objectives, camera size and the allowed range of each setting. |
-| `GetStagePosition` | – | `{"x", "y"}` in raw micrometers. |
-| `GetFocus` | – | `{"focus", "piezo"}` in raw micrometers. |
+| `GetStagePosition` | – | `{"x", "y"}` in raw micrometres. |
+| `GetFocus` | – | `{"focus", "piezo"}` in raw micrometres. |
 | `GetSettings` | – | The current settings and the objective slot. |
 | `GetStatus` | – | `idle`, `moving`, `changing_objective` or `acquiring`, and the last acquisition with its file and state. |
 | `GetOutputFolder` | – | Where acquisitions are written. |
@@ -144,7 +144,7 @@ when the limits refused a move.
 
 The pretend microscope looks at a slide covered in small bright spots, like
 fluorescent beads. The spots never move, so the same position always shows
-the same picture. Spots blur as the focus moves away from the sharp height,
+the same picture. Spots blur as the focus moves away from the height of sharpest focus,
 which makes autofocus possible.
 
 Three facts are hidden, the way a real microscope hides them:
@@ -158,8 +158,8 @@ Three facts are hidden, the way a real microscope hides them:
 - **The tilt of the slide**: the sharp focus height changes slightly across
   the slide. Change it with `tilt=`.
 
-`scope.truth()` returns these answers, so a test can check what a setup
-notebook measured. A real microscope has no such function.
+`scope.truth()` returns these answers, so a test can check what the setup
+step measured. A real microscope has no such function.
 
 Pass `noise=False` for clean pictures without camera noise, which makes
 comparisons in tests exact. `seed=` chooses a different pattern of spots.

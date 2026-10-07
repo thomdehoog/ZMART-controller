@@ -83,7 +83,7 @@ class Faults:
         self._pending.clear()
 
     def take(self, command: str) -> str | None:
-        """The fault for this call of ``command``, if any, used up by one.
+        """The next fault planted for ``command``, or None. Each fault is handed out once.
 
         Faults added first happen first.
         """

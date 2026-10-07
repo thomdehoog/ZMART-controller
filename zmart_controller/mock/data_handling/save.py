@@ -1,4 +1,4 @@
-"""Saving one acquisition as ZMART's product, and reporting where it went.
+"""Saving one acquisition in the files ZMART uses, and reporting where it went.
 
 The layout under the output folder is::
 
@@ -29,6 +29,7 @@ from .ome_tiff import ome_xml, write_ome_tiff
 from .ome_zarr import write_ome_zarr
 from .orient import align_to_stage
 
+#: The file formats an acquisition can be saved in.
 FORMATS = ("ome-tiff", "ome-zarr")
 
 _UNSAFE = re.compile(r"[^A-Za-z0-9_.-]+")

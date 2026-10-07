@@ -1,8 +1,8 @@
 """The coordinate system: from stage coordinates to the user's, and back.
 
-The vendor software reports **raw stage coordinates**: micrometers exactly as
+The vendor software reports **raw stage coordinates**: micrometres exactly as
 the stage counts them, with its own zero somewhere at the edge of the slide.
-Experiments work in **user coordinates**: micrometers from the recorded
+Experiments work in **user coordinates**: micrometres from the recorded
 origin, so (0, 0, 0) is the place the operator chose.
 
 Two corrections connect them:

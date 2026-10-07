@@ -201,7 +201,7 @@ class TestLimitsGate:
             session.disconnect()
 
 
-# --- part 3 and 4: actuators -----------------------------------------------------------
+# --- parts 3 and 4: actuators -----------------------------------------------------------
 
 
 class TestActuators:
@@ -366,8 +366,8 @@ class TestDataHandling:
             before = session.acquire(position_label="a", acquisition_settings=options)
             session.set_xyz(5, 0, 0)
             after = session.acquire(position_label="b", acquisition_settings=options)
-            first = read_mraw_free_tiff(before["content"]["files"][0])
-            second = read_mraw_free_tiff(after["content"]["files"][0])
+            first = _tiff_pixels(before["content"]["files"][0])
+            second = _tiff_pixels(after["content"]["files"][0])
             width = 64
             for row in range(64):
                 for col in range(64 - 5):
@@ -387,8 +387,8 @@ class TestDataHandling:
         assert len(_sent(mic, "StartAcquisition")) == 1
 
 
-class TestReviewFindings:
-    """Regression tests for problems found in review."""
+class TestProblemsFoundInReview:
+    """Problems found while reviewing the driver, kept as tests so they never come back."""
 
     def test_lost_acquisition_reply_still_saves_the_image(self, mic):
         mic._handle.scope.faults.add("StartAcquisition", "timeout")
@@ -480,7 +480,7 @@ def test_alignment_undoes_every_camera_orientation(orientation):
             assert abs(here - there) <= 1
 
 
-def read_mraw_free_tiff(path: str) -> list[int]:
+def _tiff_pixels(path: str) -> list[int]:
     """The pixels of a TIFF written by the driver, as a flat list."""
     raw = Path(path).read_bytes()
     (ifd,) = struct.unpack_from("<I", raw, 4)

@@ -33,6 +33,7 @@ from array import array
 from pathlib import Path
 from typing import Any
 
+# The name and version written in the header of every .mraw file.
 FORMAT = "MRAW"
 FORMAT_VERSION = 1
 
