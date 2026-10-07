@@ -83,7 +83,7 @@ command answered in the same shape, `{"success": ..., "content": ...}`.
 zmart_controller.disconnect()
 ```
 
-Part 2, [Drive the microscope](../2_drive_the_microscope/tutorial.md), goes
+Part 2, [Use the controller](../2_use_the_controller/tutorial.md), goes
 through all the commands. Here we look at the other side: the driver.
 
 ## Step 3: look at what a driver is
@@ -372,7 +372,7 @@ real driver is made of; the mock driver is a complete example to copy.
 ## Where to go next
 
 - The [README](README.md): the full requirements for every function.
-- Part 2, [Drive the microscope](../2_drive_the_microscope/tutorial.md): every
+- Part 2, [Use the controller](../2_use_the_controller/tutorial.md): every
   command, on the mock.
 - Part 3, [Build your workflow](../3_build_your_workflow/tutorial.md): put the
   commands together into an automated workflow.

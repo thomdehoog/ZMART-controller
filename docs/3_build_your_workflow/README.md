@@ -5,7 +5,7 @@ any microscope with a driver.
 
 This is part 3 of three; see the [overview](../../README.md). It builds on
 part 1, [plugging in a driver](../1_plug_in_a_driver/README.md), and part 2,
-[driving the microscope](../2_drive_the_microscope/README.md). The
+[using the controller](../2_use_the_controller/README.md). The
 [tutorial](tutorial.md) is a longer walk-through that builds a small smart
 workflow on the mock microscope, from an overview scan to a detailed scan of
 the spots it found. [`example_workflow.ipynb`](example_workflow.ipynb) is a

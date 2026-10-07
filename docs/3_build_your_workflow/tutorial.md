@@ -302,7 +302,7 @@ it against the controller.
   portable, the file layout, and reading the saved pictures.
 - The [example notebook](example_workflow.ipynb): another small workflow,
   ready to copy.
-- Part 2, [Drive the microscope](../2_drive_the_microscope/README.md): every
+- Part 2, [Use the controller](../2_use_the_controller/README.md): every
   command and what it answers.
 - Part 1, [Plug in a driver](../1_plug_in_a_driver/README.md): how to write
   a driver for a microscope that does not have one yet.

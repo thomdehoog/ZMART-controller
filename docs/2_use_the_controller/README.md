@@ -1,4 +1,4 @@
-# 2. Drive the microscope
+# 2. Use the controller
 
 Every command of the ZMART Controller, from the side of the person who drives
 the microscope.
