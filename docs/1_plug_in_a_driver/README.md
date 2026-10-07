@@ -26,9 +26,12 @@ read and apply the state, acquire, run a procedure. The controller does not
 know any microscope. It hands every command to a **driver**, and the driver
 carries it out on its own microscope.
 
-A driver is nothing more than **one Python function per command**, collected
-in a module. There is no class to inherit from and no file to register. You
-hand the module to the controller, and from then on every command goes to it:
+A driver is a set of Python functions that talk to the vendor software
+through its programming interface. It translates the vendor's own commands
+into the controller's common set of functions: one function per command, with
+the same name and the same kind of answer on every microscope. That is where
+the magic happens. You install a driver once, plug it into the controller,
+and from then on every command goes to it:
 
 ```
   your workflow ──► zmart_controller ──► driver ──► vendor software ──► microscope
