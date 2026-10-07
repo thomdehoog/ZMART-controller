@@ -98,10 +98,23 @@ something unexpected happens, the answer is `success: False`, and the details ar
 We have not defined a vocabulary for error messages at this point.
 
 
-## The three parts
+## Try it yourself
 
-The documentation follows the three steps of using the controller. Each part has a README, which is
-its complete documentation, and a tutorial, which walks you through it step by step.
+Install the controller into your Python environment (Python 3.11 or newer; it needs nothing else):
+
+```bash
+pip install "git+https://github.com/thomdehoog/ZMART-controller"
+```
+
+To use it in a project of your own, add it to the project's dependencies, for example in its
+`pyproject.toml`:
+
+```toml
+dependencies = ["zmart-controller @ git+https://github.com/thomdehoog/ZMART-controller"]
+```
+
+Then follow the parts below. Each part has a README, which is its complete documentation, and a
+tutorial, which walks you through it step by step.
 
 1. **[Plug in a driver](docs/1_plug_in_a_driver/README.md).** What a driver is, what it must provide, where its functions go, and how to
    plug it in. → [tutorial](docs/1_plug_in_a_driver/tutorial.md)
