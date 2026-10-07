@@ -38,7 +38,7 @@ class TestSetInstrument:
 
     def test_connection_reaches_driver(self, mic):
         # the variable connection dict is forwarded untouched to the driver's connect()
-        assert mic.get_info()["report"]["client"] == "mock-client"
+        assert mic.get_info()["content"]["client"] == "mock-client"
 
     def test_unknown_instrument_raises(self):
         with pytest.raises(ValueError, match="no driver registered"):
@@ -49,9 +49,9 @@ class TestFrame:
     def test_set_get_roundtrip(self, mic):
         rec = mic.set_xyz(10, 20, 5)
         assert rec["success"] is True
-        assert rec["report"]["position"] == {"x": 10, "y": 20, "z": 5}
-        assert rec["report"]["actuators"]["z"] == "motoric"
-        pos = mic.get_xyz()["report"]
+        assert rec["content"]["position"] == {"x": 10, "y": 20, "z": 5}
+        assert rec["content"]["actuators"]["z"] == "motoric"
+        pos = mic.get_xyz()["content"]
         assert (pos["x"]["value"], pos["y"]["value"], pos["z"]["value"]) == (10, 20, 5)
         assert pos["x"]["unit"] == "um"
 
@@ -67,17 +67,17 @@ class TestFrame:
         try:
             assert not hasattr(session, "set_origin")
             session.set_xyz(10, 0, 0)
-            assert session.get_xyz()["report"]["x"]["value"] == 10
+            assert session.get_xyz()["content"]["x"]["value"] == 10
             stage = session._handle.scope.send("GetStagePosition")["result"]
             assert stage["x"] == 50_110.0  # raw position = saved origin + frame value
         finally:
             session.disconnect()
 
     def test_get_actuators_lists_options(self, mic):
-        assert mic.get_actuators()["report"]["z"] == ["motoric", "piezo"]
+        assert mic.get_actuators()["content"]["z"] == ["motoric", "piezo"]
 
     def test_actuator_selector_reported_back(self, mic):
-        pos = mic.get_xyz(with_actuators={"z": "piezo"})["report"]
+        pos = mic.get_xyz(with_actuators={"z": "piezo"})["content"]
         assert pos["z"]["actuator"] == "piezo"
         assert pos["x"]["actuator"] == "motoric"  # untouched axes use the reference one
 
@@ -90,7 +90,7 @@ class TestAcquire:
     def test_acquire_returns_record(self, mic):
         rec = mic.acquire(position_label="A1")
         assert rec["success"] is True
-        rec = rec["report"]
+        rec = rec["content"]
         assert rec["position_label"] == "A1"
         assert rec["settle"] == "backlash-corrected"  # active default
         assert rec["format"] == "ome-tiff"  # active default
@@ -107,60 +107,60 @@ class TestAcquire:
                 "format": "ome-zarr",
                 "folder": "targetscan",
             },
-        )["report"]
+        )["content"]
         assert rec["settle"] == "direct"
         assert rec["format"] == "ome-zarr"
         assert [Path(f).name for f in rec["files"]] == ["B2.ome.zarr", "B2.commands.json"]
         assert (Path(rec["files"][0]) / ".zattrs").is_file()
 
     def test_acquisition_settings_discovered(self, mic):
-        opts = mic.get_acquisition_settings()["report"]
+        opts = mic.get_acquisition_settings()["content"]
         assert opts["backlash_correction"]["active"] is True
         assert "ome-zarr" in opts["format"]["options"]
 
 
 class TestState:
     def test_state_split_into_changeable_observed(self, mic):
-        state = mic.get_state()["report"]
+        state = mic.get_state()["content"]
         assert list(state) == ["changeable", "observed"]  # changeable first
         assert "laser_power" in state["changeable"]
         assert "serial" in state["observed"]
 
     def test_capture_and_reapply(self, mic):
-        original = mic.get_state()["report"]
+        original = mic.get_state()["content"]
         mic.set_state({"changeable": {"laser_power": 40.0}})
-        assert mic.get_state()["report"]["changeable"]["laser_power"] == 40.0
+        assert mic.get_state()["content"]["changeable"]["laser_power"] == 40.0
         mic.set_state(original)
-        laser = mic.get_state()["report"]["changeable"]["laser_power"]
+        laser = mic.get_state()["content"]["changeable"]["laser_power"]
         assert laser == original["changeable"]["laser_power"]
 
     def test_set_state_returns_driver_record(self, mic):
         rec = mic.set_state({"changeable": {"laser_power": 7.0}})
         assert rec["success"] is True
-        assert rec["report"]["applied"]["laser_power"] == 7.0
+        assert rec["content"]["applied"]["laser_power"] == 7.0
 
     def test_soft_outcome_is_reported_not_raised(self, mic):
         # Nothing the mock knows was in "changeable": nothing changed, and it
         # is safe to carry on, so the driver says so instead of raising.
         rec = mic.set_state({"changeable": {"unknown_setting": 1}})
         assert rec["success"] is False
-        assert rec["report"]["applied"] == {}
+        assert rec["content"]["applied"] == {}
 
     def test_observed_is_a_report_never_an_instruction(self, mic):
         # A mismatching observed part does not block applying the changeable
         # part (operator decision: set_state acts on changeable only).
         rec = mic.set_state({"changeable": {"laser_power": 5.0}, "observed": {"serial": "OTHER"}})
-        assert rec["report"]["applied"]["laser_power"] == 5.0
+        assert rec["content"]["applied"]["laser_power"] == 5.0
 
 
 class TestProcedures:
     def test_get_procedures_lists_available(self, mic):
-        assert "autofocus" in mic.get_procedures()["report"]
+        assert "autofocus" in mic.get_procedures()["content"]
 
     def test_run_procedure_returns_driver_record(self, mic):
         rec = mic.run_procedure({"name": "autofocus"})
         assert rec["success"] is True
-        assert rec["report"]["ran"] == "autofocus"
+        assert rec["content"]["ran"] == "autofocus"
 
     def test_unknown_procedure_is_refused(self, mic):
         with pytest.raises(ValueError, match="unknown procedure"):
@@ -169,7 +169,7 @@ class TestProcedures:
 
 class TestInfo:
     def test_get_info_passthrough(self, mic):
-        info = mic.get_info()["report"]
+        info = mic.get_info()["content"]
         assert Path(info["output_root"]).is_dir()
         assert info["serial"] == "MOCK-0001"
         # Nothing has been set up yet, so every configuration item is a shipped default.
@@ -193,7 +193,7 @@ class TestDisconnect:
         """Defaults are fixed (the reference actuator), never sticky —
         a per-call selection applies to that call only."""
         mic.set_xyz(0, 0, 0, with_actuators={"z": "piezo"})
-        assert mic.get_xyz()["report"]["z"]["actuator"] == "motoric"
+        assert mic.get_xyz()["content"]["z"]["actuator"] == "motoric"
 
     def test_invalid_acquire_option_rejected(self, mic):
         with pytest.raises(ValueError, match="unknown acquisition setting"):
@@ -208,7 +208,7 @@ class TestModuleStyle:
 
         m.set_instrument(_mock_instrument())
         m.set_xyz(10, 20, 5)
-        assert m.get_xyz()["report"]["x"]["value"] == 10
+        assert m.get_xyz()["content"]["x"]["value"] == 10
         m.disconnect()
 
     def test_module_disconnect_clears_active(self):
@@ -229,7 +229,7 @@ class TestModuleStyle:
             m.set_instrument(_mock_instrument())
         # the new session must be tracked despite the old teardown failing
         m.set_xyz(1, 2, 3)
-        assert m.get_xyz()["report"]["x"]["value"] == 1
+        assert m.get_xyz()["content"]["x"]["value"] == 1
 
     def test_no_active_session_error_is_helpful(self):
         import zmart_controller as m
@@ -254,7 +254,7 @@ class TestTravelRange:
         save("origin", {"x": 51_000.0, "y": 37_500.0, "z": 5_000.0})
         session = open_session(_mock_instrument())
         try:
-            assert session.get_xyz()["report"]["x"]["range"] == [-6000.0, 4000.0]
+            assert session.get_xyz()["content"]["x"]["range"] == [-6000.0, 4000.0]
         finally:
             session.disconnect()
 
@@ -272,10 +272,10 @@ class TestTravelRange:
         save("origin", {"x": 51_000.0, "y": 37_500.0, "z": 5_000.0})
         session = open_session(_mock_instrument())
         try:
-            report = session.get_xyz()["report"]
-            assert report["x"]["reach"] == [-6032.0, 4032.0]
-            assert report["y"]["reach"] == [-5032.0, 5032.0]
-            assert report["z"]["reach"] == report["z"]["range"]
+            content = session.get_xyz()["content"]
+            assert content["x"]["reach"] == [-6032.0, 4032.0]
+            assert content["y"]["reach"] == [-5032.0, 5032.0]
+            assert content["z"]["reach"] == content["z"]["range"]
         finally:
             session.disconnect()
 
@@ -283,4 +283,4 @@ class TestTravelRange:
         mic.set_xyz(10, 0, 0)
         with pytest.raises(ValueError, match="outside the travel range"):
             mic.set_xyz(9999, 0, 0)
-        assert mic.get_xyz()["report"]["x"]["value"] == 10  # did not move
+        assert mic.get_xyz()["content"]["x"]["value"] == 10  # did not move

@@ -28,7 +28,7 @@ saved), ``token`` (the vendor login, default ``"mock-token"``) and
 take time, ``"instant"`` makes them finish at once.
 
 Every function except ``connect`` and ``disconnect`` takes the handle first
-and returns ``{"success": bool, "report": ...}``.
+and returns ``{"success": bool, "content": ...}``.
 
 Author: Thom de Hoog, Center for Microscopy and Image Analysis (ZMB),
 University of Zurich (thom.dehoog@zmb.uzh.ch, thomdehoog@gmail.com).
@@ -95,9 +95,9 @@ class MockHandle:
         return self.vendor.scope
 
 
-def _answer(report: Any, *, success: bool = True) -> dict:
-    """Wrap a report in the shape every command returns."""
-    return {"success": success, "report": report}
+def _answer(content: Any, *, success: bool = True) -> dict:
+    """Wrap the content in the shape every command returns."""
+    return {"success": success, "content": content}
 
 
 def _require_open(handle: MockHandle) -> None:
@@ -355,8 +355,8 @@ def set_state(handle: MockHandle, state: dict) -> dict:
             unconfirmed[name] = outcome.reason
     ignored = sorted(set(changeable) - set(_STATE_ORDER))
     success = bool(applied) and not unconfirmed
-    report = {"applied": applied, "unconfirmed": unconfirmed, "ignored": ignored}
-    return _answer(report, success=success)
+    content = {"applied": applied, "unconfirmed": unconfirmed, "ignored": ignored}
+    return _answer(content, success=success)
 
 
 # --- acquiring ----------------------------------------------------------------
@@ -406,7 +406,7 @@ def acquire(
     """Capture an image (or a z-stack) here and save it, in one step.
 
     The files are named after ``position_label``. Settings left out keep their
-    active value; ``folder`` puts the files in a folder of that name. The report lists every saved
+    active value; ``folder`` puts the files in a folder of that name. The content lists every saved
     file under ``files`` (the images, then the ``command_log`` that records
     how they were made, which is also named on its own), and under ``planes``
     which file, channel and depth each image plane is and the stage position
@@ -424,7 +424,7 @@ def acquire(
     outcome = setter.acquire(
         handle, name=vendor_name, z_planes=settings["z_planes"], z_step_um=settings["z_step_um"]
     )
-    report: dict[str, Any] = {
+    content: dict[str, Any] = {
         "position_label": position_label,
         "folder": settings["folder"],
         "format": settings["format"],
@@ -434,7 +434,7 @@ def acquire(
     }
     if not outcome.confirmed:
         return _answer(
-            {**report, "files": [], "planes": [], "reason": outcome.reason}, success=False
+            {**content, "files": [], "planes": [], "reason": outcome.reason}, success=False
         )
     saved = save_acquisition(
         handle,
@@ -445,7 +445,7 @@ def acquire(
         position_um=position,
         log_mark=mark,
     )
-    return _answer({**report, **saved, "vendor_file": outcome.result})
+    return _answer({**content, **saved, "vendor_file": outcome.result})
 
 
 # --- procedures ---------------------------------------------------------------

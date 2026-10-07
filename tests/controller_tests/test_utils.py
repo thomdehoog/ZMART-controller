@@ -458,10 +458,10 @@ def test_the_mock_fits():
 
 def test_problems_are_named(monkeypatch):
     # Break two answers and expect plain sentences about those two, nothing else.
-    _break(monkeypatch, "get_xyz", lambda handle, **kw: {"success": True, "report": {"x": {}}})
-    _break(monkeypatch, "get_info", lambda handle: {"success": True, "report": {}})
+    _break(monkeypatch, "get_xyz", lambda handle, **kw: {"success": True, "content": {"x": {}}})
+    _break(monkeypatch, "get_info", lambda handle: {"success": True, "content": {}})
     problems = validate_driver(_mock_instrument())
-    assert "get_info: the report must contain output_root" in problems
+    assert "get_info: the content must contain output_root" in problems
     assert any(p.startswith("get_xyz: axis 'x' is missing") for p in problems)
     assert any(p.startswith("get_xyz: axis 'y' is missing") for p in problems)
     assert not any(p.startswith("get_state") for p in problems)
@@ -475,14 +475,14 @@ def _xyz_with(**reach_per_axis):
     """
 
     def get_xyz(handle, **kw):
-        report = {}
+        content = {}
         for axis in ("x", "y", "z"):
             reading = {"value": 0.0, "actuator": "motoric", "unit": "um", "range": [-100.0, 100.0]}
             reach = reach_per_axis.get(axis, [-150.0, 150.0])
             if reach != "absent":
                 reading["reach"] = reach
-            report[axis] = reading
-        return {"success": True, "report": report}
+            content[axis] = reading
+        return {"success": True, "content": content}
 
     return get_xyz
 
@@ -519,7 +519,7 @@ def test_a_reach_equal_to_the_travel_fits(monkeypatch):
 def test_a_driver_without_a_description_still_fits(monkeypatch):
     """The description is for whoever drives the microscope; the controller runs without it."""
     _break(
-        monkeypatch, "get_info", lambda handle: {"success": True, "report": {"output_root": "x"}}
+        monkeypatch, "get_info", lambda handle: {"success": True, "content": {"output_root": "x"}}
     )
     assert validate_driver(_mock_instrument()) == []
 
@@ -531,7 +531,7 @@ def test_a_description_that_says_nothing_is_reported(monkeypatch, description):
         "get_info",
         lambda handle: {
             "success": True,
-            "report": {"output_root": "x", "description": description},
+            "content": {"output_root": "x", "description": description},
         },
     )
     assert validate_driver(_mock_instrument()) == [
@@ -544,7 +544,7 @@ def test_the_mock_describes_itself():
 
     session = set_instrument(_mock_instrument())
     try:
-        description = session.get_info()["report"]["description"]
+        description = session.get_info()["content"]["description"]
     finally:
         session.disconnect()
     assert isinstance(description, str) and len(description) > 200
@@ -575,9 +575,9 @@ def _acquire(**options):
         session.disconnect()
 
 
-def _answer(**report):
+def _answer(**content):
     base = {"position_label": "A1"}
-    return {"success": True, "report": {**base, **report}}
+    return {"success": True, "content": {**base, **content}}
 
 
 def _plane(path, **entries):
@@ -607,10 +607,10 @@ def test_the_mocks_acquisition_fits():
 
 
 def test_files_names_everything_the_acquisition_saved():
-    report = _acquire(z_planes=2)["report"]
-    names = [Path(path).name for path in report["files"]]
+    content = _acquire(z_planes=2)["content"]
+    names = [Path(path).name for path in content["files"]]
     assert names == ["A1_z000.ome.tif", "A1_z001.ome.tif", "A1.commands.json"]
-    assert report["command_log"] in report["files"]
+    assert content["command_log"] in content["files"]
 
 
 def test_an_ome_zarr_folder_counts_as_a_saved_file():
@@ -620,7 +620,7 @@ def test_an_ome_zarr_folder_counts_as_a_saved_file():
 def test_an_answer_without_files_is_reported():
     problems = check_acquire_answer(_answer(images=["a.tif"]))
     assert problems == [
-        "acquire: the report must contain files, the list of paths of every file it saved"
+        "acquire: the content must contain files, the list of paths of every file it saved"
     ]
 
 
@@ -656,21 +656,21 @@ def test_a_failed_acquisition_may_list_no_files():
 def test_the_mock_describes_every_plane_of_a_stack():
     answer = _acquire(z_planes=3, z_step_um=2.0)
     assert check_acquire_answer(answer) == []
-    report = answer["report"]
-    bottom = report["position"]["z"]
-    assert [(plane["z"], plane["z_um"]) for plane in report["planes"]] == [
+    content = answer["content"]
+    bottom = content["position"]["z"]
+    assert [(plane["z"], plane["z_um"]) for plane in content["planes"]] == [
         (0, bottom),
         (1, bottom + 2.0),
         (2, bottom + 4.0),
     ]
-    assert {(plane["x_um"], plane["y_um"]) for plane in report["planes"]} == {
-        (report["position"]["x"], report["position"]["y"])
+    assert {(plane["x_um"], plane["y_um"]) for plane in content["planes"]} == {
+        (content["position"]["x"], content["position"]["y"])
     }
 
 
 def test_an_answer_without_planes_is_reported(saved):
     assert check_acquire_answer(_answer(files=[str(saved)])) == [
-        "acquire: the report must contain planes, one entry per saved image saying which "
+        "acquire: the content must contain planes, one entry per saved image saying which "
         "file, channel, depth and stage position it is"
     ]
 
@@ -732,16 +732,16 @@ def test_two_planes_in_the_same_place_are_reported(saved):
 
 
 def test_the_label_must_come_back():
-    report = {"files": [], "planes": []}
-    problems = check_acquire_answer({"success": False, "report": report})
+    content = {"files": [], "planes": []}
+    problems = check_acquire_answer({"success": False, "content": content})
     assert problems == [
-        "acquire: the report must contain position_label",
+        "acquire: the content must contain position_label",
     ]
 
 
 def test_an_acquisition_without_the_envelope_is_reported():
     problems = check_acquire_answer({"files": []})
-    assert problems == ['acquire must return {"success": ..., "report": ...}, got dict']
+    assert problems == ['acquire must return {"success": ..., "content": ...}, got dict']
 
 
 @pytest.fixture(autouse=True)
