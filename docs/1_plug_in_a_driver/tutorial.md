@@ -320,8 +320,8 @@ a function, validate, read the problems, repeat.
 
 ## Step 7: from a pretend microscope to a real one
 
-Your file already works with every workflow, and part 3 builds a workflow on
-it. For a real microscope, each function does the same job, but by talking to
+Your file already works with every workflow written for the controller. For a
+real microscope, each function does the same job, but by talking to
 the vendor software instead of a dictionary:
 
 - **`connect`** starts or logs into the vendor software, and loads what was
@@ -374,8 +374,6 @@ real driver is made of; the mock driver is a complete example to copy.
 - The [README](README.md): the full requirements for every function.
 - Part 2, [Use the controller](../2_use_the_controller/tutorial.md): every
   command, on the mock.
-- Part 3, [Build your workflow](../3_build_your_workflow/tutorial.md): put the
-  commands together into an automated workflow.
 
 ---
 

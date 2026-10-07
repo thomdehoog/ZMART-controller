@@ -3,8 +3,8 @@
 Every command of the ZMART Controller, from the side of the person who drives
 the microscope.
 
-This is part 2 of three; see the [overview](../../README.md). Part 1 shows
-how a driver is plugged in, and part 3 how the commands become a workflow.
+This is part 2 of two; see the [overview](../../README.md). Part 1 shows
+how a driver is plugged in.
 The [tutorial](tutorial.md) is a longer walk-through with small scripts to
 adapt; this page is the complete documentation of the commands.
 
