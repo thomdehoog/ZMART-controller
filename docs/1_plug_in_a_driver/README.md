@@ -2,7 +2,7 @@
 
 Connect the ZMART Controller to a microscope.
 
-This is part 1 of three; see the [overview](../../README.md). It explains
+This is part 1 of two; see the [overview](../../README.md). It explains
 what a driver is, where its functions go, what each function must do, and how
 to check that a driver fits. The [tutorial](tutorial.md) is a step-by-step
 walk-through: it plugs in the mock driver and then builds a small driver of

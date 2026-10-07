@@ -406,8 +406,6 @@ zmart_controller.disconnect()
   a workflow may rely on on every microscope.
 - Part 1, [plug in a driver](../1_plug_in_a_driver/README.md): how drivers
   work, and how to write one for your own microscope.
-- Part 3, [build your workflow](../3_build_your_workflow/README.md): from
-  commands to an automated experiment that runs on any microscope.
 
 ---
 
