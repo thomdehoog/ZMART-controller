@@ -30,7 +30,7 @@ When you want to implement an automated workflow on a microscope, you run into t
 
 ## The Solution
 
-The ZMART controller sits between your workflow and the microscope, and solves both problems:
+The ZMART controller sits between your workflow and the microscope. It addresses both problems:
 
 1. **A universal interface.** Your workflow talks to the controller instead of to the microscope directly.
    Behind the controller you can plug in a simulated microscope, so you can build and test the whole
