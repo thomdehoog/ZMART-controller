@@ -55,9 +55,8 @@ Everything you can say to a microscope:
 ```python
 import zmart_controller
 
-# 1) See which microscopes are available, and connect to one
-zmart_controller.get_instruments()
-zmart_controller.set_instrument(Dict)
+# 1) Plug in a driver and connect to its microscope
+zmart_controller.set_instrument(driver, connection=Dict)
 
 # 2) Learn about the connected setup: where images go, and the microscope in plain words
 zmart_controller.get_info()
@@ -83,9 +82,9 @@ zmart_controller.run_procedure(Dict)
 zmart_controller.disconnect()
 ```
 
-`set_instrument`, `set_state` and `run_procedure` take one dictionary, and so do the `acquisition_settings`
-of `acquire`. The keys come from the matching `get_` command, so a driver can offer whatever
-its microscope can do without the vocabulary having to grow.
+`set_state` and `run_procedure` take one dictionary, and so do the `acquisition_settings` of
+`acquire`. The keys come from the matching `get_` command, so a driver can offer whatever its
+microscope can do without the vocabulary having to grow.
 
 Every command except `disconnect` answers with the same two things:
 
@@ -99,17 +98,47 @@ something unexpected happens, the answer is `success: False`, and the details ar
 We have not defined a vocabulary for error messages at this point.
 
 
+## The three parts
+
+The documentation follows the three steps of using the controller. Each part has a README, which is
+its complete documentation, and a tutorial, which walks you through it step by step.
+
+1. **Plug in a driver.** What a driver is, what it must provide, where its functions go, and how to
+   plug it in. → [README](docs/1_plug_in_a_driver/README.md) · [tutorial](docs/1_plug_in_a_driver/tutorial.md)
+2. **Drive the microscope.** Every command, what it does, and what it answers.
+   → [README](docs/2_drive_the_microscope/README.md) · [tutorial](docs/2_drive_the_microscope/tutorial.md)
+3. **Build your workflow.** Put the commands together into an automated workflow, build it on the
+   mock driver, and run it on a real microscope.
+   → [README](docs/3_build_your_workflow/README.md) · [tutorial](docs/3_build_your_workflow/tutorial.md)
+
 ## Try it yourself
 
- - [Install it and run your first experiment on the mock driver](docs/first-experiment.md)
- - [Install it and register your microscopes](docs/setup.md)
- - [Plug in your own driver functions](docs/driver.md)
+Install the controller (Python 3.11 or newer; it needs nothing beyond Python itself):
 
-### Status
+```bash
+pip install "git+https://github.com/thomdehoog/ZMART-controller"
+```
+
+Plug in the mock driver, a simulated microscope that comes with the controller, and drive it:
+
+```python
+import zmart_controller
+
+zmart_controller.set_instrument(zmart_controller.mock)
+zmart_controller.set_xyz(100, 50, 0)
+answer = zmart_controller.acquire(position_label="A1")
+answer["content"]["files"]   # real OME-TIFF files you can open in Fiji or napari
+```
+
+To drive a real microscope, install its driver from [ZMART drivers](https://github.com/thomdehoog/ZMART-drivers)
+and plug it in instead of the mock. Your workflow stays the same.
+
+## Status
+
 This is version 0.1. We do not use it daily yet, because our smart-microscopy workflows are not in routine
 use. Today it is the layer between our workflows and the Leica Stellaris: the workflow speaks the
-controller's commands, and the Stellaris driver turns them into actions on the microscope. The mock driver
-in `tests/mock_zmart_driver/` lets you try everything without a microscope.
+controller's commands, and the Stellaris driver turns them into actions on the microscope. The mock driver,
+`zmart_controller.mock`, lets you try everything without a microscope.
 
 ## Testing
 
@@ -118,13 +147,6 @@ The tests run on the mock driver, so they need no microscope. From a clone of th
 ```bash
 pip install -e ".[test]"
 python -m pytest
-```
-
-The mock driver also has a check of its own, which runs its tests and a style check
-(it needs `pip install ruff`):
-
-```bash
-python tests/mock_zmart_driver/testing/run_ci.py
 ```
 
 ## Author
