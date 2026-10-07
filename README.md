@@ -4,13 +4,13 @@
 [![license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 [![dependencies](https://img.shields.io/badge/dependencies-none-brightgreen)](pyproject.toml)
 [![tests](https://img.shields.io/badge/tests-pytest-blue)](#testing)
-[![status](https://img.shields.io/badge/status-release%20candidate-orange)](#status)
+[![status](https://img.shields.io/badge/status-early%20use-orange)](#status)
 
 <img src="docs/zmart-controller-icon.png" align="left" width="150" alt="ZMART Controller">
 
 The **ZMART Controller** provides a small, universal schema for driving a microscope from Python.
-You build your workflow on this schema, and it runs on any microscope that has a ZMART driver plugged into it.
-It is part of [**ZMART**](https://github.com/thomdehoog/ZMART-microscopy) (ZMB's Microscopy-Agnostic Research Toolkit), the tools we use for smart microscopy
+If you write your workflow with its commands, the workflow runs on any microscope that has a ZMART driver plugged into it.
+It is part of [**ZMART**](https://github.com/thomdehoog/ZMART-microscopy) (ZMB's Microscopy-Agnostic Research Toolkit), the tools we are building for smart microscopy
 at the Center for Microscopy and Image Analysis (ZMB), University of Zurich.
 <br clear="left"/>
 
@@ -90,12 +90,13 @@ We have not defined a vocabulary for error messages at this point.
  - [Plug in your own driver functions](docs/driver.md)
 
 ### Status
-This is version 0.1. At the ZMB we use it daily in our smart-microscopy workflows. Drivers exist
-for several commercial and open-source microscopes in ZMART Microscopy, and each says there how
-far it has been validated. They are being moved to the layout this controller plugs in (a
-`zmart.json` beside the driver's functions, see [Plug in your own driver functions](docs/driver.md)).
-Until a driver has made that move, the mock driver in `tests/mock_zmart_driver/` is the one you
-can plug in directly.
+This is version 0.1. We do not use it daily yet, because our smart-microscopy workflows are not
+in routine use. Today it is the layer between our workflows and the Leica Stellaris: the workflow
+speaks the controller's commands, and the Stellaris driver turns them into actions on the microscope.
+Drivers for other microscopes exist in ZMART Microscopy, and each says there how far it has been
+validated. They are being moved to the layout this controller plugs in (a `zmart.json` beside the
+driver's functions, see [Plug in your own driver functions](docs/driver.md)). Until a driver has made
+that move, the mock driver in `tests/mock_zmart_driver/` is the one you can plug in directly.
 
 ## Testing
 
