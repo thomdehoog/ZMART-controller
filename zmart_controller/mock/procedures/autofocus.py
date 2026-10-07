@@ -27,7 +27,7 @@ _runs = 0
 def autofocus(ctx, *, range_um: float = 20.0, step_um: float = 2.0) -> dict[str, Any]:
     """Search ``range_um`` around the current height in steps of ``step_um``.
 
-    Returns ``{"ran", "focus_um", "frame_z_um", "scores"}``: the height of
+    Returns ``{"ran", "focus_um", "z_um", "scores"}``: the height of
     sharpest focus in stage coordinates, the same height in user
     coordinates, and the score
     of every plane. Raises ``ValueError`` for a range or step that makes no
@@ -62,4 +62,4 @@ def autofocus(ctx, *, range_um: float = 20.0, step_um: float = 2.0) -> dict[str,
     user = user_from_raw(
         {"x": here["x"], "y": here["y"], "z": sharp}, here["objective"], ctx.config
     )
-    return {"ran": "autofocus", "focus_um": sharp, "frame_z_um": user["z"], "scores": scores}
+    return {"ran": "autofocus", "focus_um": sharp, "z_um": user["z"], "scores": scores}

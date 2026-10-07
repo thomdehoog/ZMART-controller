@@ -47,6 +47,7 @@ from zmart_controller.mock import get_actions as get
 from zmart_controller.mock import set_actions as setter
 from zmart_controller.mock.configuration import (
     IDENTITY,
+    SETTING_NAMES,
     Configuration,
     load_configuration,
     user_range,
@@ -73,7 +74,7 @@ DEFAULT_OUTPUT_ROOT = Path(tempfile.gettempdir()) / "zmart-mock-output"
 
 # The order in which set_state applies settings: the objective first, since
 # changing it can change what the other settings mean.
-_STATE_ORDER = ("objective", "laser_power", "gain", "exposure_ms")
+_STATE_ORDER = ("objective", *SETTING_NAMES)
 
 
 @dataclass
@@ -345,13 +346,17 @@ def get_state(handle: MockHandle) -> dict:
 def set_state(handle: MockHandle, state: dict) -> dict:
     """Apply the ``changeable`` settings, confirm each one, and report what happened.
 
-    ``observed`` is never read. Settings this microscope does not know are
-    listed under ``ignored``. ``success`` is False when nothing was applied,
-    or when a setting was sent but could not be confirmed; both are safe to
-    carry on from, so they are reported, not raised.
+    ``observed`` is never read. A setting name this microscope does not know
+    is refused with ``ValueError`` before anything is applied, so a typo never
+    passes silently. ``success`` is False when nothing was applied, or when a
+    setting was sent but could not be confirmed; both are safe to carry on
+    from, so they are reported, not raised.
     """
     _require_open(handle)
     changeable = dict(state.get("changeable", {}))
+    unknown = sorted(set(changeable) - set(_STATE_ORDER))
+    if unknown:
+        raise ValueError(f"unknown settings {unknown}; this microscope has {list(_STATE_ORDER)}")
     applied: dict[str, Any] = {}
     unconfirmed: dict[str, str] = {}
     for name in _STATE_ORDER:
@@ -366,9 +371,8 @@ def set_state(handle: MockHandle, state: dict) -> dict:
             applied[name] = value
         else:
             unconfirmed[name] = outcome.reason
-    ignored = sorted(set(changeable) - set(_STATE_ORDER))
     success = bool(applied) and not unconfirmed
-    content = {"applied": applied, "unconfirmed": unconfirmed, "ignored": ignored}
+    content = {"applied": applied, "unconfirmed": unconfirmed}
     return _answer(content, success=success)
 
 

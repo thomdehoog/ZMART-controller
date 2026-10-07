@@ -9,6 +9,7 @@ limit, and answers "unknown" rather than guessing.
 from .commands import (
     ACTUATORS,
     SETTING_NAMES,
+    VENDOR_NAMES,
     focus,
     hardware,
     raw_position,
@@ -25,6 +26,7 @@ __all__ = [
     "ACTUATORS",
     "DEFAULT_GET_TUNING",
     "SETTING_NAMES",
+    "VENDOR_NAMES",
     "GetDispatcher",
     "GetTuning",
     "Reading",

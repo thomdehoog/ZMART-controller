@@ -107,10 +107,10 @@ def move_to_user(
 def set_setting(ctx, name: str, value: float) -> Outcome:
     """Change one setting, by its ZMART name (``laser_power``, ``gain`` or ``exposure_ms``)."""
     if name not in get.SETTING_NAMES:
-        raise ValueError(f"unknown setting {name!r}; known: {sorted(get.SETTING_NAMES)}")
+        raise ValueError(f"unknown setting {name!r}; known: {list(get.SETTING_NAMES)}")
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         raise ValueError(f"{name} must be a number, not {value!r}")
-    vendor_name = get.SETTING_NAMES[name]
+    vendor_name = get.VENDOR_NAMES[name]
     value = float(value)
 
     def confirm(_result) -> bool:

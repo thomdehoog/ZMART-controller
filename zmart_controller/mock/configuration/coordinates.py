@@ -28,9 +28,8 @@ University of Zurich (thom.dehoog@zmb.uzh.ch, thomdehoog@gmail.com).
 
 from __future__ import annotations
 
+from .checks import AXES
 from .store import Configuration
-
-AXES = ("x", "y", "z")
 
 
 def _offset(config: Configuration, slot: int) -> dict[str, float]:
