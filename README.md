@@ -111,28 +111,6 @@ its complete documentation, and a tutorial, which walks you through it step by s
    mock driver, and run it on a real microscope.
    → [README](docs/3_build_your_workflow/README.md) · [tutorial](docs/3_build_your_workflow/tutorial.md)
 
-## Try it yourself
-
-Install the controller (Python 3.11 or newer; it needs nothing beyond Python itself):
-
-```bash
-pip install "git+https://github.com/thomdehoog/ZMART-controller"
-```
-
-Plug in the mock driver, a simulated microscope that comes with the controller, and drive it:
-
-```python
-import zmart_controller
-
-zmart_controller.set_instrument(zmart_controller.mock)
-zmart_controller.set_xyz(100, 50, 0)
-answer = zmart_controller.acquire(position_label="A1")
-answer["content"]["files"]   # real OME-TIFF files you can open in Fiji or napari
-```
-
-To drive a real microscope, install its driver from [ZMART drivers](https://github.com/thomdehoog/ZMART-drivers)
-and plug it in instead of the mock. Your workflow stays the same.
-
 ## Status
 
 This is version 0.1. We do not use it daily yet, because our smart-microscopy workflows are not in routine
