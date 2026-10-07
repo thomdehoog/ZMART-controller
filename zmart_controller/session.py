@@ -143,11 +143,11 @@ class Session:
 def set_instrument(driver: Any, connection: dict[str, Any] | None = None) -> Session:
     """Plug in a driver, connect to its microscope, and return the :class:`Session`.
 
-    ``driver`` is the name of an installed driver, from ``get_drivers()``, or
+    ``driver`` is the name of a registered driver, from ``get_drivers()``, or
     the driver itself: a module such as ``zmart_controller.mock``, or a dict
     from command name to function. ``connection`` is handed to the driver's
     ``connect`` unchanged; it holds whatever that driver needs, such as a host
-    name. Left out, an installed driver gets the connection saved with it.
+    name. Left out, a registered driver gets the connection saved with it.
     Raises ``ValueError`` naming any function the driver is missing.
     """
     name = None

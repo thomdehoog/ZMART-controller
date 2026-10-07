@@ -58,9 +58,9 @@ zmart_controller.get_drivers()
 ['mock']
 ```
 
-`get_drivers()` lists the drivers installed on this computer, by name. The mock
-driver, a simulated microscope, is always there; part 1 explains how to
-install the driver of a real microscope, once, with `add_driver`.
+`get_drivers()` lists the drivers registered on this computer, by name. The
+mock driver, a simulated microscope, is always there; part 1 explains how to
+register the driver of a real microscope, once, with `register_driver`.
 
 ```python
 zmart_controller.set_instrument("mock")
@@ -84,8 +84,8 @@ the module afterwards, such as `zmart_controller.set_xyz(...)`, goes to it.
   zmart_controller.set_instrument("mock", {"output_root": "my_images"})
   ```
 
-  An installed driver gets the connection saved with it by `add_driver`, so
-  you usually leave this out.
+  A registered driver gets the connection from its
+  `zmart_controller_plugin.json`, so you usually leave this out.
 
 If the driver is missing one of the functions the controller needs,
 `set_instrument` refuses it at once with a `ValueError` naming the missing

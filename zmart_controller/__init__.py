@@ -4,17 +4,17 @@ Plug in a driver, then drive the microscope through the module itself::
 
     import zmart_controller
 
-    zmart_controller.get_drivers()            # ["mock", ...]: the drivers installed here
+    zmart_controller.get_drivers()            # ["mock", ...]: the drivers registered here
     zmart_controller.set_instrument("mock")   # the simulated microscope
     zmart_controller.set_xyz(10, 20, 5)
     zmart_controller.acquire(position_label="A1")
     zmart_controller.disconnect()
 
 A driver is the whole set of files that talks to one microscope; towards the
-controller it offers one function per command. Install one on the computer
-once, then plug it in by name::
+controller it offers one function per command. Register a driver's folder on
+the computer once, then plug it in by name::
 
-    zmart_controller.add_driver("stellaris", "zmart_drivers.leica.stellaris")
+    zmart_controller.register_driver("path/to/the/driver")   # reads its zmart_controller_plugin.json
     zmart_controller.set_instrument("stellaris") To drive several microscopes at once,
 hold a session for each::
 
@@ -40,12 +40,18 @@ __affiliation__ = "Center for Microscopy and Image Analysis (ZMB), University of
 
 from .session import Session
 from .session import set_instrument as _set_instrument
-from .utils import add_driver, check_acquire_answer, get_drivers, remove_driver, validate_driver
+from .utils import (
+    check_acquire_answer,
+    get_drivers,
+    register_driver,
+    remove_driver,
+    validate_driver,
+)
 
 __all__ = [
     "Session",
-    "add_driver",
     "get_drivers",
+    "register_driver",
     "remove_driver",
     "check_acquire_answer",
     "validate_driver",
@@ -60,7 +66,7 @@ _active: Session | None = None
 def set_instrument(driver, connection=None) -> Session:
     """Plug in a driver, connect to its microscope, and make it the active one.
 
-    ``driver`` is the name of an installed driver, from :func:`get_drivers`,
+    ``driver`` is the name of a registered driver, from :func:`get_drivers`,
     or a module with one function per command, such as
     ``zmart_controller.mock``; ``connection`` is handed to its ``connect``.
     Module-level commands then go to it. The previously active microscope is
