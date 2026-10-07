@@ -13,8 +13,8 @@ from __future__ import annotations
 
 import pytest
 
-from mock_zmart_driver.testing.mock_api import FAULTS, FakeClock, MockScope, read_mraw
-from mock_zmart_driver.testing.mock_api.scope import START_POSITION
+from zmart_controller.mock.testing.mock_api import FAULTS, FakeClock, MockScope, read_mraw
+from zmart_controller.mock.testing.mock_api.scope import START_POSITION
 
 
 @pytest.fixture

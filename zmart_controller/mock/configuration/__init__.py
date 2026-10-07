@@ -20,9 +20,10 @@ folder. The arithmetic between stage and user coordinates lives in
 """
 
 from .coordinates import raw_from_user, sample_point, user_from_raw, user_range
-from .store import ITEMS, Configuration, load_configuration, save, saved_path
+from .store import IDENTITY, ITEMS, Configuration, load_configuration, save, saved_path
 
 __all__ = [
+    "IDENTITY",
     "ITEMS",
     "Configuration",
     "load_configuration",

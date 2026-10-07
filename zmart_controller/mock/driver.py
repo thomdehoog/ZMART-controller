@@ -15,14 +15,14 @@ The mock is a complete driver, built from the same parts a real one has::
     procedures/         recipes: autofocus, backlash takeup, parking the piezo
     data_handling/      turns the vendor's files into OME-TIFF or OME-Zarr
     configuration/      origin, registration, limits, calibration
-    zmart_controller/   this plugin
+    driver.py           this file
     testing/            the mock API and everything else for testing
 
 Plug it in like any driver::
 
-    zmart_controller.register_driver("mock_zmart_driver")
+    zmart_controller.set_instrument(zmart_controller.mock)
 
-The connection dictionary may hold ``output_root`` (where images are
+The connection dictionary is optional. It may hold ``output_root`` (where images are
 saved), ``token`` (the vendor login, default ``"mock-token"``) and
 ``mock_timing``: ``"realistic"`` (the default) lets moves and acquisitions
 take time, ``"instant"`` makes them finish at once.
@@ -43,18 +43,23 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from mock_zmart_driver import get_actions as get
-from mock_zmart_driver import set_actions as setter
-from mock_zmart_driver.configuration import Configuration, load_configuration, user_range
-from mock_zmart_driver.data_handling import FORMATS, CommandLog, save_acquisition
-from mock_zmart_driver.data_handling.save import safe_name
-from mock_zmart_driver.error_handling import classify
-from mock_zmart_driver.get_actions import GetDispatcher
-from mock_zmart_driver.procedures import PROCEDURES
-from mock_zmart_driver.set_actions import Gate, SetDispatcher
-from mock_zmart_driver.vendor_interface import NAME_LIMIT, MockScopeConnection
+from zmart_controller.mock import get_actions as get
+from zmart_controller.mock import set_actions as setter
+from zmart_controller.mock.configuration import (
+    IDENTITY,
+    Configuration,
+    load_configuration,
+    user_range,
+)
+from zmart_controller.mock.data_handling import FORMATS, CommandLog, save_acquisition
+from zmart_controller.mock.data_handling.save import safe_name
+from zmart_controller.mock.error_handling import classify
+from zmart_controller.mock.get_actions import GetDispatcher
+from zmart_controller.mock.procedures import PROCEDURES
+from zmart_controller.mock.set_actions import Gate, SetDispatcher
+from zmart_controller.mock.vendor_interface import NAME_LIMIT, MockScopeConnection
 
-logger = logging.getLogger("mock_zmart_driver")
+logger = logging.getLogger("zmart_controller.mock")
 
 # Where images go when the connection does not say: a folder in the
 # computer's temporary space, so trying the mock never litters a project.
@@ -108,7 +113,7 @@ def _require_open(handle: MockHandle) -> None:
 # --- connecting ---------------------------------------------------------------
 
 
-def connect(connection: dict) -> MockHandle:
+def connect(connection: dict | None = None) -> MockHandle:
     """Start the pretend vendor software, check it, and load this microscope's configuration.
 
     The steps, in order: start the software and log in; load the
@@ -118,7 +123,8 @@ def connect(connection: dict) -> MockHandle:
     description. If any step fails, the software is closed again and the
     error is raised.
     """
-    identity = (connection["vendor"], connection["microscope"], connection["api"])
+    connection = connection or {}
+    identity = IDENTITY
     output_root = Path(connection.get("output_root") or DEFAULT_OUTPUT_ROOT)
     output_root.mkdir(parents=True, exist_ok=True)
     timing = connection.get("mock_timing", "realistic")

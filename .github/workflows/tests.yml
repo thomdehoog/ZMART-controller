@@ -1,8 +1,7 @@
 # The controller's tests on Linux and Windows, on every push and pull request.
 #
-# They run on the mock microscope in tests/mock_zmart_driver, so no microscope
-# is needed: the controller's own tests, the mock driver's own check (its tests
-# and a style check), and a style check of the whole repository.
+# They run on the mock driver, zmart_controller.mock, so no microscope is
+# needed: the controller's and the mock driver's tests, and a style check.
 name: tests
 
 on:
@@ -27,9 +26,7 @@ jobs:
           python-version: ${{ matrix.python }}
       - name: Install the controller and the test tools
         run: python -m pip install -e ".[test]" ruff
-      - name: The controller's tests
+      - name: The tests
         run: python -m pytest
-      - name: The mock driver's own check
-        run: python -P tests/mock_zmart_driver/testing/run_ci.py
       - name: Style
         run: python -m ruff check .

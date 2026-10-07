@@ -1,30 +1,22 @@
 """ZMART Controller: one small, universal way to drive any microscope.
 
-The shortest way drives one microscope through the module itself::
+Plug in a driver, then drive the microscope through the module itself::
 
     import zmart_controller
 
-    zmart_controller.register_driver("path/to/driver")
-    instrument = next(
-        i for i in zmart_controller.get_instruments() if i["microscope"] == "my-scope"
-    )
-    zmart_controller.set_instrument(instrument)
+    zmart_controller.set_instrument(zmart_controller.mock)   # the simulated microscope
     zmart_controller.set_xyz(10, 20, 5)
     zmart_controller.acquire(position_label="A1")
     zmart_controller.disconnect()
 
-Pick the instrument by its name, as above, rather than by its place in a
-list. Drivers installed on the computer are listed too, so the first entry
-may be a different microscope. And ``register_driver`` lists only what it
-registered during that call, so running the cell a second time can give an
-empty list.
-
-To drive several microscopes at once, hold a session for each::
+A driver is a module with one function per command; the mock is one, and
+any other is plugged in the same way. To drive several microscopes at once,
+hold a session for each::
 
     from zmart_controller.session import set_instrument
 
-    mic_a = set_instrument(instrument_a)
-    mic_b = set_instrument(instrument_b)
+    mic_a = set_instrument(driver_a)
+    mic_b = set_instrument(driver_b, {"host": "scope-b"})
     mic_a.acquire(position_label="A1")
 
 Two cautions for the short way. Call through the module each time, as in
@@ -43,22 +35,13 @@ __affiliation__ = "Center for Microscopy and Image Analysis (ZMB), University of
 
 from .session import Session
 from .session import set_instrument as _set_instrument
-from .utils import (
-    check_acquire_answer,
-    forget_driver,
-    get_instruments,
-    register_driver,
-    validate_driver,
-)
+from .utils import check_acquire_answer, validate_driver
 
 __all__ = [
     "Session",
     "check_acquire_answer",
     "validate_driver",
     "disconnect",
-    "forget_driver",
-    "get_instruments",
-    "register_driver",
     "set_instrument",
 ]
 
@@ -66,15 +49,17 @@ __all__ = [
 _active: Session | None = None
 
 
-def set_instrument(instrument) -> Session:
-    """Connect to an instrument and make it the active microscope.
+def set_instrument(driver, connection=None) -> Session:
+    """Plug in a driver, connect to its microscope, and make it the active one.
 
+    ``driver`` is a module with one function per command, such as
+    ``zmart_controller.mock``; ``connection`` is handed to its ``connect``.
     Module-level commands then go to it. The previously active microscope is
     disconnected. Returns the :class:`Session` as well, for those who want to
     hold it.
     """
     global _active
-    new = _set_instrument(instrument)
+    new = _set_instrument(driver, connection)
     # Connect the new one first, so a failed connect never loses a working
     # session. Record it before closing the old one, so it is never lost if
     # closing raises.
@@ -97,6 +82,12 @@ def disconnect() -> None:
 
 
 def __getattr__(name: str):
+    # The mock driver is loaded only when asked for, so importing the
+    # controller stays light.
+    if name == "mock":
+        import importlib
+
+        return importlib.import_module(".mock", __name__)
     # Send commands such as acquire or set_xyz to the active microscope.
     if _active is not None and hasattr(_active, name):
         return getattr(_active, name)
