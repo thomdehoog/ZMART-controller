@@ -29,22 +29,16 @@ When you want to implement an automated workflow on a microscope, you run into t
 
 ## The Solution
 
-The ZMART controller lives between your workflow and the microscope:
+The ZMART controller sits between your workflow and the microscope, and solves both problems:
 
-1. **One universal interface.** A short list of plain commands to move in xyz,
-   get and set the state of the microscope, and acquire an image.
+1. **A universal interface.** Your workflow talks to the controller instead of to the microscope directly.
+   Behind the controller you can plug in a simulated microscope, so you can build and test the whole
+   workflow at your desk, and go to the microscope only once it works.
 
-2. **A schema, not a driver.** It provides a consistent, interoperable vocabulary
-   that ZMART-drivers plug into. The drivers take care of interacting with the microscope, enforcing limits,
-   and providing a single absolute coordinate system that corresponds to the space in which you observe the specimen.
-
-This solves both problems:
-
-1. **Build without the microscope.** You build and test your workflow on the mock driver, and bring it
-   to the microscope only when it is ready.
-
-2. **Run on any microscope.** The same workflow runs on every microscope that has a driver, so one
-   workflow can scale to many microscopes.
+2. **A common vocabulary.** Every microscope speaks its own language. A ZMART driver translates that language
+   into a short list of shared commands, so a workflow written once runs on every microscope that has a
+   driver. The driver also keeps the microscope within its safe limits, and gives every microscope the same
+   coordinates: the space in which you observe the specimen.
 
 Note: we are aware of the [useq-schema](https://github.com/pymmcore-plus/useq-schema) from the Micro-Manager community and of Anthropic's [Model Hardware Standard](https://www.anthropic.com/news/model-hardware-standard-research-preview). We might switch, because both have real upsides, but currently the useq-schema is not interoperable enough for our needs and the Model Hardware Standard is not released to the public yet.
 <p align="center">
