@@ -470,53 +470,53 @@ def validate_driver(instrument: dict[str, Any]) -> list[str]:
             except Exception as exc:
                 problems.append(f"{name} raised {type(exc).__name__}: {exc}")
                 continue
-            report = _envelope(name, answer, problems)
-            if report is not None:
-                check(report, problems)
+            content = _envelope(name, answer, problems)
+            if content is not None:
+                check(content, problems)
     finally:
         session.disconnect()
     return problems
 
 
 def _envelope(name: str, answer: Any, problems: list[str]):
-    """Check the ``{"success", "report"}`` shape; return the report, or None."""
-    if not isinstance(answer, dict) or not {"success", "report"} <= set(answer):
+    """Check the ``{"success", "content"}`` shape; return the content, or None."""
+    if not isinstance(answer, dict) or not {"success", "content"} <= set(answer):
         problems.append(
-            f'{name} must return {{"success": ..., "report": ...}}, got {type(answer).__name__}'
+            f'{name} must return {{"success": ..., "content": ...}}, got {type(answer).__name__}'
         )
         return None
     if not isinstance(answer["success"], bool):
         problems.append(f"{name}: success must be True or False")
-    return answer["report"]
+    return answer["content"]
 
 
-def _check_info(report, problems):
-    if not isinstance(report, dict) or "output_root" not in report:
-        problems.append("get_info: the report must contain output_root")
+def _check_info(content, problems):
+    if not isinstance(content, dict) or "output_root" not in content:
+        problems.append("get_info: the content must contain output_root")
         return
     # Optional: a driver may leave the description out. When it is there it
     # has to say something, because whoever drives the microscope reads it.
-    description = report.get("description")
-    if "description" in report and not (isinstance(description, str) and description.strip()):
+    description = content.get("description")
+    if "description" in content and not (isinstance(description, str) and description.strip()):
         problems.append("get_info: description must be text that describes the microscope")
 
 
-def _check_actuators(report, problems):
-    if not isinstance(report, dict):
-        problems.append("get_actuators: the report must be a dict of axis -> list of motors")
+def _check_actuators(content, problems):
+    if not isinstance(content, dict):
+        problems.append("get_actuators: the content must be a dict of axis -> list of motors")
         return
     for axis in AXES:
-        motors = report.get(axis)
+        motors = content.get(axis)
         if not isinstance(motors, list) or not motors:
             problems.append(f"get_actuators: axis {axis!r} must list at least one motor")
 
 
-def _check_xyz(report, problems):
-    if not isinstance(report, dict):
-        problems.append("get_xyz: the report must be a dict of axis -> reading")
+def _check_xyz(content, problems):
+    if not isinstance(content, dict):
+        problems.append("get_xyz: the content must be a dict of axis -> reading")
         return
     for axis in AXES:
-        reading = report.get(axis)
+        reading = content.get(axis)
         if not isinstance(reading, dict):
             problems.append(f"get_xyz: axis {axis!r} is missing")
             continue
@@ -563,27 +563,29 @@ def _check_reach(axis, reach, travel, problems):
             )
 
 
-def _check_state(report, problems):
-    if not isinstance(report, dict) or not isinstance(report.get("changeable"), dict):
-        problems.append('get_state: the report must contain a "changeable" dict')
-    if not isinstance(report, dict) or not isinstance(report.get("observed"), dict):
-        problems.append('get_state: the report must contain an "observed" dict')
+def _check_state(content, problems):
+    if not isinstance(content, dict) or not isinstance(content.get("changeable"), dict):
+        problems.append('get_state: the content must contain a "changeable" dict')
+    if not isinstance(content, dict) or not isinstance(content.get("observed"), dict):
+        problems.append('get_state: the content must contain an "observed" dict')
 
 
-def _check_acquisition_settings(report, problems):
-    if not isinstance(report, dict):
-        problems.append("get_acquisition_settings: the report must be a dict of setting -> choices")
+def _check_acquisition_settings(content, problems):
+    if not isinstance(content, dict):
+        problems.append(
+            "get_acquisition_settings: the content must be a dict of setting -> choices"
+        )
         return
-    for name, spec in report.items():
+    for name, spec in content.items():
         if not isinstance(spec, dict) or "options" not in spec or "active" not in spec:
             problems.append(f'get_acquisition_settings: {name!r} must have "options" and "active"')
 
 
-def _check_procedures(report, problems):
-    if not isinstance(report, dict):
-        problems.append("get_procedures: the report must be a dict of name -> description")
+def _check_procedures(content, problems):
+    if not isinstance(content, dict):
+        problems.append("get_procedures: the content must be a dict of name -> description")
         return
-    for name, spec in report.items():
+    for name, spec in content.items():
         if not isinstance(spec, dict) or "description" not in spec:
             problems.append(f'get_procedures: {name!r} must have a "description"')
 
@@ -594,8 +596,8 @@ def _check_procedures(report, problems):
 def check_acquire_answer(answer: Any) -> list[str]:
     """Check what a driver's ``acquire`` answered against the contract.
 
-    ``answer`` is the whole answer, ``{"success": ..., "report": ...}``. The
-    report must name the ``position_label`` it was given, and list under ``files`` the path of every file the acquisition
+    ``answer`` is the whole answer, ``{"success": ..., "content": ...}``. The
+    content must name the ``position_label`` it was given, and list under ``files`` the path of every file the acquisition
     saved: the images and anything saved beside them. A format kept as a
     folder, such as OME-Zarr, is listed by its folder. Every path must exist.
     This is how a workflow finds the pictures on any microscope, so a driver
@@ -618,19 +620,19 @@ def check_acquire_answer(answer: Any) -> list[str]:
     instead, on a simulator or a test bench.
     """
     problems: list[str] = []
-    report = _envelope("acquire", answer, problems)
-    if report is None:
+    content = _envelope("acquire", answer, problems)
+    if content is None:
         return problems
-    if not isinstance(report, dict):
-        return problems + ["acquire: the report must be a dict"]
-    if "position_label" not in report:
-        problems.append("acquire: the report must contain position_label")
-    if "files" not in report:
+    if not isinstance(content, dict):
+        return problems + ["acquire: the content must be a dict"]
+    if "position_label" not in content:
+        problems.append("acquire: the content must contain position_label")
+    if "files" not in content:
         problems.append(
-            "acquire: the report must contain files, the list of paths of every file it saved"
+            "acquire: the content must contain files, the list of paths of every file it saved"
         )
         return problems
-    files = report["files"]
+    files = content["files"]
     if not isinstance(files, list) or not all(isinstance(path, str) for path in files):
         problems.append("acquire: files must be a list of paths, one per saved file")
         return problems
@@ -639,10 +641,10 @@ def check_acquire_answer(answer: Any) -> list[str]:
     for path in files:
         if not Path(path).exists():
             problems.append(f"acquire: files names {path}, which does not exist")
-    return problems + _plane_problems(answer.get("success") is True, report, files)
+    return problems + _plane_problems(answer.get("success") is True, content, files)
 
 
-#: What every entry of an acquire report's ``planes`` holds: the file, the
+#: What every entry of the ``planes`` in acquire's content holds: the file, the
 #: plane's channel, depth and moment counted from 0, and the stage position in
 #: micrometres it was taken at. docs/driver.md explains each one.
 _PLANE_COUNTS = ("c", "z", "t")
@@ -650,19 +652,19 @@ _PLANE_POSITION_UM = ("x_um", "y_um", "z_um")
 _PLANE_KEYS = ("path", *_PLANE_COUNTS, *_PLANE_POSITION_UM)
 
 
-def _plane_problems(succeeded: bool, report: dict, files: list[str]) -> list[str]:
-    """The problems with an acquire report's ``planes``, one sentence each.
+def _plane_problems(succeeded: bool, content: dict, files: list[str]) -> list[str]:
+    """The problems with the ``planes`` in acquire's content, one sentence each.
 
     The planes are how a workflow knows where each saved picture sits on the
     sample, so each entry is checked on its own and the sentence names it by
     its place in the list (``planes[0]`` is the first).
     """
-    if "planes" not in report:
+    if "planes" not in content:
         return [
-            "acquire: the report must contain planes, one entry per saved image saying which "
+            "acquire: the content must contain planes, one entry per saved image saying which "
             "file, channel, depth and stage position it is"
         ]
-    planes = report["planes"]
+    planes = content["planes"]
     if not isinstance(planes, list) or not all(isinstance(plane, dict) for plane in planes):
         return ["acquire: planes must be a list with one entry (a dict) per saved image plane"]
     problems: list[str] = []

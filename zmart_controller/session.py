@@ -6,8 +6,8 @@ driver, including whether the connection is still open.
 
 Every call is synchronous. It returns when the driver has finished.
 
-Every command answers with ``{"success": bool, "report": ...}``. ``success``
-says whether the driver did what was asked. ``report`` is the driver's own
+Every command answers with ``{"success": bool, "content": ...}``. ``success``
+says whether the driver did what was asked. ``content`` is the driver's own
 content. A soft outcome, one that is safe to carry on from, comes back as
 ``success: False``. Anything unsafe to carry on from is raised instead:
 ``ValueError`` for a mistake in the request, ``RuntimeError`` for a failure on
@@ -52,14 +52,14 @@ class Session:
     def get_state(self) -> dict:
         """Capture the instrument's settings so they can be applied again later.
 
-        The ``report`` has two parts. ``"changeable"`` holds the settings that
+        The ``content`` has two parts. ``"changeable"`` holds the settings that
         :meth:`set_state` applies. ``"observed"`` is a read-only description of
         the instrument. The controller does not look inside either.
         """
         return self._ops["get_state"](self._handle)
 
     def set_state(self, state: dict) -> dict:
-        """Apply a state captured with :meth:`get_state` (pass its ``report``).
+        """Apply a state captured with :meth:`get_state` (pass its ``content``).
 
         The driver applies the ``"changeable"`` part only. ``"observed"`` is
         never an instruction.
@@ -115,7 +115,7 @@ class Session:
 
         ``position_label`` names this position in the saved files, e.g.
         ``"A1"``. ``acquisition_settings`` holds choices from :meth:`get_acquisition_settings`;
-        any left out keep their active value. The report lists every saved file
+        any left out keep their active value. The content lists every saved file
         under ``files``, so a workflow finds its pictures the same way on every
         microscope.
         """

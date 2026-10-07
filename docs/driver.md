@@ -75,7 +75,7 @@ def get_xyz(handle, *, with_actuators=None):
         }
         for axis, (lo, hi) in TRAVEL.items()
     }
-    return {"success": True, "report": position}
+    return {"success": True, "content": position}
 
 
 # ... and get_info, get_actuators, set_xyz, get_state, set_state,
@@ -105,7 +105,7 @@ import zmart_controller
 problems = zmart_controller.validate_driver(instrument)
 ```
 
-It calls every `get_*` function and compares each report with the contract
+It calls every `get_*` function and compares each answer's content with the contract
 below. The answer is a list of problems in plain words; an empty list means
 the driver fits. It moves nothing and acquires nothing.
 
@@ -120,12 +120,12 @@ assert zmart_controller.check_acquire_answer(answer) == []
 ## The contract
 
 Every function except `connect` and `disconnect` returns
-`{"success": bool, "report": ...}`. The table gives what the `report` must
+`{"success": bool, "content": ...}`. The table gives what the `content` must
 contain, so that an experiment written for one microscope keeps working on
-another. A driver may add extra keys to any report; it should not leave out the
+another. A driver may add extra keys to any content; it should not leave out the
 ones listed here.
 
-| Function | Receives | The `report` must contain |
+| Function | Receives | The `content` must contain |
 |---|---|---|
 | `connect` | the connection dictionary | *(returns a handle: anything)* |
 | `disconnect` *(optional)* | handle | *(returns nothing; afterwards every other call raises `RuntimeError`, and a second `disconnect` is harmless)* |
@@ -199,7 +199,7 @@ own to a plane, such as a channel's name; they are extras that nothing relies
 on, so a workflow that should run on any microscope must not need them.
 
 A *state* has two parts. `"changeable"` holds the settings that `set_state`
-applies. `"observed"` is a read-only report, such as which objective is in
+applies. `"observed"` is a read-only description, such as which objective is in
 place and the pixel size; it is never used as an instruction. When the allowed
 values of a setting cannot be listed, `"options"` may be a short description
 such as `"float > 0"`.
@@ -224,11 +224,11 @@ depends on it will not run elsewhere.
   option, a position outside the limits), `RuntimeError` when the microscope
   fails or refuses. The controller passes your error to the user unchanged.
   Use `success: False` only for outcomes it is safe to carry on from, and say
-  what happened in the `report`.
+  what happened in the `content`.
 - **Say when a change could not be confirmed.** Microscope software often
   accepts a command before it has happened, so read back to check. When a
   setting or an acquisition was sent but the readback never showed it, answer
-  `success: False` with `"confirmed": False` and the reason in the `report`.
+  `success: False` with `"confirmed": False` and the reason in the `content`.
   A move is the exception: `set_xyz` raises `RuntimeError`, because carrying
   on at an unknown position is never safe.
 - **Use full import paths in the plugin folder.** The controller loads

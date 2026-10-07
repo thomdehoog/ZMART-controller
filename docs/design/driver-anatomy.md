@@ -393,7 +393,7 @@ The full contract is described in the ZMART Controller's `docs/driver.md`.
 - The controller finds it with `register_driver("path/to/driver")`, and
   `validate_driver(instrument)` checks that every answer has the right shape.
 - An unconfirmed set action reaches the experiment as `success: False` with
-  `confirmed: False` and a reason in the report. Anything unsafe is raised.
+  `confirmed: False` and a reason in the content. Anything unsafe is raised.
 
 ## 9. Testing
 

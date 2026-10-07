@@ -48,7 +48,7 @@ def test_the_notebook_drives_the_mock_even_when_another_driver_sorts_first(capsy
     def record(name):
         def op(*args, **kwargs):
             calls.append(name)
-            return {"success": True, "report": {}}
+            return {"success": True, "content": {}}
 
         return op
 
