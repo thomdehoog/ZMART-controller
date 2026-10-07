@@ -108,13 +108,10 @@ We have not defined a vocabulary for error messages at this point.
  - [Plug in your own driver functions](docs/driver.md)
 
 ### Status
-This is version 0.1. We do not use it daily yet, because our smart-microscopy workflows are not
-in routine use. Today it is the layer between our workflows and the Leica Stellaris: the workflow
-speaks the controller's commands, and the Stellaris driver turns them into actions on the microscope.
-Drivers for other microscopes exist in ZMART Microscopy, and each says there how far it has been
-validated. They are being moved to the layout this controller plugs in (a `zmart.json` beside the
-driver's functions, see [Plug in your own driver functions](docs/driver.md)). Until a driver has made
-that move, the mock driver in `tests/mock_zmart_driver/` is the one you can plug in directly.
+This is version 0.1. We do not use it daily yet, because our smart-microscopy workflows are not in routine
+use. Today it is the layer between our workflows and the Leica Stellaris: the workflow speaks the
+controller's commands, and the Stellaris driver turns them into actions on the microscope. The mock driver
+in `tests/mock_zmart_driver/` lets you try everything without a microscope.
 
 ## Testing
 
@@ -142,7 +139,7 @@ MIT License. See LICENSE file for details.
 ## Links
 
 - [ZMART Microscopy](https://github.com/thomdehoog/ZMART-microscopy): the main repository, with the workflows and the drivers
-- [ZMART drivers](https://github.com/thomdehoog/ZMART-microscopy/tree/main/zmart_drivers): the drivers that plug into this controller, one per microscope
+- [ZMART drivers](https://github.com/thomdehoog/ZMART-drivers): the drivers that plug into this controller, one per microscope
 - [ZMART analysis](https://github.com/thomdehoog/ZMART-analysis): the analysis engine that runs between acquisitions
 - [ZMART viewer](https://github.com/thomdehoog/ZMART-viewer): the viewer
 - [Center for Microscopy and Image Analysis (ZMB)](https://www.zmb.uzh.ch), University of Zurich
