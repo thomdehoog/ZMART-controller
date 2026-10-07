@@ -10,39 +10,46 @@ from pathlib import Path
 
 import pytest
 
-from zmart_controller import get_instruments, set_instrument
-
-
-def _mock_instrument():
-    return next(instrument for instrument in get_instruments() if instrument["vendor"] == "mock")
+import zmart_controller.mock as mock
+from zmart_controller import set_instrument
 
 
 @pytest.fixture
 def mic():
-    session = set_instrument(_mock_instrument())
+    session = set_instrument(mock)
     yield session
     session.disconnect()
 
 
-class TestInstruments:
-    def test_lists_connection_dicts(self):
-        inst = next(i for i in get_instruments() if i["vendor"] == "mock")
-        assert inst["microscope"] == "mock-scope"
-        assert inst["api"] == "mock-api"
-        assert inst["client"] == "mock-client"
-
-
 class TestSetInstrument:
-    def test_context_resolves(self, mic):
-        assert mic.context == {"vendor": "mock", "microscope": "mock-scope", "api": "mock-api"}
+    def test_context_names_the_driver(self, mic):
+        assert mic.context == {"driver": "zmart_controller.mock"}
 
-    def test_connection_reaches_driver(self, mic):
-        # the variable connection dict is forwarded untouched to the driver's connect()
-        assert mic.get_info()["content"]["client"] == "mock-client"
+    def test_connection_reaches_driver(self):
+        # the connection dict is forwarded untouched to the driver's connect()
+        session = set_instrument(mock, {"client": "my-client"})
+        try:
+            assert session.get_info()["content"]["client"] == "my-client"
+        finally:
+            session.disconnect()
 
-    def test_unknown_instrument_raises(self):
-        with pytest.raises(ValueError, match="no driver registered"):
-            set_instrument({"vendor": "nope", "microscope": "x", "api": "y"})
+    def test_a_driver_can_be_a_dict_of_functions(self):
+        functions = {name: getattr(mock, name) for name in mock.__all__}
+        session = set_instrument(functions)
+        try:
+            assert session.get_xyz()["success"] is True
+        finally:
+            session.disconnect()
+
+    def test_a_missing_function_is_named(self):
+        functions = {name: getattr(mock, name) for name in mock.__all__ if name != "set_xyz"}
+        with pytest.raises(ValueError, match="set_xyz"):
+            set_instrument(functions)
+
+    def test_the_mock_is_reachable_from_the_package(self):
+        import zmart_controller
+
+        assert zmart_controller.mock is mock
 
 
 class TestFrame:
@@ -58,12 +65,11 @@ class TestFrame:
     def test_origin_is_driver_configuration(self):
         # The origin is saved by the driver's own setup step and loaded at
         # connect, never set through the controller.
-        from mock_zmart_driver.configuration import save
-
+        from zmart_controller.mock.configuration import save
         from zmart_controller.session import set_instrument as open_session
 
         save("origin", {"x": 50_100.0, "y": 37_500.0, "z": 5_000.0})
-        session = open_session(_mock_instrument())
+        session = open_session(mock)
         try:
             assert not hasattr(session, "set_origin")
             session.set_xyz(10, 0, 0)
@@ -206,7 +212,7 @@ class TestModuleStyle:
     def test_module_delegates_to_active_microscope(self):
         import zmart_controller as m
 
-        m.set_instrument(_mock_instrument())
+        m.set_instrument(mock)
         m.set_xyz(10, 20, 5)
         assert m.get_xyz()["content"]["x"]["value"] == 10
         m.disconnect()
@@ -214,7 +220,7 @@ class TestModuleStyle:
     def test_module_disconnect_clears_active(self):
         import zmart_controller as m
 
-        m.set_instrument(_mock_instrument())
+        m.set_instrument(mock)
         m.disconnect()
         with pytest.raises(AttributeError, match="no active microscope"):
             m.acquire(position_label="A1")
@@ -223,10 +229,10 @@ class TestModuleStyle:
     def test_swap_survives_failing_teardown(self):
         import zmart_controller as m
 
-        first = m.set_instrument(_mock_instrument())
+        first = m.set_instrument(mock)
         first.disconnect = lambda: (_ for _ in ()).throw(RuntimeError("teardown boom"))
         with pytest.raises(RuntimeError, match="teardown boom"):
-            m.set_instrument(_mock_instrument())
+            m.set_instrument(mock)
         # the new session must be tracked despite the old teardown failing
         m.set_xyz(1, 2, 3)
         assert m.get_xyz()["content"]["x"]["value"] == 1
@@ -247,12 +253,11 @@ class TestModuleStyle:
 
 class TestTravelRange:
     def test_range_is_reported_in_the_users_frame(self):
-        from mock_zmart_driver.configuration import save
-
+        from zmart_controller.mock.configuration import save
         from zmart_controller.session import set_instrument as open_session
 
         save("origin", {"x": 51_000.0, "y": 37_500.0, "z": 5_000.0})
-        session = open_session(_mock_instrument())
+        session = open_session(mock)
         try:
             assert session.get_xyz()["content"]["x"]["range"] == [-6000.0, 4000.0]
         finally:
@@ -265,12 +270,11 @@ class TestTravelRange:
         so x and y reach 32 um past the travel. Its z-stacks must stay inside
         the travel, so z reaches exactly as far as the stage goes.
         """
-        from mock_zmart_driver.configuration import save
-
+        from zmart_controller.mock.configuration import save
         from zmart_controller.session import set_instrument as open_session
 
         save("origin", {"x": 51_000.0, "y": 37_500.0, "z": 5_000.0})
-        session = open_session(_mock_instrument())
+        session = open_session(mock)
         try:
             content = session.get_xyz()["content"]
             assert content["x"]["reach"] == [-6032.0, 4032.0]

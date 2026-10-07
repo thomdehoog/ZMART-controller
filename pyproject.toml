@@ -23,8 +23,12 @@ classifiers = [
 [project.optional-dependencies]
 test = ["pytest"]
 
-[tool.setuptools]
-packages = ["zmart_controller"]
+[tool.setuptools.packages.find]
+include = ["zmart_controller*"]
+
+[tool.setuptools.package-data]
+# The mock driver's shipped configuration files.
+"zmart_controller.mock" = ["**/*.json"]
 
 
 [tool.pytest.ini_options]

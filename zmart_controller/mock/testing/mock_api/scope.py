@@ -39,7 +39,7 @@ fast tests, pass a :class:`FakeClock` and move time forward yourself with
 
 A short example::
 
-    from mock_zmart_driver.testing.mock_api import FakeClock, MockScope
+    from zmart_controller.mock.testing.mock_api import FakeClock, MockScope
 
     clock = FakeClock()
     scope = MockScope(output_folder="images", clock=clock)

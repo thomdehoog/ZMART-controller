@@ -15,7 +15,7 @@ import logging
 import time
 from typing import Any
 
-logger = logging.getLogger("mock_zmart_driver")
+logger = logging.getLogger("zmart_controller.mock")
 
 _LEVELS = {
     "debug": logging.DEBUG,

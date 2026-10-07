@@ -20,20 +20,20 @@ from pathlib import Path
 
 import pytest
 
-from mock_zmart_driver.configuration import load_configuration, save, saved_path
-from mock_zmart_driver.error_handling import RULES, Kind, classify
-from mock_zmart_driver.get_actions import DEFAULT_GET_TUNING
-from mock_zmart_driver.set_actions import DEFAULT_SET_TUNING, Gate
-from mock_zmart_driver.testing.mock_api import read_mraw
-from mock_zmart_driver.vendor_interface import VendorError
+import zmart_controller.mock
+from zmart_controller.mock.configuration import load_configuration, save, saved_path
+from zmart_controller.mock.error_handling import RULES, Kind, classify
+from zmart_controller.mock.get_actions import DEFAULT_GET_TUNING
+from zmart_controller.mock.set_actions import DEFAULT_SET_TUNING, Gate
+from zmart_controller.mock.testing.mock_api import read_mraw
+from zmart_controller.mock.vendor_interface import VendorError
 from zmart_controller.session import set_instrument
 
-PACKAGE = Path(__file__).resolve().parents[2]
-MOCK = {"vendor": "mock", "microscope": "mock-scope", "api": "mock-api"}
+PACKAGE = Path(zmart_controller.mock.__file__).resolve().parent
 
 
 def _open(tmp_path, **extra):
-    return set_instrument({**MOCK, "output_root": str(tmp_path / "images"), **extra})
+    return set_instrument(zmart_controller.mock, {"output_root": str(tmp_path / "images"), **extra})
 
 
 @pytest.fixture
@@ -236,7 +236,7 @@ class TestProcedures:
         assert mic._handle.scope.send("GetFocus")["result"] == {"focus": 5030.0, "piezo": 0.0}
 
     def test_record_origin_is_used_at_the_next_connect(self, tmp_path):
-        from mock_zmart_driver.procedures import record_origin
+        from zmart_controller.mock.procedures import record_origin
 
         session = _open(tmp_path, mock_timing="instant")
         session.set_xyz(100, -50, 0)
@@ -448,8 +448,8 @@ def test_alignment_undoes_every_camera_orientation(orientation):
     # Draw the same slide twice, 5 µm apart in x and 3 µm apart in y, with a
     # non-square camera, and check that after alignment the picture moved
     # left by 5 pixels and up by 3, whatever way the camera sits.
-    from mock_zmart_driver.data_handling import align_to_stage
-    from mock_zmart_driver.testing.mock_api.sample import render
+    from zmart_controller.mock.data_handling import align_to_stage
+    from zmart_controller.mock.testing.mock_api.sample import render
 
     width, height = 40, 24
 
@@ -548,7 +548,7 @@ class TestRealisticTiming:
         assert len(reads) > 1  # it had to read back more than once
 
     def test_stop_during_an_acquisition(self, slow_mic):
-        from mock_zmart_driver import set_actions
+        from zmart_controller.mock import set_actions
 
         handle = slow_mic._handle
         handle.vendor.start_acquisition("long", z_planes=200, z_step_um=0.1)
@@ -571,7 +571,7 @@ ALLOWED = {
     "set_actions": {"error_handling", "configuration", "get_actions"},
     "data_handling": {"get_actions"},
     "procedures": {"get_actions", "set_actions", "configuration", "data_handling"},
-    "zmart_controller": {
+    "driver": {
         "vendor_interface",
         "error_handling",
         "configuration",
@@ -601,10 +601,10 @@ def _imported_parts(path: Path, part: str) -> set[str]:
                     found.add(target[0])
                 else:
                     found.update(a.name for a in node.names)
-            elif module.startswith("mock_zmart_driver"):
+            elif module.startswith("zmart_controller.mock"):
                 pieces = module.split(".")
-                if len(pieces) > 1:
-                    found.add(pieces[1])
+                if len(pieces) > 2:
+                    found.add(pieces[2])
                 else:
                     found.update(a.name for a in node.names)
     return found - {part}
@@ -612,7 +612,8 @@ def _imported_parts(path: Path, part: str) -> set[str]:
 
 @pytest.mark.parametrize("part", sorted(ALLOWED))
 def test_each_part_only_uses_the_parts_below_it(part):
-    for path in (PACKAGE / part).rglob("*.py"):
+    folder = PACKAGE / part
+    for path in folder.rglob("*.py") if folder.is_dir() else [PACKAGE / f"{part}.py"]:
         used = _imported_parts(path, part)
         assert used <= ALLOWED[part], f"{path.relative_to(PACKAGE)} imports {used - ALLOWED[part]}"
 

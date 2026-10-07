@@ -1,26 +1,17 @@
-"""Utilities for drivers: where they plug in, how they are found, and whether they fit.
+"""Utilities for drivers: what a driver must hold, and whether it fits.
 
-A driver registers a table of functions, one per command, under a
-``connection`` dict. Three keys in that dict name the instrument: ``vendor``,
-``microscope`` and ``api``. Any other keys are the driver's own, and go to its
-``connect`` unchanged.
-
-The registry checks only that a driver fits: every required function is
-there, the three identity keys are present, and no other driver already
-holds that name. Everything else is the driver's job.
-
-A driver is a folder with a ``zmart.json`` naming its instruments and a
-module holding its functions. :func:`register_driver` reads the file, checks
-it, picks the functions by name and registers each instrument. It remembers
-the driver in this computer's configuration folder, so later sessions plug it
-in by themselves. A driver installed as a package can instead announce itself
-through an entry point; see :func:`discover_installed_drivers`.
+A driver is a Python module (or any object, or a dict) holding one function
+per command, found by name. :func:`driver_functions` collects them and names
+any that are missing. Everything else is the driver's job.
 
 :func:`validate_driver` is for whoever writes a driver: it calls the
 driver's ``get_*`` commands and checks the answers against the contract in
-``docs/driver.md``. :func:`check_acquire_answer` does the same for one
-acquisition, which the driver's own tests take, since checking it means
+``docs/1_plug_in_a_driver``. :func:`check_acquire_answer` does the same for
+one acquisition, which the driver's own tests take, since checking it means
 taking a picture.
+
+:func:`config_root` is the folder where drivers keep what they measure once
+per microscope: the origin, the travel limits and the calibration.
 
 Author: Thom de Hoog, Center for Microscopy and Image Analysis (ZMB),
 University of Zurich (thom.dehoog@zmb.uzh.ch, thomdehoog@gmail.com).
@@ -28,16 +19,10 @@ University of Zurich (thom.dehoog@zmb.uzh.ch, thomdehoog@gmail.com).
 
 from __future__ import annotations
 
-import copy
-import importlib
-import importlib.util
-import json
 import logging
 import math
 import os
 import platform
-import sys
-from importlib.metadata import entry_points
 from pathlib import Path
 from typing import Any
 
@@ -58,83 +43,26 @@ OPS: tuple[str, ...] = (
     "get_info",
 )
 
-# The keys that name an instrument. Any other key in a connection dict is the driver's own.
-IDENTITY: tuple[str, ...] = ("vendor", "microscope", "api")
 
-# (vendor, microscope, api) -> {"connection", "ops"}
-REGISTRY: dict[tuple[str, ...], dict[str, Any]] = {}
+def driver_functions(driver: Any) -> dict[str, Any]:
+    """The driver's functions, one per command, found by name.
 
-
-def _identity(connection: dict[str, Any]) -> tuple[str, ...]:
-    """The (vendor, microscope, api) triple of a connection dict."""
-    missing = [key for key in IDENTITY if key not in connection]
-    if missing:
-        # Name keys only, never values: a connection dict may hold a password.
-        raise ValueError(
-            f"connection missing identity keys {missing}; has keys {sorted(connection)}"
-        )
-    return tuple(connection[key] for key in IDENTITY)
-
-
-def register(connection: dict[str, Any], *, ops: dict[str, Any]) -> None:
-    """Register a driver for one instrument.
-
-    ``connection`` names the instrument and holds whatever the driver needs to
-    connect. ``ops`` maps every name in :data:`OPS` to a function;
-    ``disconnect`` is optional. Raises ``ValueError`` if a function or an
-    identity key is missing.
-
-    Registering the same driver again is harmless: its entry is simply
-    refreshed. A *different* driver asking for a name another driver already
-    holds is refused with ``ValueError``, naming both folders. The name is how
-    an operator picks a microscope from the list, so letting a second driver
-    take it over would quietly drive a different microscope than the one
-    chosen.
+    ``driver`` is a module such as ``zmart_controller.mock``, any object with
+    the functions as attributes, or a dict from command name to function.
+    ``disconnect`` is optional. Raises ``ValueError`` naming every missing
+    function, so a half-finished driver is refused before it connects.
     """
-    missing = [name for name in OPS if name not in ops]
+    find = driver.get if isinstance(driver, dict) else lambda name: getattr(driver, name, None)
+    ops = {name: find(name) for name in (*OPS, "disconnect")}
+    missing = [name for name in OPS if not callable(ops[name])]
     if missing:
-        raise ValueError(f"driver {_identity(connection)} missing ops: {missing}")
-    key = _identity(connection)
-    _refuse_a_name_held_by_another_driver(key, ops)
-    # A full copy, nested settings included: later edits to the caller's dict,
-    # or to a dict from get_instruments(), must never change what is stored.
-    REGISTRY[key] = {"connection": copy.deepcopy(connection), "ops": ops}
+        raise ValueError(f"driver {driver_name(driver)} is missing functions: {missing}")
+    return {name: func for name, func in ops.items() if func is not None}
 
 
-def _refuse_a_name_held_by_another_driver(key: tuple[str, ...], ops: dict[str, Any]) -> None:
-    """Raise ``ValueError`` when a different driver already holds this instrument's name."""
-    held = REGISTRY.get(key)
-    if held is not None and _origin(held["ops"]) != _origin(ops):
-        raise ValueError(
-            f"two drivers both call their instrument {' / '.join(key)}. The driver in "
-            f"{_folder_of(held['ops'])} was plugged in first, and the driver in "
-            f"{_folder_of(ops)} asks for the same name. Give one of them a different "
-            f"vendor, microscope or api in its zmart.json."
-        )
-
-
-def _origin(ops: dict[str, Any]) -> dict[str, tuple[str, str]]:
-    """Where each of a driver's functions was written: its module and its name there.
-
-    Two tables with the same origins are the same driver, even when they were
-    collected twice (once by folder, once by module name) or after the
-    driver's module was loaded again.
-    """
-    return {
-        name: (getattr(func, "__module__", ""), getattr(func, "__qualname__", repr(func)))
-        for name, func in ops.items()
-    }
-
-
-def _folder_of(ops: dict[str, Any]) -> str:
-    """The folder a driver's ``connect`` lives in, to name the driver in a message."""
-    module = sys.modules.get(getattr(ops["connect"], "__module__", ""))
-    path = getattr(module, "__file__", None)
-    return str(Path(path).resolve().parent) if path else f"module {module!r}"
-
-
-# The folder with the driver's controller-facing functions, inside a driver.
-PLUGIN_FOLDER = "zmart_controller"
+def driver_name(driver: Any) -> str:
+    """A short name for ``driver``, to show in messages: its module name if it has one."""
+    return getattr(driver, "__name__", None) or type(driver).__name__
 
 
 def config_root() -> Path:
@@ -157,304 +85,25 @@ def config_root() -> Path:
     return Path("/etc/zmart-microscopy")
 
 
-def _drivers_file() -> Path:
-    return config_root() / "zmart_controller" / "utils.json"
-
-
-def remembered_drivers() -> list[str]:
-    """The drivers this computer plugs in by itself, as saved by :func:`register_driver`."""
-    path = _drivers_file()
-    if not path.is_file():
-        return []
-    try:
-        entries = json.loads(path.read_text())
-    except ValueError as exc:
-        raise RuntimeError(f"the driver list at {path} is not valid JSON: {exc}") from None
-    return [str(entry) for entry in entries]
-
-
-def _save_remembered(entries: list[str]) -> None:
-    path = _drivers_file()
-    try:
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps(entries, indent=2) + "\n")
-    except PermissionError:
-        raise PermissionError(
-            f"cannot write {path}. Run this once with the rights to write there, "
-            f"or point ZMART_MICROSCOPY_ROOT at a folder you can write."
-        ) from None
-
-
-def forget_driver(driver: str | Path) -> bool:
-    """Stop plugging a driver in at the start of later sessions.
-
-    Returns whether it was on the list. The driver stays plugged in for the
-    rest of this session.
-    """
-    key = _driver_key(driver)
-    entries = remembered_drivers()
-    if key not in entries:
-        return False
-    _save_remembered([e for e in entries if e != key])
-    return True
-
-
-def _driver_key(driver: str | Path) -> str:
-    """How a driver is written down: the absolute path of its folder.
-
-    A driver given by module name is written down by the folder it was found
-    in, so a later session finds it even when started from somewhere else,
-    where the name alone would no longer import. A name that cannot be found
-    is kept as given.
-    """
-    path = Path(driver)
-    if path.exists():
-        return str(path.resolve())
-    try:
-        spec = importlib.util.find_spec(str(driver))
-    except (ImportError, ValueError):
-        spec = None
-    if spec is None or not spec.origin or not spec.origin.endswith("__init__.py"):
-        return str(driver)
-    return str(Path(spec.origin).parent.resolve())
-
-
-CONTRACT = 1
-MANIFEST = "zmart.json"
-
-
-def register_driver(driver: str | Path, *, remember: bool = True) -> list[dict[str, Any]]:
-    """Plug a driver in, and return the instruments it provides.
-
-    ``driver`` is the driver's folder, or the name of an installed module.
-    The controller looks there for ``zmart_controller/zmart.json`` (or
-    ``zmart.json`` directly). That file names the instruments; the functions
-    are found by name in the module next to it. See ``docs/driver.md`` for
-    the contract.
-
-    Run this once per driver on each microscope computer. The driver is
-    remembered in this computer's configuration folder, and every later
-    session plugs it in by itself when :func:`get_instruments` runs. Pass
-    ``remember=False`` to plug it in for this session only. Calling it twice
-    is harmless.
-
-    Raises ``ValueError`` when nothing is found, the file is wrong, a
-    function is missing, or a different driver already holds one of the
-    instrument names, and says which.
-    """
-    plugin_dir, module = _locate_plugin(driver)
-    manifest = _read_manifest(plugin_dir / MANIFEST)
-    if module is None:
-        module = _import_plugin(plugin_dir)
-    ops = _collect_ops(module, plugin_dir)
-    # Every name is checked before any is registered, so a refused driver adds nothing.
-    for instrument in manifest["instruments"]:
-        _refuse_a_name_held_by_another_driver(_identity(instrument), ops)
-    added = []
-    for instrument in manifest["instruments"]:
-        register(instrument, ops=ops)
-        added.append(copy.deepcopy(instrument))
-    if remember:
-        key = _driver_key(driver)
-        entries = remembered_drivers()
-        if key not in entries:
-            _save_remembered(entries + [key])
-    return added
-
-
-def _locate_plugin(driver: str | Path):
-    """Find the folder holding ``zmart.json``; import first if given a module name."""
-    path = Path(driver)
-    if path.is_dir():
-        if (path / PLUGIN_FOLDER / MANIFEST).is_file() and (path / "__init__.py").is_file():
-            return path / PLUGIN_FOLDER, _import_package(path)
-        for candidate in (path / PLUGIN_FOLDER, path):
-            if (candidate / MANIFEST).is_file():
-                return candidate, None
-        raise ValueError(f"no {PLUGIN_FOLDER}/{MANIFEST} found under {path}")
-    if path.exists():
-        raise ValueError(f"{path} is a file; give the driver's folder instead")
-    try:
-        module = importlib.import_module(str(driver))
-    except ModuleNotFoundError as exc:
-        if exc.name and str(driver).startswith(exc.name):
-            raise ValueError(f"no driver found at {driver!s}") from None
-        raise
-    folder = Path(module.__file__).parent
-    if (folder / MANIFEST).is_file():
-        return folder, module
-    if (folder / PLUGIN_FOLDER / MANIFEST).is_file():
-        return folder / PLUGIN_FOLDER, importlib.import_module(f"{driver}.{PLUGIN_FOLDER}")
-    raise ValueError(f"module {driver!s} has no {PLUGIN_FOLDER}/{MANIFEST}")
-
-
-def _read_manifest(path: Path) -> dict[str, Any]:
-    """Read and check a driver's ``zmart.json``."""
-    try:
-        manifest = json.loads(path.read_text())
-    except ValueError as exc:
-        raise ValueError(f"{path} is not valid JSON: {exc}") from None
-    if not isinstance(manifest, dict) or manifest.get("contract") != CONTRACT:
-        raise ValueError(
-            f'{path} must say "contract": {CONTRACT}; this controller knows no other version'
-        )
-    instruments = manifest.get("instruments")
-    if not isinstance(instruments, list) or not instruments:
-        raise ValueError(f'{path} must list at least one instrument under "instruments"')
-    for instrument in instruments:
-        if not isinstance(instrument, dict):
-            raise ValueError(f"{path}: every instrument must be an object")
-        _identity(instrument)  # raises ValueError naming any missing identity key
-    return manifest
-
-
-def _import_package(package: Path):
-    """Import a driver package by its own name, and return its ``zmart_controller`` module.
-
-    A driver laid out as ``docs/driver.md`` describes reaches its own modules
-    by their full names, such as ``acme_driver.vendor_interface``. Those
-    imports only work when the package is imported under that name, so the
-    folder above the package is added to Python's search path first. A
-    different package of the same name that is already loaded is refused,
-    since Python can hold only one of them.
-    """
-    package = package.resolve()
-    top, parts = package, [package.name]
-    while (top.parent / "__init__.py").is_file():
-        top = top.parent
-        parts.insert(0, top.name)
-    name = ".".join(parts)
-    loaded = sys.modules.get(parts[0])
-    if loaded is not None and getattr(loaded, "__file__", None):
-        if Path(loaded.__file__).resolve().parent != top:
-            raise ValueError(
-                f"cannot plug in {package}: another package named {parts[0]} is already "
-                f"loaded from {Path(loaded.__file__).parent}. Rename one of the two drivers."
-            )
-    search_root = str(top.parent)
-    if search_root not in sys.path:
-        sys.path.append(search_root)
-    module = importlib.import_module(f"{name}.{PLUGIN_FOLDER}")
-    if Path(module.__file__).resolve().parent != package / PLUGIN_FOLDER:
-        raise ValueError(
-            f"cannot plug in {package}: the name {name} imports from "
-            f"{Path(module.__file__).parent} instead. Rename one of the two drivers."
-        )
-    return module
-
-
-def _import_plugin(plugin_dir: Path):
-    """Import the plugin folder under a name of its own, so two drivers never clash."""
-    name = f"zmart_controller__{plugin_dir.parent.name}_{abs(hash(str(plugin_dir.resolve()))):x}"
-    if name in sys.modules:
-        return sys.modules[name]
-    spec = importlib.util.spec_from_file_location(
-        name, plugin_dir / "__init__.py", submodule_search_locations=[str(plugin_dir)]
-    )
-    if spec is None:
-        raise ValueError(f"{plugin_dir} has no __init__.py beside its {MANIFEST}")
-    module = importlib.util.module_from_spec(spec)
-    sys.modules[name] = module
-    try:
-        spec.loader.exec_module(module)
-    except BaseException:
-        del sys.modules[name]
-        raise
-    return module
-
-
-def _collect_ops(module, plugin_dir: Path) -> dict[str, Any]:
-    """Pick the driver's functions out of its module, by name."""
-    ops = {}
-    missing = []
-    for name in OPS + ("disconnect",):
-        func = getattr(module, name, None)
-        if callable(func):
-            ops[name] = func
-        elif name != "disconnect":
-            missing.append(name)
-    if missing:
-        raise ValueError(f"{plugin_dir} is missing these functions: {missing}")
-    return ops
-
-
-ENTRY_POINT_GROUP = "zmart_controller.drivers"
-
-# True once installed and remembered drivers have been asked to register.
-_discovered = False
-
-
-def discover_installed_drivers() -> None:
-    """Plug in the remembered and the installed drivers, once.
-
-    Remembered drivers are those saved by :func:`register_driver`. An
-    installed package announces itself with one line in its ``pyproject.toml``::
-
-        [project.entry-points."zmart_controller.drivers"]
-        acme = "zmart_drivers.acme:register"
-
-    A driver that fails to load is logged and skipped, so one broken driver
-    never hides the others.
-    """
-    global _discovered
-    if _discovered:
-        return
-    _discovered = True
-    for entry in remembered_drivers():
-        try:
-            register_driver(entry, remember=False)
-        except Exception:
-            logger.exception("remembered driver %r could not be loaded; skipping it", entry)
-    for entry_point in entry_points(group=ENTRY_POINT_GROUP):
-        try:
-            register_driver(entry_point.value.split(":")[0], remember=False)
-        except Exception:
-            logger.exception("driver %r could not be loaded; skipping it", entry_point.name)
-
-
-def get_instruments() -> list[dict[str, Any]]:
-    """List the available instruments, without connecting to anything.
-
-    Each entry is a dict you can pass to :func:`set_instrument`. You may edit
-    it first, for example to add a password. Installed driver packages are
-    found here automatically.
-    """
-    discover_installed_drivers()
-    return [copy.deepcopy(entry["connection"]) for _key, entry in sorted(REGISTRY.items())]
-
-
-def resolve(instrument: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
-    """Find the driver for an instrument; return ``(ops, connection)``.
-
-    Raises ``ValueError`` if no driver matches.
-    """
-    key = _identity(instrument)
-    try:
-        entry = REGISTRY[key]
-    except KeyError:
-        raise ValueError(
-            f"no driver registered for {dict(zip(IDENTITY, key, strict=True))}; "
-            f"known: {sorted(REGISTRY)}"
-        ) from None
-    return entry["ops"], instrument
-
-
 # ---- validating a driver against the contract
 
 AXES = ("x", "y", "z")
 
 
-def validate_driver(instrument: dict[str, Any]) -> list[str]:
-    """Connect to ``instrument`` and check every ``get_*`` answer against the contract.
+def validate_driver(driver: Any, connection: dict[str, Any] | None = None) -> list[str]:
+    """Connect to ``driver`` and check every ``get_*`` answer against the contract.
+
+    ``driver`` and ``connection`` are what you would pass to ``set_instrument``.
+    It moves nothing and acquires nothing.
 
     Returns the problems found, one sentence each. Empty means the driver fits.
     Raises whatever the driver raises on connect.
     """
-    # Imported here: the session looks drivers up in this module.
+    # Imported here: the session collects the driver's functions with this module.
     from .session import set_instrument
 
     problems: list[str] = []
-    session = set_instrument(instrument)
+    session = set_instrument(driver, connection)
     try:
         checks = {
             "get_info": _check_info,

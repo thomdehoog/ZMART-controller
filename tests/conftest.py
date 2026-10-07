@@ -1,8 +1,7 @@
-"""Test setup: register the mock microscope and reset the active session.
+"""Test setup: keep every test's files in its own folder, and reset the active session.
 
-The mock is the pretend microscope in tests/mock_zmart_driver/, so the tests
-run without any hardware. pytest puts this folder on the import path, which
-is how the name below finds it.
+The tests run on the mock driver, ``zmart_controller.mock``, so they need no
+hardware.
 
 Author: Thom de Hoog, Center for Microscopy and Image Analysis (ZMB),
 University of Zurich (thom.dehoog@zmb.uzh.ch, thomdehoog@gmail.com).
@@ -10,9 +9,7 @@ University of Zurich (thom.dehoog@zmb.uzh.ch, thomdehoog@gmail.com).
 
 import pytest
 
-from zmart_controller import register_driver
-
-register_driver("mock_zmart_driver", remember=False)
+import zmart_controller.mock.driver as mock_driver
 
 
 @pytest.fixture(autouse=True)
@@ -24,10 +21,7 @@ def _config_in_a_temporary_folder(tmp_path, monkeypatch):
 @pytest.fixture(autouse=True)
 def _images_in_a_temporary_folder(tmp_path, monkeypatch):
     """Save the mock's images in the test's own folder, never in a shared one."""
-    from zmart_controller import utils
-
-    connect = utils.REGISTRY[("mock", "mock-scope", "mock-api")]["ops"]["connect"]
-    monkeypatch.setitem(connect.__globals__, "DEFAULT_OUTPUT_ROOT", tmp_path / "images")
+    monkeypatch.setattr(mock_driver, "DEFAULT_OUTPUT_ROOT", tmp_path / "images")
 
 
 @pytest.fixture(autouse=True)

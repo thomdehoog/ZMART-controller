@@ -36,10 +36,10 @@ micrometers, and its error handling sorts the codes into kinds.
 ```python
 from mock_zmart_driver.testing.mock_api import MockScope
 
-scope = MockScope(output_folder="images")        # the folder must exist
+scope = MockScope(output_folder="images")  # the folder must exist
 scope.send("Login", token="mock-token")
 scope.send("MoveStage", x=51_000.0, y=37_000.0)  # {"ok": True, "result": {"accepted": "MoveStage"}}
-scope.send("GetStagePosition")                   # may still be on its way
+scope.send("GetStagePosition")  # may still be on its way
 ```
 
 Every command goes through `scope.send(name, **arguments)` and returns a
@@ -110,7 +110,7 @@ clock = FakeClock()
 scope = MockScope(output_folder="images", clock=clock)
 scope.send("Login", token="mock-token")
 scope.send("MoveStage", x=60_000.0)
-clock.advance(1.0)    # one second passes
+clock.advance(1.0)  # one second passes
 ```
 
 When a test is not about timing at all, `MockScope.instant(output_folder=...)`

@@ -24,7 +24,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from .utils import IDENTITY, resolve
+from .utils import driver_functions, driver_name
 
 
 class Session:
@@ -32,8 +32,7 @@ class Session:
 
     Each method calls the matching driver function and returns its answer.
     The session keeps no state and refuses nothing. Its one public attribute,
-    ``context``, says which driver was chosen: ``vendor``, ``microscope``,
-    ``api``.
+    ``context``, names the driver that was plugged in: ``{"driver": ...}``.
     """
 
     def __init__(
@@ -141,14 +140,15 @@ class Session:
             disconnect(self._handle)
 
 
-def set_instrument(instrument: dict[str, Any]) -> Session:
-    """Connect to an instrument and return its :class:`Session`.
+def set_instrument(driver: Any, connection: dict[str, Any] | None = None) -> Session:
+    """Plug in a driver, connect to its microscope, and return the :class:`Session`.
 
-    ``instrument`` is one of the dicts from :func:`get_instruments`. It is
-    handed to the driver's ``connect`` unchanged. The driver loads its own
-    configuration as it connects. Raises ``ValueError`` if no driver matches.
+    ``driver`` holds the driver's functions, one per command: a module such as
+    ``zmart_controller.mock``, or a dict from command name to function.
+    ``connection`` is handed to the driver's ``connect`` unchanged; it holds
+    whatever that driver needs, such as a host name, and may be left out.
+    Raises ``ValueError`` naming any function the driver is missing.
     """
-    ops, connection = resolve(instrument)
-    handle = ops["connect"](connection)
-    context = {key: connection[key] for key in IDENTITY}
-    return Session(ops, handle, context)
+    ops = driver_functions(driver)
+    handle = ops["connect"](dict(connection or {}))
+    return Session(ops, handle, {"driver": driver_name(driver)})
