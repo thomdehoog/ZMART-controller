@@ -22,8 +22,8 @@ instrument = next(i for i in zmart_controller.get_instruments() if i["vendor"] =
 zmart_controller.set_instrument(instrument)
 
 zmart_controller.set_xyz(100, 50, 0)
-answer = zmart_controller.acquire(acquisition_type="overview", position_label="A1")
-answer["report"]["files"]   # real OME-TIFF files you can open in Fiji or napari
+answer = zmart_controller.acquire(position_label="A1")
+answer["report"]["files"]  # real OME-TIFF files you can open in Fiji or napari
 answer["report"]["planes"]  # for each picture: its file, channel, depth and stage position
 ```
 

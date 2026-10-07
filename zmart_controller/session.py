@@ -103,31 +103,24 @@ class Session:
 
     # --- acquire ---------------------------------------------------------------
 
-    def get_acquisition_options(self) -> dict:
+    def get_acquisition_settings(self) -> dict:
         """The choices for capturing and saving, with allowed values and the active one.
 
         Asked of the driver afresh on every call.
         """
-        return self._ops["get_acquisition_options"](self._handle)
+        return self._ops["get_acquisition_settings"](self._handle)
 
-    def acquire(
-        self,
-        acquisition_type: str,
-        position_label: str,
-        options: dict | None = None,
-    ) -> dict:
-        """Capture one image and save it, in one step.
+    def acquire(self, position_label: str, acquisition_settings: dict | None = None) -> dict:
+        """Capture an image here and save it, in one step.
 
-        ``acquisition_type`` says what kind of scan this is, e.g. ``"prescan"``.
-        ``position_label`` names the position in the saved files. ``options``
-        holds choices from :meth:`get_acquisition_options`; any left out keep
-        their active value.
+        ``position_label`` names this position in the saved files, e.g.
+        ``"A1"``. ``acquisition_settings`` holds choices from :meth:`get_acquisition_settings`;
+        any left out keep their active value. The report lists every saved file
+        under ``files``, so a workflow finds its pictures the same way on every
+        microscope.
         """
         return self._ops["acquire"](
-            self._handle,
-            acquisition_type=acquisition_type,
-            position_label=position_label,
-            options=options,
+            self._handle, position_label=position_label, acquisition_settings=acquisition_settings
         )
 
     # --- information and lifecycle --------------------------------------------

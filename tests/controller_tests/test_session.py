@@ -88,10 +88,9 @@ class TestFrame:
 
 class TestAcquire:
     def test_acquire_returns_record(self, mic):
-        rec = mic.acquire(acquisition_type="prescan", position_label="A1")
+        rec = mic.acquire(position_label="A1")
         assert rec["success"] is True
         rec = rec["report"]
-        assert rec["acquisition_type"] == "prescan"
         assert rec["position_label"] == "A1"
         assert rec["settle"] == "backlash-corrected"  # active default
         assert rec["format"] == "ome-tiff"  # active default
@@ -100,19 +99,22 @@ class TestAcquire:
         assert all(Path(f).is_file() for f in rec["files"])
         assert rec["files"][-1] == rec["command_log"]
 
-    def test_acquire_options_override(self, mic):
+    def test_acquire_settings_override(self, mic):
         rec = mic.acquire(
-            acquisition_type="targetscan",
             position_label="B2",
-            options={"backlash_correction": False, "format": "ome-zarr"},
+            acquisition_settings={
+                "backlash_correction": False,
+                "format": "ome-zarr",
+                "folder": "targetscan",
+            },
         )["report"]
         assert rec["settle"] == "direct"
         assert rec["format"] == "ome-zarr"
         assert [Path(f).name for f in rec["files"]] == ["B2.ome.zarr", "B2.commands.json"]
         assert (Path(rec["files"][0]) / ".zattrs").is_file()
 
-    def test_acquisition_options_discovered(self, mic):
-        opts = mic.get_acquisition_options()["report"]
+    def test_acquisition_settings_discovered(self, mic):
+        opts = mic.get_acquisition_settings()["report"]
         assert opts["backlash_correction"]["active"] is True
         assert "ome-zarr" in opts["format"]["options"]
 
@@ -180,7 +182,7 @@ class TestDisconnect:
         mic.disconnect()
         mic.disconnect()  # the mock driver makes a second disconnect harmless
         with pytest.raises(RuntimeError, match="session is disconnected"):
-            mic.acquire(acquisition_type="prescan", position_label="A1")
+            mic.acquire(position_label="A1")
 
     def test_ops_after_disconnect_raise(self, mic):
         mic.disconnect()
@@ -194,10 +196,10 @@ class TestDisconnect:
         assert mic.get_xyz()["report"]["z"]["actuator"] == "motoric"
 
     def test_invalid_acquire_option_rejected(self, mic):
-        with pytest.raises(ValueError, match="unknown acquisition option"):
-            mic.acquire(acquisition_type="prescan", position_label="A1", options={"fromat": "x"})
+        with pytest.raises(ValueError, match="unknown acquisition setting"):
+            mic.acquire(position_label="A1", acquisition_settings={"fromat": "x"})
         with pytest.raises(ValueError, match="invalid value"):
-            mic.acquire(acquisition_type="prescan", position_label="A1", options={"format": "png"})
+            mic.acquire(position_label="A1", acquisition_settings={"format": "png"})
 
 
 class TestModuleStyle:
@@ -215,7 +217,7 @@ class TestModuleStyle:
         m.set_instrument(_mock_instrument())
         m.disconnect()
         with pytest.raises(AttributeError, match="no active microscope"):
-            m.acquire(acquisition_type="prescan", position_label="A1")
+            m.acquire(position_label="A1")
         m.disconnect()  # no active microscope: still a no-op
 
     def test_swap_survives_failing_teardown(self):
@@ -233,7 +235,7 @@ class TestModuleStyle:
         import zmart_controller as m
 
         with pytest.raises(AttributeError, match="set_instrument"):
-            m.acquire(acquisition_type="prescan", position_label="A1")
+            m.acquire(position_label="A1")
 
     def test_unknown_attribute_raises(self):
         import zmart_controller as m

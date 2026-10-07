@@ -45,7 +45,7 @@ import zmart_controller
 
 # 1) See which microscopes are available, and connect to one
 zmart_controller.get_instruments()
-zmart_controller.set_instrument(instrument=Dict)
+zmart_controller.set_instrument(Dict)
 
 # 2) Learn about the connected setup: where images go, and the microscope in plain words
 zmart_controller.get_info()
@@ -60,8 +60,8 @@ zmart_controller.get_state()
 zmart_controller.set_state(Dict)
 
 # 5) Capture and save an image with the current settings and position
-zmart_controller.get_acquisition_options()
-zmart_controller.acquire(acquisition_type=String, position_label=String, options=Dict)
+zmart_controller.get_acquisition_settings()
+zmart_controller.acquire(position_label=String, acquisition_settings=Dict)
 
 # 6) Run a routine the microscope offers (for example autofocus)
 zmart_controller.get_procedures()
@@ -70,6 +70,10 @@ zmart_controller.run_procedure(Dict)
 # 7) Close the connection
 zmart_controller.disconnect()
 ```
+
+`set_instrument`, `set_state` and `run_procedure` take one dictionary, and so do the `acquisition_settings`
+of `acquire`. The keys come from the matching `get_` command, so a driver can offer whatever
+its microscope can do without the vocabulary having to grow.
 
 Every command except `disconnect` answers with the same two things:
 

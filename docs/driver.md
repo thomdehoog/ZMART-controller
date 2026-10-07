@@ -52,11 +52,13 @@ TRAVEL = {"x": (-5000.0, 5000.0), "y": (-5000.0, 5000.0), "z": (-500.0, 500.0)}
 # Half the widest field (x, y) and half the deepest stack (z) this microscope takes.
 HALF_PICTURE = {"x": 650.0, "y": 650.0, "z": 100.0}
 
+
 def connect(connection):
     client = MyVendorClient(host=connection["host"])
     # The origin is this driver's configuration: saved once by its own setup
     # step, and loaded here every time the microscope connects.
     return {"client": client, "origin": load_saved_origin()}
+
 
 def get_xyz(handle, *, with_actuators=None):
     raw = handle["client"].read_position()
@@ -75,8 +77,9 @@ def get_xyz(handle, *, with_actuators=None):
     }
     return {"success": True, "report": position}
 
+
 # ... and get_info, get_actuators, set_xyz, get_state, set_state,
-#     get_acquisition_options, acquire, get_procedures, run_procedure.
+#     get_acquisition_settings, acquire, get_procedures, run_procedure.
 #     disconnect is optional.
 ```
 
@@ -110,7 +113,7 @@ Because it acquires nothing, it cannot check `acquire`. Do that in your
 driver's own tests, after an acquisition on a simulator or a test bench:
 
 ```python
-answer = session.acquire(acquisition_type="overview", position_label="A1")
+answer = session.acquire(position_label="A1")
 assert zmart_controller.check_acquire_answer(answer) == []
 ```
 
@@ -132,8 +135,8 @@ ones listed here.
 | `set_xyz` | handle, `x`, `y`, `z`, `with_actuators=` | `position` and `actuators`; raise if the move cannot be confirmed |
 | `get_state` | handle | `{"changeable": {...}, "observed": {...}}` |
 | `set_state` | handle, state | what was applied; act on `changeable` only |
-| `get_acquisition_options` | handle | `{name: {"options": [...], "active": value}}` |
-| `acquire` | handle, `acquisition_type=`, `position_label=`, `options=` | `acquisition_type`, `position_label`; `files`, a list with the path of every file the acquisition saved; and `planes`, one entry per saved image plane (see below) |
+| `get_acquisition_settings` | handle | `{name: {"options": [...], "active": value}}` |
+| `acquire` | handle, `position_label=`, `acquisition_settings=` | `position_label`; `files`, a list with the path of every file the acquisition saved; and `planes`, one entry per saved image plane (see below) |
 | `get_procedures` | handle | `{name: {"description", ...}}` |
 | `run_procedure` | handle, `{"name": ..., ...}` | `ran`, the name of the procedure; raise `ValueError` for an unknown name |
 
@@ -165,6 +168,11 @@ a Nikon only if both say where their images are in the same words. Every path
 must exist when `acquire` returns. An acquisition that did not succeed may
 list none.
 
+The driver names the files after `position_label`. Anything else about where
+they go is the driver's choice; if a person should be able to choose, offer it
+as an acquisition setting, the way the mock offers `folder`. A workflow never
+has to guess the path, because `files` tells it.
+
 `planes` says where each saved picture sits on the sample. A file says how
 large a pixel is, but rarely where the stage stood, and a stack is taken with
 the stage at one place while its planes are spread above and below it. Only the
@@ -193,7 +201,7 @@ on, so a workflow that should run on any microscope must not need them.
 A *state* has two parts. `"changeable"` holds the settings that `set_state`
 applies. `"observed"` is a read-only report, such as which objective is in
 place and the pixel size; it is never used as an instruction. When the allowed
-values of an option cannot be listed, `"options"` may be a short description
+values of a setting cannot be listed, `"options"` may be a short description
 such as `"float > 0"`.
 
 `description` is the microscope in plain words, for whoever drives it: a

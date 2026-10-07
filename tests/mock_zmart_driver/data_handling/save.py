@@ -2,10 +2,13 @@
 
 The layout under the output folder is::
 
-    <output_root>/<acquisition_type>/<position_label>.ome.tif          one plane
-    <output_root>/<acquisition_type>/<position_label>_z000.ome.tif     a z-stack, one file per plane
-    <output_root>/<acquisition_type>/<position_label>.ome.zarr/        OME-Zarr, any number of planes
-    <output_root>/<acquisition_type>/<position_label>.commands.json    the command log
+    <output_root>/<folder>/<position_label>.ome.tif          one plane
+    <output_root>/<folder>/<position_label>_z000.ome.tif     a z-stack, one file per plane
+    <output_root>/<folder>/<position_label>.ome.zarr/        OME-Zarr, any number of planes
+    <output_root>/<folder>/<position_label>.commands.json    the command log
+
+``folder`` is an acquisition setting. With no folder, the files go
+straight into ``<output_root>``.
 
 Nothing is ever overwritten: a second acquisition with the same label gets
 ``_001``, ``_002`` and so on.
@@ -51,7 +54,7 @@ def save_acquisition(
     ctx,
     *,
     vendor_file: str,
-    acquisition_type: str,
+    folder: str,
     position_label: str,
     image_format: str,
     position_um: dict[str, float],
@@ -83,16 +86,16 @@ def save_acquisition(
         "z": position_um["z"],
     }
     extra = {
-        "acquisition_type": acquisition_type,
+        "folder": folder,
         "position_label": position_label,
         "objective": header["objective"]["name"],
         "vendor_file": str(vendor_file),
         "registration": ctx.config.sources["image_stage_registration"],
         "calibration": ctx.config.sources["optical_calibration"],
     }
-    folder = Path(ctx.output_root) / safe_name(acquisition_type)
-    folder.mkdir(parents=True, exist_ok=True)
     label = safe_name(position_label)
+    folder = Path(ctx.output_root) / safe_name(folder) if folder else Path(ctx.output_root)
+    folder.mkdir(parents=True, exist_ok=True)
     files: list[str] = []
     if image_format == "ome-zarr":
         stem = _free(folder, label, [".ome.zarr", ".commands.json"])

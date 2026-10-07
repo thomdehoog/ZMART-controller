@@ -10,7 +10,7 @@ The shortest way drives one microscope through the module itself::
     )
     zmart_controller.set_instrument(instrument)
     zmart_controller.set_xyz(10, 20, 5)
-    zmart_controller.acquire(acquisition_type="prescan", position_label="A1")
+    zmart_controller.acquire(position_label="A1")
     zmart_controller.disconnect()
 
 Pick the instrument by its name, as above, rather than by its place in a
@@ -25,7 +25,7 @@ To drive several microscopes at once, hold a session for each::
 
     mic_a = set_instrument(instrument_a)
     mic_b = set_instrument(instrument_b)
-    mic_a.acquire(acquisition_type="prescan", position_label="A1")
+    mic_a.acquire(position_label="A1")
 
 Two cautions for the short way. Call through the module each time, as in
 ``zmart_controller.set_xyz(...)``; a command saved in a variable keeps pointing
