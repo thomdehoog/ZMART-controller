@@ -14,7 +14,7 @@ your own. This page is the complete documentation of part 1.
 2. [Plug in a driver](#plug-in-a-driver)
 3. [Where the functions go](#where-the-functions-go)
 4. [The requirements](#the-requirements)
-5. [Positions, travel and reach](#positions-travel-and-reach)
+5. [Positions, travel and canvas](#positions-travel-and-canvas)
 6. [What an acquisition reports](#what-an-acquisition-reports)
 7. [State, settings and description](#state-settings-and-description)
 8. [Rules every driver follows](#rules-every-driver-follows)
@@ -174,7 +174,7 @@ may add keys of its own; it should not leave out the ones listed here.
 | `disconnect` *(optional)* | handle | *(returns nothing; afterwards every other call raises `RuntimeError`, and a second `disconnect` is harmless)* |
 | `get_info` | handle | `output_root`, the folder where images are saved; and, recommended, `description` |
 | `get_actuators` | handle | `{axis: [motor names]}` for `x`, `y` and `z`, at least one motor each |
-| `get_xyz` | handle, `with_actuators=` | `{axis: {"value", "actuator", "unit", "range", "reach"}}` for `x`, `y` and `z`; `value`, `range` and `reach` in micrometres from the origin |
+| `get_xyz` | handle, `with_actuators=` | `{axis: {"value", "actuator", "range", "canvas"}}` for `x`, `y` and `z`; `value`, `range` and `canvas` in micrometres from the origin |
 | `set_xyz` | handle, `x`, `y`, `z`, `with_actuators=` | `position` and `actuators`; raise if the move cannot be confirmed |
 | `get_state` | handle | `{"changeable": {...}, "observed": {...}}` |
 | `set_state` | handle, state | what was applied; act on `changeable` only |
@@ -187,7 +187,7 @@ may add keys of its own; it should not leave out the ones listed here.
 `{"z": "piezo"}`, from the names `get_actuators` lists. Left out, the driver
 uses its default motor.
 
-## Positions, travel and reach
+## Positions, travel and canvas
 
 Positions are in **micrometres from the origin**: a point on the microscope,
 recorded once during setup, that reads as (0, 0, 0). How the origin is found
@@ -197,14 +197,14 @@ For each axis, `get_xyz` reports three ranges of numbers:
 
 - `value`: where the axis is now.
 - `range`: `[min, max]`, how far the axis can travel.
-- `reach`: `[min, max]`, everywhere a picture can show on that axis.
+- `canvas`: `[min, max]`, everywhere a picture can show on that axis.
 
-`reach` is wider than `range` because a picture taken at the end of the
+The `canvas` is wider than `range` because a picture taken at the end of the
 travel still shows half a field of view beyond it, and a z-stack started at
-the top or bottom of the focus reaches half a stack further. So `reach` is
+the top or bottom of the focus shows half a stack further. So the `canvas` is
 the travel widened by half the largest field the driver can take (for x and
 y) and half the deepest stack (for z), and it always contains `range`. When
-nothing can be seen beyond the travel on some axis, `reach` equals `range`
+nothing can be seen beyond the travel on some axis, `canvas` equals `range`
 there. The interface and the viewer use it to lay out the whole specimen
 area before the first picture arrives, so nothing has to grow or shift later.
 
@@ -347,7 +347,7 @@ problems   # [] means it fits
 `validate_driver` takes the same driver and connection dictionary as
 `set_instrument`. It calls every `get_*` function and compares each answer
 with the requirements above. The answer is a list of problems in plain
-words, such as `"get_xyz: axis 'z' is missing 'reach'"`. It moves nothing and
+words, such as `"get_xyz: axis 'z' is missing 'canvas'"`. It moves nothing and
 acquires nothing.
 
 Because it acquires nothing, it cannot check `acquire`. Do that in your

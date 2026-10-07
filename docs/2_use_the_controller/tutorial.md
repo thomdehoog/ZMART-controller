@@ -94,7 +94,7 @@ position = zmart_controller.get_xyz()["content"]
 print(position["x"])
 ```
 ```
-{'value': 0.0, 'actuator': 'motoric', 'unit': 'um', 'range': [-5000.0, 5000.0], 'reach': [-5032.0, 5032.0]}
+{'value': 0.0, 'actuator': 'motoric', 'range': [-5000.0, 5000.0], 'canvas': [-5032.0, 5032.0]}
 ```
 
 Positions are in micrometres from the *origin*, a point (0, 0, 0) that was

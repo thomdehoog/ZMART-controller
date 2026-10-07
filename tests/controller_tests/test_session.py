@@ -60,7 +60,6 @@ class TestFrame:
         assert rec["content"]["actuators"]["z"] == "motoric"
         pos = mic.get_xyz()["content"]
         assert (pos["x"]["value"], pos["y"]["value"], pos["z"]["value"]) == (10, 20, 5)
-        assert pos["x"]["unit"] == "um"
 
     def test_origin_is_driver_configuration(self):
         # The origin is saved by the driver's own setup step and loaded at
@@ -263,12 +262,12 @@ class TestTravelRange:
         finally:
             session.disconnect()
 
-    def test_reach_is_the_travel_widened_by_half_the_widest_field(self):
+    def test_the_canvas_is_the_travel_widened_by_half_the_widest_field(self):
         """At the edge of travel a picture still shows half a field further out.
 
         The mock's widest field is the 10x objective's: 64 pixels of 1.0 um,
-        so x and y reach 32 um past the travel. Its z-stacks must stay inside
-        the travel, so z reaches exactly as far as the stage goes.
+        so on x and y the canvas reaches 32 um past the travel. Its z-stacks
+        must stay inside the travel, so on z the canvas is the travel itself.
         """
         from zmart_controller.mock.configuration import save
         from zmart_controller.session import set_instrument as open_session
@@ -277,9 +276,9 @@ class TestTravelRange:
         session = open_session(mock)
         try:
             content = session.get_xyz()["content"]
-            assert content["x"]["reach"] == [-6032.0, 4032.0]
-            assert content["y"]["reach"] == [-5032.0, 5032.0]
-            assert content["z"]["reach"] == content["z"]["range"]
+            assert content["x"]["canvas"] == [-6032.0, 4032.0]
+            assert content["y"]["canvas"] == [-5032.0, 5032.0]
+            assert content["z"]["canvas"] == content["z"]["range"]
         finally:
             session.disconnect()
 

@@ -249,28 +249,27 @@ def _actuators(with_actuators: dict | None) -> dict[str, str]:
 
 def get_xyz(handle: MockHandle, *, with_actuators: dict | None = None) -> dict:
     """The position in micrometers from the origin, how far each axis may travel,
-    and how far a picture can reach along it."""
+    and the canvas: everywhere a picture can show along it."""
     _require_open(handle)
     chosen = _actuators(with_actuators)
     raw = get.raw_position(handle).value_or_raise("the position")
     user = get.user_position(handle).value_or_raise("the position")
     ranges = user_range(handle.config, raw["objective"])
-    reaches = _reach(handle, ranges)
+    canvas = _canvas(handle, ranges)
     return _answer(
         {
             axis: {
                 "value": user[axis],
                 "actuator": chosen[axis],
-                "unit": "um",
                 "range": ranges[axis],
-                "reach": reaches[axis],
+                "canvas": canvas[axis],
             }
             for axis in ("x", "y", "z")
         }
     )
 
 
-def _reach(handle: MockHandle, ranges: dict[str, list[float]]) -> dict[str, list[float]]:
+def _canvas(handle: MockHandle, ranges: dict[str, list[float]]) -> dict[str, list[float]]:
     """Everywhere a picture can show, per axis: the travel widened by half the widest field.
 
     A picture is centred on the stage position, so one taken at the edge of

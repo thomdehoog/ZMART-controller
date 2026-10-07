@@ -184,9 +184,8 @@ def get_xyz(handle, *, with_actuators=None):
         reading[axis] = {
             "value": handle["position"][axis],
             "actuator": "motor",
-            "unit": "um",
             "range": [low, high],
-            "reach": [low - HALF_PICTURE[axis], high + HALF_PICTURE[axis]],
+            "canvas": [low - HALF_PICTURE[axis], high + HALF_PICTURE[axis]],
         }
     return _answer(reading)
 
@@ -257,7 +256,7 @@ A few things to notice, because a real driver does the same:
 - **`acquire` says where it saved the picture** (`files`) and where on the
   sample it was taken (`planes`). That is how a workflow finds its pictures on
   any microscope, without guessing a path.
-- **`reach` is the travel widened by half a picture**, because a picture
+- **`canvas` is the travel widened by half a picture**, because a picture
   taken at the edge of the travel still shows a little beyond it.
 
 ## Step 5: plug it in
@@ -308,11 +307,11 @@ zmart_controller.check_acquire_answer(answer)
 ```
 
 `[]` again. To see what a problem looks like, open `pretend_scope.py`, delete
-the line with `"reach"` in `get_xyz`, restart Python and validate again:
+the line with `"canvas"` in `get_xyz`, restart Python and validate again:
 
 ```
-["get_xyz: axis 'x' is missing 'reach'", "get_xyz: axis 'y' is missing 'reach'",
- "get_xyz: axis 'z' is missing 'reach'"]
+["get_xyz: axis 'x' is missing 'canvas'", "get_xyz: axis 'y' is missing 'canvas'",
+ "get_xyz: axis 'z' is missing 'canvas'"]
 ```
 
 Put the line back. This is the loop to work in when you write a driver: change
