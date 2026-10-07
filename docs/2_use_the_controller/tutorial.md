@@ -1,4 +1,4 @@
-# Drive the microscope, step by step
+# Use the controller, step by step
 
 This is a walk-through for someone who would like to drive a microscope from
 Python with the ZMART Controller, and has not used it before. It explains the

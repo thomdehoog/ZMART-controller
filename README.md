@@ -105,8 +105,8 @@ its complete documentation, and a tutorial, which walks you through it step by s
 
 1. **[Plug in a driver](docs/1_plug_in_a_driver/README.md).** What a driver is, what it must provide, where its functions go, and how to
    plug it in. → [tutorial](docs/1_plug_in_a_driver/tutorial.md)
-2. **[Drive the microscope](docs/2_drive_the_microscope/README.md).** Every command, what it does, and what it answers.
-   → [tutorial](docs/2_drive_the_microscope/tutorial.md)
+2. **[Use the controller](docs/2_use_the_controller/README.md).** Every command, what it does, and what it answers.
+   → [tutorial](docs/2_use_the_controller/tutorial.md)
 3. **[Build your workflow](docs/3_build_your_workflow/README.md).** Put the commands together into an automated workflow, build it on the
    mock driver, and run it on a real microscope.
    → [tutorial](docs/3_build_your_workflow/tutorial.md)
