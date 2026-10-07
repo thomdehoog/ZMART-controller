@@ -17,7 +17,7 @@ walk-through, see the [tutorial](tutorial.md).
 8. [Rules every driver follows](#rules-every-driver-follows)
 9. [Configuration: what a driver measures once](#configuration-what-a-driver-measures-once)
 10. [Check that a driver fits](#check-that-a-driver-fits)
-11. [Install a driver](#install-a-driver)
+11. [Register a driver](#register-a-driver)
 
 ## The idea
 
@@ -348,37 +348,48 @@ The controller's own tests, in `tests/`, also show the behaviour a workflow
 relies on. Running your driver through the same scenarios is a quick way to
 find gaps.
 
-## Install a driver
+## Register a driver
 
-A driver is an ordinary Python package. Install it into the same Python
-environment as the controller:
+A driver is a folder: the whole set of files that talks to one microscope.
+To plug it into the controller, the folder holds one small file,
+`zmart_controller_plugin.json`, which says how:
 
-```bash
-pip install "git+https://github.com/<owner>/<my-driver>"
+```json
+{
+  "name": "my-scope",
+  "functions": "driver.py",
+  "connection": {"host": "localhost", "output_root": "D:/images"}
+}
 ```
 
-Then add it to the controller's list of drivers, once, under a name of your
-choosing. Give the connection dictionary here too, if the driver needs one:
+- `name` is what the driver is listed and plugged in as.
+- `functions` is the file in the folder that holds the functions the
+  controller calls. The rest of the driver can be organised however you like.
+- `connection` (optional) is the driver's configuration on this computer,
+  such as where the microscope software runs and where images go. It is
+  handed to `connect` every time the driver is plugged in.
+
+Register the folder once, on the microscope computer:
 
 ```python
 import zmart_controller
 
-zmart_controller.add_driver("my-scope", "my_driver", {"host": "localhost"})
+zmart_controller.register_driver("C:/drivers/my-scope")
 ```
 
-`add_driver` imports the driver and checks that every function is there
-before it writes anything down, so a driver that is not installed, or is
-missing a function, is refused with a clear message. From then on, every
-session on this computer can list it and plug it in by name:
+`register_driver` reads the json, imports the functions and checks that every
+one is there before it writes anything down, so a folder without the json, or
+a driver missing a function, is refused with a clear message. From then on,
+every session on this computer can list the driver and plug it in by name:
 
 ```python
 zmart_controller.get_drivers()               # ['mock', 'my-scope']
 zmart_controller.set_instrument("my-scope")
 ```
 
-The mock driver is always on the list, as `"mock"`. `remove_driver("my-scope")`
-takes a driver off the list again; adding a name a second time replaces its
-entry.
+The mock driver is always on the list, as `"mock"`. Registering a folder
+again reads its json again, so after you change the configuration, register
+it once more. `remove_driver("my-scope")` takes a driver off the list.
 
 The list is a small file, `drivers.json`, in the computer's ZMART
 configuration folder (`C:\ProgramData\zmart-microscopy\` on Windows), so
@@ -387,8 +398,8 @@ folder cannot be written, for example on a Mac or Linux account without
 administrator rights, the list is kept in `.zmart-microscopy` in your home
 folder instead.
 
-While you write a driver, you can skip the list and hand the module itself to
-`set_instrument`:
+While you write a driver, you can skip the list and hand the module with its
+functions to `set_instrument` directly:
 
 ```python
 import my_driver
@@ -398,8 +409,9 @@ zmart_controller.set_instrument(my_driver, {"host": "localhost"})
 
 The drivers for the microscopes we use at the ZMB are in
 [ZMART drivers](https://github.com/thomdehoog/ZMART-drivers). Each driver's
-README says which module to import, what goes in its connection dictionary,
-and how to run its setup step once on the microscope computer.
+folder has its `zmart_controller_plugin.json`, and its README says what goes
+in the connection and how to run its setup step once on the microscope
+computer.
 
 ---
 

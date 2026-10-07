@@ -279,38 +279,77 @@ class TestCanvas:
         assert mic.get_xyz()["content"]["x"]["value"] == 10  # did not move
 
 
-class TestInstalledDrivers:
+def _driver_folder(tmp_path, name="bench", connection=None, package=False):
+    """A driver folder on disk: its functions file, and the json that says how it plugs in.
+
+    The functions pass every call on to the mock. With ``package``, the folder
+    is a package and its functions file uses a relative import, as real
+    drivers do.
+    """
+    import json
+
+    folder = tmp_path / "drivers" / f"{name}_driver"
+    folder.mkdir(parents=True)
+    if package:
+        (folder / "__init__.py").write_text("")
+        (folder / "helpers.py").write_text("from zmart_controller.mock import *  # noqa\n")
+        (folder / "driver.py").write_text("from .helpers import *  # noqa\n")
+    else:
+        (folder / "driver.py").write_text("from zmart_controller.mock import *  # noqa\n")
+    plugin = {"name": name, "functions": "driver.py", "connection": connection or {}}
+    (folder / "zmart_controller_plugin.json").write_text(json.dumps(plugin))
+    return folder
+
+
+class TestRegisteredDrivers:
     def test_the_mock_is_always_listed(self):
         import zmart_controller
 
         assert zmart_controller.get_drivers() == ["mock"]
 
-    def test_install_once_then_plug_in_by_name(self):
+    def test_register_once_then_plug_in_by_name(self, tmp_path):
         import zmart_controller
 
-        zmart_controller.add_driver("bench", "zmart_controller.mock", {"client": "bench-pc"})
+        folder = _driver_folder(tmp_path, connection={"client": "bench-pc"})
+        assert zmart_controller.register_driver(folder) == "bench"
         assert zmart_controller.get_drivers() == ["mock", "bench"]
         session = zmart_controller.set_instrument("bench")
         assert session.context == {"driver": "bench"}
-        assert session.get_info()["content"]["client"] == "bench-pc"  # the saved connection
+        assert session.get_info()["content"]["client"] == "bench-pc"  # from the json
 
-    def test_a_driver_that_cannot_be_imported_is_refused_and_not_saved(self):
+    def test_a_driver_that_is_a_package_with_relative_imports(self, tmp_path):
         import zmart_controller
 
-        with pytest.raises(ModuleNotFoundError):
-            zmart_controller.add_driver("ghost", "no_such_driver_anywhere")
+        zmart_controller.register_driver(_driver_folder(tmp_path, "pkg", package=True))
+        session = zmart_controller.set_instrument("pkg")
+        assert session.get_xyz()["success"] is True
+
+    def test_a_folder_without_the_json_is_refused(self, tmp_path):
+        import zmart_controller
+
+        with pytest.raises(ValueError, match="zmart_controller_plugin.json"):
+            zmart_controller.register_driver(tmp_path)
+        assert zmart_controller.get_drivers() == ["mock"]
+
+    def test_a_driver_missing_a_function_is_refused_and_not_saved(self, tmp_path):
+        import zmart_controller
+
+        folder = _driver_folder(tmp_path)
+        (folder / "driver.py").write_text("def connect(connection):\n    return None\n")
+        with pytest.raises(ValueError, match="missing functions"):
+            zmart_controller.register_driver(folder)
         assert zmart_controller.get_drivers() == ["mock"]
 
     def test_an_unknown_name_is_refused(self):
         import zmart_controller
 
-        with pytest.raises(ValueError, match="no driver installed as 'ghost'"):
+        with pytest.raises(ValueError, match="no driver registered as 'ghost'"):
             zmart_controller.set_instrument("ghost")
 
-    def test_remove_driver(self):
+    def test_remove_driver(self, tmp_path):
         import zmart_controller
 
-        zmart_controller.add_driver("bench", "zmart_controller.mock")
+        zmart_controller.register_driver(_driver_folder(tmp_path))
         assert zmart_controller.remove_driver("bench") is True
         assert zmart_controller.remove_driver("bench") is False
         assert zmart_controller.get_drivers() == ["mock"]
@@ -327,8 +366,8 @@ class TestInstalledDrivers:
         shared.chmod(0o500)
         monkeypatch.setenv("ZMART_MICROSCOPY_ROOT", str(shared))
         try:
-            saved = zmart_controller.add_driver("bench", "zmart_controller.mock")
-            assert saved == utils.user_root() / "drivers.json"
+            zmart_controller.register_driver(_driver_folder(tmp_path))
+            assert (utils.user_root() / "drivers.json").is_file()
             assert zmart_controller.get_drivers() == ["mock", "bench"]
         finally:
             shared.chmod(0o700)
