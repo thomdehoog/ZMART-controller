@@ -103,6 +103,12 @@ We have not defined a vocabulary for error messages at this point.
 
 ## Try it yourself
 
+1. **[Plug in a driver](docs/1_plug_in_a_driver/README.md).** What a driver is, what it must provide, where its functions go, and how to
+   plug it in.
+2. **[Use the controller](docs/2_use_the_controller/README.md).** Every command, what it does, and what it answers.
+
+## Install it
+
 Install the controller into your Python environment (Python 3.11 or newer; it needs nothing else):
 
 ```bash
@@ -115,12 +121,6 @@ To use it in a project of your own, add it to the project's dependencies, for ex
 ```toml
 dependencies = ["zmart-controller @ git+https://github.com/thomdehoog/ZMART-controller"]
 ```
-
-Then follow the parts below.
-
-1. **[Plug in a driver](docs/1_plug_in_a_driver/README.md).** What a driver is, what it must provide, where its functions go, and how to
-   plug it in.
-2. **[Use the controller](docs/2_use_the_controller/README.md).** Every command, what it does, and what it answers.
 
 ## Status
 
