@@ -30,7 +30,7 @@ uses the parts below it.
 ```
   experiments and workflows
   ───────────────────────────────────────────────────────────────
-  8  ZMART controller plugin    the 11 functions every microscope offers
+  8  driver.py                  the functions the controller calls
   5  Procedures                 recipes built from get and set actions
   4  Set actions  ──────────┐   change the microscope, then confirm it
      + set dispatcher        │   (limits gate, retry, confirm, give up softly)
@@ -60,13 +60,13 @@ my_driver/
         limits/
         optical_calibration/
         machine_description/
-    zmart_controller/          # the plugin: zmart.json and the 11 functions
+    driver.py                  # the functions the controller calls
+    __init__.py                # makes them available by name on the package
     testing/
         mock_api/
         unit/
         hardware/
         data/
-        run_ci.py
     experimental/              # ideas that are not yet trusted on hardware
 ```
 
@@ -138,8 +138,8 @@ The list of primitives is not the same for every microscope. Leica thinks in
 *jobs*, ZEISS in *experiments*, Nikon in *optical configurations*, and
 mesoSPIM has none of these. Forcing one fixed list on all of them would either
 be too small to be useful or push the awkward fit up into the actions. The
-list that must be the same everywhere lives higher up, in the ZMART controller
-plugin (part 8).
+list that must be the same everywhere lives higher up, in the functions the
+controller calls (part 8).
 
 **Where a workaround belongs.** Every microscope needs workarounds. A simple
 rule decides where each one goes:
@@ -360,38 +360,36 @@ the objective offsets) lives once, as a pair of plain functions next to this
 configuration. The get and set actions for position use these functions.
 That way:
 
-- everything above the actions (procedures, the plugin, experiments) speaks
+- everything above the actions (procedures, `driver.py`, experiments) speaks
   one coordinate system, the user's;
 - the limits gate checks raw stage coordinates, so recording a new origin can
   never move the safe travel range;
-- the plugin does no arithmetic of its own.
+- `driver.py` does no arithmetic of its own.
 
 Today the Leica driver does this arithmetic inside its controller adapter.
 Moving it down into the actions means procedures and setup notebooks can no
 longer accidentally use a different coordinate system from the experiments.
 
-## 8. ZMART controller plugin
+## 8. The functions the controller calls
 
 **Purpose.** To present the driver to the ZMART Controller in the shape every
 microscope shares.
 
-It is a folder called `zmart_controller/` with two files:
+They live in one file, `driver.py`: the 11 functions of the controller
+contract, `connect`, `get_info`, `get_actuators`, `get_xyz`, `set_xyz`,
+`get_state`, `set_state`, `get_acquisition_settings`, `acquire`,
+`get_procedures` and `run_procedure`, plus an optional `disconnect`. The
+driver package's `__init__.py` imports them, so the whole driver is plugged in
+with `zmart_controller.set_instrument(my_driver)`.
 
-- `zmart.json`, which names the instruments this driver serves;
-- `__init__.py`, which holds the 11 functions of the controller contract:
-  `connect`, `get_info`, `get_actuators`, `get_xyz`, `set_xyz`, `get_state`,
-  `set_state`, `get_acquisition_settings`, `acquire`, `get_procedures` and
-  `run_procedure` (plus an optional `disconnect`).
-
-The full contract is described in the ZMART Controller's `docs/driver.md`.
+The full contract is described in [Plug in a driver](README.md#the-requirements).
 
 **Rules.**
 
-- The plugin **only maps** the driver's get actions, set actions and
+- `driver.py` **only maps** the driver's get actions, set actions and
   procedures onto the 11 functions. It does no coordinate arithmetic and no
   safety checks of its own; those already happened further down.
-- The controller finds it with `register_driver("path/to/driver")`, and
-  `validate_driver(instrument)` checks that every answer has the right shape.
+- `validate_driver(my_driver)` checks that every answer has the right shape.
 - An unconfirmed set action reaches the experiment as `success: False` with
   `confirmed: False` and a reason in the content. Anything unsafe is raised.
 
@@ -406,7 +404,6 @@ testing/
     unit/          tests that run against the mock API, on any computer
     hardware/      checks that run on the real microscope
     data/          sample files: vendor exports, log files, example configuration
-    run_ci.py      one entry point: offline by default, --hardware at the bench
 ```
 
 **The mock API** stands in for the vendor software at the bottom edge of the
@@ -431,7 +428,7 @@ missing exactly where someone wants it.
   use the mock API. A layer check (Leica's `test_architecture_guard.py` is the
   model) enforces this, together with the "each part only uses the parts
   below it" rule from the picture at the top.
-- **Hardware runs start offline.** `run_ci.py --hardware` first proves the
+- **Hardware runs start offline.** A hardware run first proves the
   limits gate and the error rules against the mock API, and stops before
   touching the stage if either fails. The Leica driver already does this for
   the limits gate.
@@ -482,8 +479,8 @@ What is the same in every driver, and what differs:
 | Procedures | The "get and set actions only" rule; the algorithms | The recipes |
 | Data handling | OME-TIFF and OME-Zarr writing, naming, the command log | Finding and reading the vendor's raw output |
 | Configuration | Load, check and save; the notebook pattern | Default values; the machine description |
-| ZMART controller plugin | The 11-function contract and `validate_driver` | Mapping actions onto those 11 |
-| Testing | `run_ci.py`; the dispatcher and error-rule tests; offline before hardware | The mock API; the hardware checks |
+| `driver.py` | The 11-function contract and `validate_driver` | Mapping actions onto those 11 |
+| Testing | The dispatcher and error-rule tests; offline before hardware | The mock API; the hardware checks |
 
 ## Experimental code
 
@@ -510,20 +507,20 @@ by any other part of the driver. The Leica driver already works this way.
   currently reports an unconfirmed action as `success: True` with
   `confirmed: False`, and its adapter never returns `success: False`. This
   document proposes `success: False` with `confirmed: False`, which matches
-  the controller's idea of a soft outcome. The controller's `docs/driver.md`
-  should say this explicitly.
+  the controller's idea of a soft outcome. The controller's
+  [Plug in a driver](README.md#rules-every-driver-follows) now says this explicitly.
 
 ## How we get there
 
 1. **The mock driver first.** Rebuild the controller's mock driver
-   (`tests/mock_zmart_driver/`) in exactly this layout, small and readable, running
+   (`zmart_controller/mock/`) in exactly this layout, small and readable, running
    on a small mock API. It becomes the template a new driver author copies,
    and the first user of the shared package.
-2. **Write the contract additions** into the controller's `docs/driver.md`:
+2. **Write the contract additions** into the controller's [Plug in a driver](README.md):
    the unconfirmed rule, and stop once it is decided.
-3. **Give Leica a `zmart_controller/` plugin folder.** Today it registers
-   itself when its `zmart_adapter` module is imported, while the controller
-   release candidate expects `register_driver` to find a `zmart.json`.
+3. **Give Leica a `driver.py`.** The controller now plugs in a driver by
+   being handed its module, `set_instrument(my_driver)`, so each driver
+   needs one module that offers the 11 functions by name.
 4. **Move the shared parts out of Leica one at a time** (the algorithms, then
    the set dispatcher and the error rules), keeping Leica's tests green after
    every step.
