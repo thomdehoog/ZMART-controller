@@ -54,7 +54,7 @@ Each part is a folder, and each part only uses the parts below it.
 | [`procedures/`](procedures/) | 5. Procedures | Recipes built only from get and set actions: autofocus, backlash takeup, parking the piezo, and recording the origin. |
 | [`data_handling/`](data_handling/) | 6. Data handling | Waits for the vendor's file, turns the picture to line up with the stage, writes OME-TIFF or OME-Zarr, and saves the log of the commands behind it. |
 | [`configuration/`](configuration/) | 7. Configuration | The machine description, image-to-stage registration, origin, limits and optical calibration, each with shipped defaults and a check. Also the arithmetic between stage and user coordinates. |
-| [`driver.py`](driver.py) | 8. The functions the controller calls | The 11 functions, plus `disconnect`. They only map commands onto the parts above. [`__init__.py`](__init__.py) imports them, which is what makes this folder a driver. |
+| [`driver.py`](driver.py) | 8. The functions the controller calls | The 11 functions, plus `disconnect`. They only map commands onto the parts above. [`__init__.py`](__init__.py) imports them, which is how the controller finds them. |
 | [`testing/`](testing/) | 9. Testing | The mock API, MockScope Control. The mock driver's own tests are in the repository's [`tests/mock_tests/`](../../tests/mock_tests/). |
 
 ## How a move travels through the driver

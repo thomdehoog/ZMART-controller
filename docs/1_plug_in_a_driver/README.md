@@ -26,10 +26,11 @@ read and apply the state, acquire, run a procedure. The controller does not
 know any microscope. It hands every command to a **driver**, and the driver
 carries it out on its own microscope.
 
-A driver is a set of Python functions that talk to the vendor software
-through its programming interface. It translates the vendor's own commands
-into the controller's common set of functions: one function per command, with
-the same name and the same kind of answer on every microscope. That is where
+A driver is the whole set of files that talks to one microscope, through the
+vendor software's programming interface. Towards the controller, every driver
+offers the same set of functions: one function per command, with the same
+name and the same kind of answer on every microscope. Inside, each driver
+translates them into its vendor's own commands. That is where
 the magic happens. You install a driver once, plug it into the controller,
 and from then on every command goes to it:
 
@@ -90,7 +91,7 @@ own microscope.
 
 ## Where the functions go
 
-**A small driver is a single Python file.** Put the functions in it and
+**A small driver can be a single Python file.** Put the functions in it and
 import it:
 
 ```
