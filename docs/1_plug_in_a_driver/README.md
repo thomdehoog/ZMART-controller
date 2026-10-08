@@ -229,8 +229,18 @@ an unknown setting or a position outside the travel, and hand back `False`
 with a message when the microscope did not do what was asked. Never put a
 password in a message.
 
-To check a driver you are writing against this page, see
-[Check a driver](check_a_driver.md).
+### Check it
+
+The template brings `checks.py`. One call tells you which methods still
+hand back the wrong thing, one plain sentence each; an empty list means
+the driver fits.
+
+```python
+from my_scope.checks import validate_driver
+from my_scope.zmart_driver import ZmartDriver
+
+validate_driver(ZmartDriver, connection)
+```
 
 ---
 
