@@ -45,7 +45,6 @@ mic.disconnect()
 
 The outputs are real answers from the mock, trimmed where they are long, shown as the `content` of the answer. On another microscope the values differ; the keys shown are the same on every microscope, and anything else is an extra of that driver.
 
-
 ### get_instruments
 
 ```python
@@ -58,9 +57,6 @@ zmart_controller.get_instruments()
   ```python
   {'mock': {}, 'stellaris': {'microscope': 'stellaris5-room-42', 'host': ..., ...}}
   ```
-
-- **Note:** The drivers installed on this computer, each with how it connects, without its password. The mock is always there.
-
 
 ### ZmartController
 
@@ -76,9 +72,6 @@ mic = zmart_controller.ZmartController(driver, connection=None)
   ```python
   a connected controller; every command below is a method on it
   ```
-
-- **Note:** Making the controller connects. The mock takes `output_root`, `mock_timing` (`"instant"` for quick tests) and `token`.
-
 
 ### get_info
 
@@ -96,7 +89,6 @@ mic.get_info()
 
 - **Note:** `output_root` is where the driver saves images. `description` is the microscope in plain words: what each setting means, its unit and bounds, which objective sits in which slot, which way +z points.
 
-
 ### get_actuators
 
 ```python
@@ -110,9 +102,6 @@ mic.get_actuators()
   {'x': ['motoric'], 'y': ['motoric'], 'z': ['motoric', 'piezo']}
   ```
 
-- **Note:** The motors that can move each axis. Pick one per axis with `with_actuators` on `get_xyz` and `set_xyz`; an axis left out uses the first one.
-
-
 ### get_xyz
 
 ```python
@@ -120,7 +109,7 @@ mic.get_xyz(with_actuators=None)
 ```
 
 - **Input**
-  - `with_actuators`: optional; the motor to read per axis, such as `{"z": "piezo"}`
+  - `with_actuators`: optional; the motor to read per axis, such as `{"z": "piezo"}`; an axis left out uses the first motor from `get_actuators`
 - **Output**
 
   ```python
@@ -131,7 +120,6 @@ mic.get_xyz(with_actuators=None)
 
 - **Note:** Positions are micrometres from the origin, a point saved once for this microscope; in a saved image, right is +x and down is +y. The canvas is everywhere a picture can show: the travel plus half a field of view.
 
-
 ### set_xyz
 
 ```python
@@ -140,7 +128,7 @@ mic.set_xyz(x, y, z, with_actuators=None)
 
 - **Input**
   - `x`, `y`, `z`: the position to move to, in micrometres from the origin; all three always given
-  - `with_actuators`: optional; the motor to use per axis
+  - `with_actuators`: optional; the motor to use per axis; an axis left out uses the first motor from `get_actuators`
 - **Output**
 
   ```python
@@ -149,7 +137,6 @@ mic.set_xyz(x, y, z, with_actuators=None)
   ```
 
 - **Note:** When the answer comes back, the stage has arrived. A move outside the travel, or one the driver could not confirm, is `success: False`.
-
 
 ### get_state
 
@@ -167,7 +154,6 @@ mic.get_state()
 
 - **Note:** A snapshot of the settings. `changeable` is what `set_state` can apply; `observed` is read only. A state is a plain dictionary: save it with `json` and apply it again another day.
 
-
 ### set_state
 
 ```python
@@ -181,9 +167,6 @@ mic.set_state(state)
   ```python
   {'applied': {'gain': 200.0}}
   ```
-
-- **Note:** An unknown name or a value outside the limits is `success: False`, so a typo never passes silently.
-
 
 ### get_acquisition_settings
 
@@ -202,7 +185,6 @@ mic.get_acquisition_settings()
   ```
 
 - **Note:** The choices about how to capture and save. `options` says what a setting may be, `active` what is used when you say nothing.
-
 
 ### acquire
 
@@ -224,7 +206,6 @@ mic.acquire(position_label, acquisition_settings=None)
 
 - **Note:** Captures at the current position with the current settings, and saves. `files` lists every file saved; use those paths. `planes` says for every image plane which file, channel, depth and moment it is, and where on the sample it was taken. A second acquisition with the same label never overwrites the first.
 
-
 ### get_procedures
 
 ```python
@@ -238,9 +219,6 @@ mic.get_procedures()
   {'autofocus': {'description': 'Take a short z-stack around the current height, find the sharpest plane, and move there. Optional: range_um (default 20), step_um (default 2).'},
    ...}
   ```
-
-- **Note:** The routines this microscope offers, each with a description that says what it does and which options it takes.
-
 
 ### run_procedure
 
@@ -256,9 +234,6 @@ mic.run_procedure(procedure)
   {'ran': 'autofocus'}
   ```
 
-- **Note:** An unknown name is `success: False`.
-
-
 ### disconnect
 
 ```python
@@ -267,7 +242,6 @@ mic.disconnect()
 
 - **Input:** none
 - **Output:** nothing
-- **Note:** Closes the connection. To drive the microscope again, make a new controller.
 
 ---
 
