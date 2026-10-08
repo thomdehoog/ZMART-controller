@@ -107,12 +107,10 @@ there; the shipped file looks the same, and you replace every value:
 
 ## 3) Writing a driver
 
-The controller consists of one class, `ZmartController`, in `zmart_controller/zmart_controller.py`.
-
-You make it with the name of an installed driver. The controller finds the
-driver's two files through the registry, makes one `ZmartDriver` from the
-connection, and every command becomes a call to the method of the same
-name on it.
+Writing a driver means expanding the `ZmartDriver` class in
+`zmart_driver.py` until it is compatible with the following schema. This is
+what the controller offers to a workflow; every command on it becomes a
+call to the method of the same name on your class.
 
 ```python
 import zmart_controller
@@ -154,14 +152,10 @@ hands back.
 | hands back `False` and a message | `{"success": False, "content": "..."}`, your message |
 | raises | `{"success": False, "content": "..."}`, the error text |
 
-So what is left for you is to write a `ZmartDriver` class that complies
-with the following.
-
-`ZmartDriver` in `zmart_driver.py` is the code that drives the vendor
-software. Making one opens the connection, and each method does one
-command. Every method starts out raising `NotImplementedError`, so
-`validate_driver` tells you which one is still to write. A method returns
-plain values; the controller wraps them into the answer.
+So what is left for you is the methods. Making a `ZmartDriver` opens the
+connection, and each method does one command. Every method starts out
+raising `NotImplementedError`, so `validate_driver` tells you which one is
+still to write.
 
 ### Connect and disconnect
 
