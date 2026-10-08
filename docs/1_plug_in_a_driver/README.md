@@ -25,7 +25,7 @@ Every microscope's software speaks its own language, so a workflow written
 for one microscope does not run on another. The controller stands in
 between. It knows nothing about any particular microscope. It takes a short,
 fixed list of commands from your workflow and hands each one to a
-**driver**. The driver is a the set of files that knows how to talk to one microscope's
+**driver**. The driver is the set of files that knows how to talk to one microscope's
 vendor software.
 
 ```
@@ -35,7 +35,8 @@ your workflow ──► zmart controller ──► driver ──► vendor softw
 ## Install a driver into the controller
 
 Installing a driver into the controller means telling it, once, where the
-driver's functions are on this computer by point it at the `zmart_controller_plugin.py`
+driver's functions are on this computer, by pointing it at the driver's
+`zmart_controller_plugin.py`:
 
 ```python
 import zmart_controller
@@ -279,8 +280,9 @@ returns it:
 Setting the environment variable `ZMART_MICROSCOPY_ROOT` points it somewhere
 else, for example on a shared test computer. A driver's own setup step
 writes its files under this folder, and its `connect` loads them. The
-controller also keeps the list of registered drivers there, as
-[Install a driver into the controller](#install-a-driver-into-the-controller) describes.
+controller also keeps its list of installed drivers there, in `drivers.json`.
+When this folder cannot be written, the list goes to `.zmart-microscopy` in
+your home folder instead.
 
 ## Check a driver
 
