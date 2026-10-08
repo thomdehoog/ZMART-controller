@@ -23,12 +23,12 @@ While writing one, load it from its folder instead::
 
     zmart_controller.set_instrument(zmart_controller.load_driver("path/to/my-scope/zmart_driver.json"))
 
-To drive several microscopes at once, hold a session for each::
+To drive several microscopes at once, make a ``ZmartController`` for each::
 
-    from zmart_controller.session import set_instrument
+    from zmart_controller import ZmartController
 
-    mic_a = set_instrument(driver_a)
-    mic_b = set_instrument(driver_b, {"host": "scope-b"})
+    mic_a = ZmartController(driver_a)
+    mic_b = ZmartController(driver_b, {"host": "scope-b"})
     mic_a.acquire(position_label="A1")
 
 Two cautions for the short way. Call through the module each time, as in
@@ -48,7 +48,7 @@ __email__ = "thom.dehoog@zmb.uzh.ch, thomdehoog@gmail.com"
 __affiliation__ = "Center for Microscopy and Image Analysis (ZMB), University of Zurich"
 
 from .plugin import load as load_driver
-from .session import Session
+from .session import Session, ZmartController
 from .session import set_instrument as _set_instrument
 from .utils import (
     check_acquire_answer,
@@ -60,6 +60,7 @@ from .utils import (
 )
 
 __all__ = [
+    "ZmartController",
     "Session",
     "get_drivers",
     "get_instruments",
@@ -73,17 +74,17 @@ __all__ = [
 ]
 
 # The one active microscope that the module-level commands go to.
-_active: Session | None = None
+_active: ZmartController | None = None
 
 
-def set_instrument(driver, connection=None) -> Session:
+def set_instrument(driver, connection=None) -> ZmartController:
     """Plug in a driver, connect to its microscope, and make it the active one.
 
     ``driver`` is the name of a registered driver, from :func:`get_drivers`,
     or a module with one function per command, such as
     ``zmart_controller.mock``; ``connection`` is handed to its ``connect``.
     Module-level commands then go to it. The previously active microscope is
-    disconnected. Returns the :class:`Session` as well, for those who want to
+    disconnected. Returns the :class:`ZmartController` as well, for those who want to
     hold it.
     """
     global _active

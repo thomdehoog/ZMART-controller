@@ -1,4 +1,4 @@
-"""The Session: one method per command, each calling the driver.
+"""The ZmartController: one method per command, each calling the driver.
 
 The controller does no microscope work. Each method hands the call to the
 driver and returns the driver's answer unchanged. Every check belongs to the
@@ -27,24 +27,37 @@ from typing import Any
 from .utils import driver_functions, driver_name, find_driver
 
 
-class Session:
-    """A connected microscope, returned by :func:`set_instrument`.
+class ZmartController:
+    """One connected microscope, driven through one method per command.
+
+    Make one with a driver, and it connects::
+
+        mic = ZmartController("my-scope")
+        mic.set_xyz(100, 50, 0)
+
+    ``driver`` is the name of an installed driver, from ``get_drivers()``,
+    or the driver itself, such as ``zmart_controller.mock`` or what
+    ``load_driver`` returns. ``connection`` is handed to the driver's
+    ``connect`` unchanged; left out, the driver's own connection is used.
+    Raises ``ValueError`` naming any function the driver is missing.
 
     Each method calls the matching driver function and returns its answer.
-    The session keeps no state and refuses nothing. Its one public attribute,
-    ``context``, names the driver that was plugged in: ``{"driver": ...}``.
+    The controller keeps no state and refuses nothing. Its one public
+    attribute, ``context``, names the driver: ``{"driver": ...}``.
     """
 
-    def __init__(
-        self,
-        ops: dict[str, Any],
-        handle: Any,
-        context: dict[str, str],
-    ) -> None:
-        self._ops = ops  # command name -> driver function
-        self._handle = handle  # the driver's own connection object
+    def __init__(self, driver: Any, connection: dict[str, Any] | None = None) -> None:
+        name = None
+        if isinstance(driver, str):
+            name = driver
+            driver, saved = find_driver(name)
+            connection = saved if connection is None else connection
+        elif connection is None:
+            connection = getattr(driver, "CONNECTION", None)
+        self._ops = driver_functions(driver)  # command name -> driver function
+        self._handle = self._ops["connect"](dict(connection or {}))  # the driver's own object
 
-        self.context = context
+        self.context = {"driver": name or driver_name(driver)}
 
     # --- state and procedures ------------------------------------------------
 
@@ -140,23 +153,13 @@ class Session:
             disconnect(self._handle)
 
 
-def set_instrument(driver: Any, connection: dict[str, Any] | None = None) -> Session:
-    """Plug in a driver, connect to its microscope, and return the :class:`Session`.
+#: The old name of :class:`ZmartController`, kept so existing code keeps working.
+Session = ZmartController
 
-    ``driver`` is the name of a registered driver, from ``get_drivers()``, or
-    the driver itself: a module such as ``zmart_controller.mock``, or a dict
-    from command name to function. ``connection`` is handed to the driver's
-    ``connect`` unchanged; it holds whatever that driver needs, such as a host
-    name. Left out, the driver's own ``CONNECTION`` is used, if it has one.
-    Raises ``ValueError`` naming any function the driver is missing.
+
+def set_instrument(driver: Any, connection: dict[str, Any] | None = None) -> ZmartController:
+    """Plug in a driver, connect to its microscope, and return the :class:`ZmartController`.
+
+    The same as ``ZmartController(driver, connection)``.
     """
-    name = None
-    if isinstance(driver, str):
-        name = driver
-        driver, saved = find_driver(name)
-        connection = saved if connection is None else connection
-    elif connection is None:
-        connection = getattr(driver, "CONNECTION", None)
-    ops = driver_functions(driver)
-    handle = ops["connect"](dict(connection or {}))
-    return Session(ops, handle, {"driver": name or driver_name(driver)})
+    return ZmartController(driver, connection)
