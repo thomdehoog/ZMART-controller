@@ -35,7 +35,7 @@ class ZmartController:
         mic = ZmartController("my-scope")
         mic.set_xyz(100, 50, 0)
 
-    ``driver`` is the name of an installed driver, from ``get_drivers()``,
+    ``driver`` is the name of an installed driver, from ``get_instruments()``,
     or the driver itself, such as ``zmart_controller.mock`` or what
     ``load_driver`` returns. ``connection`` is handed to the driver's
     ``connect`` unchanged; left out, the driver's own connection is used.

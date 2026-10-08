@@ -57,12 +57,12 @@ ValueError: driver my_driver is missing functions: ['set_xyz']
 From then on the driver is on the list, and can be connected to by name:
 
 ```python
-zmart_controller.get_drivers()               # ['mock', 'my-scope']
 zmart_controller.get_instruments()           # {'mock': {}, 'my-scope': {'microscope': ..., 'host': ..., ...}}
 zmart_controller.set_instrument("my-scope")
 ```
 
-`get_instruments` shows how each driver connects, without its password.
+`get_instruments` lists every installed driver with how it connects,
+without its password.
 
 The mock driver is always on the list, and the name `"mock"` is taken.
 The drivers for the microscopes at the ZMB are in

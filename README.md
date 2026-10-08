@@ -57,7 +57,6 @@ Everything you can say to a microscope:
 import zmart_controller
 
 # 1) See which drivers are installed and how each connects, then connect to one
-zmart_controller.get_drivers()
 zmart_controller.get_instruments()
 zmart_controller.set_instrument(String)
 

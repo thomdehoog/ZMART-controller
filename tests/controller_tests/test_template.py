@@ -132,7 +132,7 @@ def test_a_copied_template_is_installed_from_its_folder_or_json(tmp_path):
     try:
         assert zmart_controller.register_driver(folder) == "my-scope-2"
         assert zmart_controller.register_driver(settings) == "my-scope-2"
-        assert zmart_controller.get_drivers() == ["mock", "my-scope-2"]
+        assert list(zmart_controller.get_instruments()) == ["mock", "my-scope-2"]
         shown = zmart_controller.get_instruments()["my-scope-2"]
         assert shown["host"] == "127.0.0.1" and "password" not in shown
         with pytest.raises(NotImplementedError):  # it connects through the plugin
