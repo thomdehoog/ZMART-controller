@@ -11,12 +11,17 @@ Plug in a driver, then drive the microscope through the module itself::
     zmart_controller.acquire(position_label="A1")
     zmart_controller.disconnect()
 
-A driver is the whole set of files that talks to one microscope; towards the
-controller it offers one function per command. Register a driver's folder on
-the computer once, then plug it in by name::
+A driver is a folder with two files: ``zmart_driver.json``, its name and how
+to reach the microscope, and ``zmart_driver.py``, a ``ZmartDriver`` class
+with one method per command. Install it on the computer once, then plug it
+in by name::
 
-    zmart_controller.register_driver("path/to/zmart_driver.json")
-    zmart_controller.set_instrument("stellaris")
+    zmart_controller.register_driver("path/to/my-scope")
+    zmart_controller.set_instrument("my-scope")
+
+While writing one, load it from its folder instead::
+
+    zmart_controller.set_instrument(zmart_controller.load_driver("path/to/my-scope"))
 
 To drive several microscopes at once, hold a session for each::
 
@@ -42,6 +47,7 @@ __author__ = "Thom de Hoog"
 __email__ = "thom.dehoog@zmb.uzh.ch, thomdehoog@gmail.com"
 __affiliation__ = "Center for Microscopy and Image Analysis (ZMB), University of Zurich"
 
+from .plugin import load as load_driver
 from .session import Session
 from .session import set_instrument as _set_instrument
 from .utils import (
@@ -57,6 +63,7 @@ __all__ = [
     "Session",
     "get_drivers",
     "get_instruments",
+    "load_driver",
     "register_driver",
     "remove_driver",
     "check_acquire_answer",

@@ -176,36 +176,40 @@ PLUGIN_FILE = "zmart_controller_plugin.py"
 def register_driver(plugin: str | Path, connection: dict[str, Any] | None = None) -> str:
     """Add a driver to this computer's list of drivers, once.
 
-    ``plugin`` is the driver's ``zmart_driver.json``, the file that holds the
-    driver's name and how to reach the microscope, or its
-    ``zmart_controller_plugin.py``, the file with the functions the
-    controller calls, or the folder holding them. The plugin gives the
-    driver's name, and may give its configuration, in a driver made from
-    the template by reading them from the JSON file next to it::
+    ``plugin`` is the driver's folder, or its ``zmart_driver.json``: a driver
+    made from the template is two files, ``zmart_driver.json`` with its name
+    and connection and ``zmart_driver.py`` with its ``ZmartDriver`` class.
+    A driver that brings its own ``zmart_controller_plugin.py`` is given by
+    that file, or by the folder holding it; the plugin then gives the name,
+    and may give the connection::
 
         NAME = "stellaris"
         CONNECTION = {"output_root": "D:/images"}   # optional
 
-    The functions are imported and checked first, so a file that cannot be
-    imported, or is missing a function or its ``NAME``, is refused with a
-    clear message and nothing is written. ``CONNECTION`` is read each time
-    the driver is plugged in; a ``connection`` given here is saved instead.
-    Registering a driver again replaces its entry. Returns its name.
+    The driver is loaded and checked first, so one that cannot be imported,
+    or is missing a function or its name, is refused with a clear message
+    and nothing is written. The connection is read each time the driver is
+    plugged in; a ``connection`` given here is saved instead. Registering a
+    driver again replaces its entry. Returns its name.
     """
+    from .plugin import SETTINGS_FILE, load
+
     file = Path(plugin).resolve()
     if file.is_dir():
-        file = file / PLUGIN_FILE
-    elif file.suffix == ".json":
-        file = file.with_name(PLUGIN_FILE)  # the settings file sits next to the plugin
-    module, root = _module_of(file)
-    loaded = _import(module, root)
+        file = file / (SETTINGS_FILE if (file / SETTINGS_FILE).is_file() else PLUGIN_FILE)
+    if file.name == SETTINGS_FILE:
+        loaded = load(file)
+        entry: dict[str, Any] = {"settings": str(file)}
+    else:
+        module, root = _module_of(file)
+        loaded = _import(module, root)
+        entry = {"file": str(file), "module": module, "root": root}
     driver_functions(loaded)
     name = getattr(loaded, "NAME", None)
     if not isinstance(name, str) or not name.strip():
         raise ValueError(f'{file} must give the driver\'s NAME, such as NAME = "stellaris"')
     if name == MOCK:
         raise ValueError(f"{MOCK!r} is the mock driver's name; choose another NAME in {file}")
-    entry = {"file": str(file), "module": module, "root": root}
     if connection is not None:
         entry["connection"] = dict(connection)
     for path in _registry_files():
@@ -283,7 +287,12 @@ def find_driver(name: str) -> tuple[Any, dict[str, Any]]:
     entry = _registered().get(name)
     if entry is None:
         raise ValueError(f"no driver registered as {name!r}; registered: {get_drivers()}")
-    module = _import(entry["module"], entry["root"])
+    if "settings" in entry:
+        from .plugin import load
+
+        module = load(entry["settings"])
+    else:
+        module = _import(entry["module"], entry["root"])
     if "connection" in entry:
         return module, dict(entry["connection"])
     return module, dict(getattr(module, "CONNECTION", None) or {})
