@@ -81,34 +81,11 @@ folder, rename it, and adapt the two files next to the plugin:
 - `zmart_driver.json` holds the driver's name and how to reach the
   microscope. It is the file you point at to install the driver.
 
-This is how the shipped plugin begins:
+### The settings: zmart_driver.json
 
-```python
-# zmart_controller_plugin.py
-
-import json
-from pathlib import Path
-
-from .zmart_driver import ZmartDriver  # zmart_driver.py: the code that talks to the vendor software
-
-# The driver's name and how to reach this microscope live in zmart_driver.json,
-# next to this file, so they can be edited without touching any code.
-_SETTINGS = json.loads((Path(__file__).with_name("zmart_driver.json")).read_text())
-
-NAME = _SETTINGS["name"]  # the driver's name in the controller's list
-CONNECTION = _SETTINGS["connection"]  # how to reach this microscope; get_instruments() shows it
-
-
-def connect(connection):
-
-    handle = ZmartDriver(connection)
-
-    return handle  # the connected driver; every other function receives it back
-```
-
-The name and the connection are not in the code. They are in
-`zmart_driver.json`, next to the plugin, so that whoever sets up the
-microscope computer can edit them without touching Python:
+The driver's name and the connection are not in the code. They are in
+`zmart_driver.json`, so that whoever sets up the microscope computer can
+edit them without touching Python:
 
 ```json
 {
@@ -134,6 +111,34 @@ when the microscope does not need it. `get_instruments()` shows the
 connection of every installed driver, with password, token and secret keys
 left out.
 
+### The plugin: zmart_controller_plugin.py
+
+The plugin reads the settings file and calls your class. This is how the
+shipped plugin begins:
+
+```python
+# zmart_controller_plugin.py
+
+import json
+from pathlib import Path
+
+from .zmart_driver import ZmartDriver  # zmart_driver.py: the code that talks to the vendor software
+
+# The driver's name and how to reach this microscope live in zmart_driver.json,
+# next to this file, so they can be edited without touching any code.
+_SETTINGS = json.loads((Path(__file__).with_name("zmart_driver.json")).read_text())
+
+NAME = _SETTINGS["name"]  # the driver's name in the controller's list
+CONNECTION = _SETTINGS["connection"]  # how to reach this microscope; get_instruments() shows it
+
+
+def connect(connection):
+
+    handle = ZmartDriver(connection)
+
+    return handle  # the connected driver; every other function receives it back
+```
+
 `connect` makes one `ZmartDriver` from the connection and returns it as the
 **handle**. The controller never looks inside the handle; it hands it back
 to every other function. Each of those calls the method of the same name
@@ -148,10 +153,12 @@ def get_info(handle):
 ```
 
 `success` says whether the driver did what was asked. `content` is what the
-driver has to say about it. The next section goes through every method and
-what the plugin puts in `content`. The function names in the plugin are the
-whole connection between the controller and a microscope; the list is kept
-in `zmart_controller.utils.OPS`. Do not rename them.
+driver has to say about it. The function names in the plugin are the whole
+connection between the controller and a microscope; the list is kept in
+`zmart_controller.utils.OPS`. Do not rename them.
+
+So what is left for you is to write a `ZmartDriver` class that complies
+with the following.
 
 ## Writing the ZmartDriver
 
@@ -164,9 +171,8 @@ saying what it must hand back, so `validate_driver` tells you which one is
 still to write.
 
 The plugin calls these methods and expects their answers in a fixed form.
-To use it, you have to comply with the following. Each method returns the
-plain values named beside it, never the `success` and `content` wrapping;
-the plugin adds that. The headings below show the method, what it returns,
+Each method returns the plain values named beside it, never the `success`
+and `content` wrapping; the plugin adds that. The headings below show the method, what it returns,
 and what the plugin then puts in `content`.
 
 ### Connect and disconnect
