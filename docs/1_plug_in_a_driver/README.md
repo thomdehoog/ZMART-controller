@@ -86,7 +86,7 @@ way, with its text:
 def set_state(self, changeable):
     ...
     return True, applied                     # {"success": True,  "content": {"applied": applied}}
-    return False, "exposure_ms stayed 10.0"  # {"success": False, "content": "exposure_ms stayed 10.0"}
+    return False, "<error message>"          # {"success": False, "content": "<error message>"}
     raise ValueError("unknown setting")      # anything that raises: {"success": False, "content": "ValueError: unknown setting"}
 ```
 
@@ -129,7 +129,7 @@ def get_xyz(self, with_actuators):
 def set_xyz(self, x, y, z, with_actuators):
     # move, then read back until the stage has arrived
     return True, (x_motor, y_motor, z_motor)
-    return False, "x = 5000 is outside the travel"   # or: "stage stopped at x = ..."
+    return False, "<error message>"                # e.g. outside the travel, or the stage never arrived
 ```
 
 ```python
@@ -143,7 +143,7 @@ def get_state(self):
 def set_state(self, changeable):
     # apply each one, then read it back
     return True, applied                           # {"exposure_ms": 20.0, ...}: what took
-    return False, "exposure_ms stayed 10.0"        # or: "unknown setting gian"
+    return False, "<error message>"                # e.g. a setting that did not take, or an unknown one
 ```
 
 ```python
@@ -171,7 +171,7 @@ def get_procedures(self):
 def run_procedure(self, procedure):
     # procedure: {"name": "autofocus", ...}: the routine and its arguments
     return True, procedure["name"]
-    return False, "unknown procedure"
+    return False, "<error message>"                # e.g. a name that get_procedures does not list
 ```
 
 ```python
