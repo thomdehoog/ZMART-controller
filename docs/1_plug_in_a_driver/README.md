@@ -41,16 +41,11 @@ import zmart_controller
 zmart_controller.register_driver("C:/drivers/my-scope/zmart_driver.json")
 ```
 
-`register_driver` loads the driver and checks that its name and its
-`ZmartDriver` class are there before it writes anything down. A driver
-that cannot be imported, or that misses something, is refused with a
-message that says what is wrong:
-
-```
-ValueError: driver my_driver is missing functions: ['set_xyz']
-```
-
-From then on the driver is on the list, and can be connected to by name:
+`register_driver` writes the driver into the registry, the file
+`drivers.json` in the folder `zmart_controller.registry.config_root()`
+names, `C:\ProgramData\zmart-microscopy` on Windows. From then on
+`get_instruments` recognises the driver, and the controller can connect to
+it by name:
 
 ```python
 zmart_controller.get_instruments()           # {'mock': {}, 'my-scope': {'microscope': ..., 'host': ..., ...}}
