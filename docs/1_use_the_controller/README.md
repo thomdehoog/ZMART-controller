@@ -10,13 +10,11 @@ that comes with the controller, open the [tutorial notebook](tutorial.ipynb).
 
 ## 1) Overview of the calls
 
-Connecting gives you a controller, and every call is a method on it:
-
 ```python
-import zmart_controller
+from zmart_controller import get_instruments, mic
 
 get_instruments()                                                  # the drivers installed here, and how each connects
-mic = ZmartController("mock")                                      # connect; every call below is mic.<call>
+mic("mock")                                                        # connect; every call below is mic.<call>
 
 get_info()                                                         # where images go, and the microscope in plain words
 
@@ -56,7 +54,7 @@ get_instruments()
 ### ZmartController
 
 ```python
-ZmartController(driver, connection=None)
+mic(driver, connection=None)
 ```
 
 - **Input**

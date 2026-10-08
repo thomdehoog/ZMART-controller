@@ -2,9 +2,15 @@
 
 Make one with a driver, and it connects::
 
-    mic = ZmartController(ZmartDriver, connection)   # while writing a driver
-    mic = ZmartController("my-scope")                # once installed
-    mic.set_xyz(100, 50, 0)
+    from zmart_controller import mic
+
+    mic("my-scope")            # connect to an installed driver
+    mic.set_xyz(100, 50, 0)    # every command goes to the microscope connected last
+
+To hold several microscopes at once, keep each one::
+
+    left, right = ZmartController("left-scope"), ZmartController("right-scope")
+    left.set_xyz(100, 50, 0)
 
 Each method calls the method of the same name on the ``ZmartDriver``, which
 hands back ``True`` and the values, or ``False`` and a message. There are
@@ -45,6 +51,7 @@ class ZmartController:
             connection = getattr(driver, "CONNECTION", None)
         connection = dict(connection or {})
         self.context = {"driver": name or driver_name(driver)}
+        ZmartController._last = self  # so that mic("mock") then mic.get_xyz() works, see below
 
         driver_class = driver if isinstance(driver, type) else getattr(driver, "ZmartDriver", None)
         if driver_class is not None:
@@ -236,3 +243,31 @@ class ZmartController:
 #: The commands: the public methods of the controller. A ZmartDriver has a
 #: method for each, a module driver a function. disconnect is optional.
 COMMANDS = tuple(name for name in vars(ZmartController) if not name.startswith("_"))
+
+
+class _on_the_last_one:
+    """Let a command be called on the class itself, for the short form::
+
+        from zmart_controller import mic
+        mic("mock")        # connect
+        mic.get_xyz()      # goes to the microscope connected last
+
+    On an instance the method works as usual.
+    """
+
+    def __init__(self, method):
+        self.method = method
+
+    def __get__(self, instance, owner):
+        if instance is None:
+            instance = owner._last
+            if instance is None:
+                raise RuntimeError("no microscope connected: call mic(driver) first")
+        # A module driver put its own function on the instance; that one wins.
+        own = instance.__dict__.get(self.method.__name__)
+        return own if own is not None else self.method.__get__(instance, owner)
+
+
+ZmartController._last = None
+for _command in COMMANDS:
+    setattr(ZmartController, _command, _on_the_last_one(getattr(ZmartController, _command)))
