@@ -9,7 +9,7 @@ small driver and plugs it in, open the [tutorial notebook](tutorial.ipynb).
 ## Contents
 
 1. [What a driver is](#what-a-driver-is)
-2. [Register a driver](#register-a-driver)
+2. [Install a driver into the controller](#install-a-driver-into-the-controller)
 3. [The driver file](#the-driver-file)
 4. [The functions](#the-functions)
 5. [Positions and the canvas](#positions-and-the-canvas)
@@ -44,15 +44,16 @@ desk. It is also a complete example of how a driver is built.
 [The anatomy of a ZMART driver](https://github.com/thomdehoog/ZMART-drivers/blob/main/docs/driver-anatomy.md)
 describes that structure, which the drivers at the ZMB share.
 
-## Register a driver
+## Install a driver into the controller
 
-Plugging in a driver means telling the controller, once, where the driver's
-functions are on this computer. That is **registering** it. After that,
+Installing a driver into the controller means telling it, once, where the
+driver's functions are on this computer. The controller calls this
+**registering** the driver, and `register_driver` does it. After that,
 anyone who uses this computer can connect to the microscope by the driver's
 name, in any Python session. Connecting, and everything that follows, is
 Part 2, [Use the controller](../2_use_the_controller/README.md).
 
-Register a driver on the microscope computer by pointing the controller at
+Install a driver on the microscope computer by pointing the controller at
 its `zmart_controller_plugin.py`, or at the folder that holds it:
 
 ```python
@@ -321,7 +322,7 @@ Setting the environment variable `ZMART_MICROSCOPY_ROOT` points it somewhere
 else, for example on a shared test computer. A driver's own setup step
 writes its files under this folder, and its `connect` loads them. The
 controller also keeps the list of registered drivers there, as
-[Register a driver](#register-a-driver) describes.
+[Install a driver into the controller](#install-a-driver-into-the-controller) describes.
 
 ## Check a driver
 
