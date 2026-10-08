@@ -88,10 +88,6 @@ def set_state(self, changeable):
     raise ValueError("unknown setting")      # {"success": False, "content": "ValueError: unknown setting"}
 ```
 
-```python
-zmart_controller.validate_driver("C:/drivers/my-scope/zmart_driver.json")   # [] when every method fits
-```
-
 ### Per call
 
 ```python
@@ -120,6 +116,10 @@ observed         # {"objective": "10x", ...}: what can only be read
 files            # ["D:/images/A1.ome.tif", ...]: every file saved
 planes           # [{"path": ..., "c": 0, "z": 0, "t": 0, "x_um": ..., "y_um": ..., "z_um": ...}, ...]
 procedure        # {"name": "autofocus", ...}: the routine and its arguments
+```
+
+```python
+zmart_controller.validate_driver("C:/drivers/my-scope/zmart_driver.json")   # [] when every method fits
 ```
 
 ---
