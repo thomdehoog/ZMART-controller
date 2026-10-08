@@ -111,14 +111,7 @@ def test_a_not_confirmed_outcome_answers_success_false(tmp_path):
     session = zmart_controller.set_instrument(plugin.functions_for(PretendDriver, "pretend", {}))
     try:
         answer = session.set_state({"changeable": {"exposure_ms": 999.0}})
-        assert answer == {
-            "success": False,
-            "content": {
-                "confirmed": False,
-                "reason": "exposure_ms stayed 10.0",
-                "unconfirmed": ["exposure_ms"],
-            },
-        }
+        assert answer == {"success": False, "content": "exposure_ms stayed 10.0"}
         assert session.get_state()["content"]["changeable"] == {"exposure_ms": 10.0}
     finally:
         session.disconnect()

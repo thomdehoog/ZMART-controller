@@ -132,12 +132,12 @@ A method has two ways to answer: it returns, or it raises.
 - **Success: return.** The answer is `success: True`, with what you returned
   in `content`.
 - **Failure: raise.** Which exception you raise decides what the workflow
-  sees. `NotConfirmed(reason)` is the soft failure, for when the command
+  sees. `NotConfirmed("...")` is the soft failure, for when the command
   was sent but what it asked for never showed up and it is safe to carry
-  on: the answer is `success: False`, with `confirmed: False` and your
-  reason in `content`. `ValueError` for a wrong request and `RuntimeError`
-  for a microscope that fails are the hard failures: they go to the
-  workflow as errors, unchanged, because carrying on is not safe.
+  on: the answer is `success: False`, and `content` is just your error
+  text. `ValueError` for a wrong request and `RuntimeError` for a
+  microscope that fails are the hard failures: they go to the workflow as
+  errors, unchanged, because carrying on is not safe.
 
 The `@_soft_outcomes` line above each controller function below is what
 turns `NotConfirmed` into the soft answer.
@@ -469,14 +469,12 @@ raises `ValueError`. The controller reports `ran`, the name of the procedure.
   `RuntimeError` when the microscope fails. The controller passes the error
   on to the workflow unchanged, so the message should say what happened in
   plain words.
-- **Report soft outcomes by raising `NotConfirmed`.** Use it only for an
+- **Report soft failures by raising `NotConfirmed`.** Use it only for an
   outcome a workflow can safely carry on from. The answer is
-  `success: False` with `"confirmed": False` and your reason in `content`;
-  extra keyword arguments, such as `unconfirmed=[...]`, go into `content`
-  too.
+  `success: False`, and `content` is your error text.
 - **Read back to confirm.** Microscope software often accepts a command
   before it has happened. When a setting or an acquisition was sent but never
-  showed up, raise `NotConfirmed` with the reason. A move is the exception:
+  showed up, raise `NotConfirmed` saying so. A move is the exception:
   `set_xyz` raises `RuntimeError`, because carrying on at an unknown
   position is never safe.
 - **Reject what you do not understand.** An unknown setting name,
