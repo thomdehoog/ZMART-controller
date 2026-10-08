@@ -1,4 +1,4 @@
-# 2. Use the controller
+# 1. Using the ZMART-controller
 
 Every command of the ZMART Controller, for the person who drives the
 microscope.
@@ -59,7 +59,7 @@ zmart_controller.get_instruments()
 
 `get_instruments()` lists the drivers installed on this computer, each with
 how it connects to its microscope, such as the host, without passwords. The
-mock driver is always there and needs no connection. Part 1 explains how to
+mock driver is always there and needs no connection. Part 2 explains how to
 install the driver of a real microscope.
 
 ```python
