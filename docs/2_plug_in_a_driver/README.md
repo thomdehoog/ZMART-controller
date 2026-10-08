@@ -122,9 +122,8 @@ Close the vendor connection cleanly, so the next driver can open it.
 
 ```python
 def get_info(self):
-    return True, (output_root, description)
-    # output_root: the folder where images are saved
-    # description: the microscope in plain words: each setting, its unit and bounds, the objectives, which way +z points
+    return True, description
+    # the microscope in plain words: each setting, its unit and bounds, the objectives, which way +z points
 ```
 
 The description is read by whoever drives the microscope, a person or a

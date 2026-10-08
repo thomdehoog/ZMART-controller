@@ -35,7 +35,7 @@ class PretendDriver(ZmartDriver):
         pass
 
     def get_info(self):
-        return True, (str(self.folder), "A pretend microscope. +z points up.")
+        return True, "A pretend microscope. +z points up."
 
     def get_actuators(self):
         return True, (["motor"], ["motor"], ["motor", "piezo"])
