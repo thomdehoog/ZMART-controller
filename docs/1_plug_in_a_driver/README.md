@@ -9,7 +9,7 @@ small driver and plugs it in, open the [tutorial notebook](tutorial.ipynb).
 ## Contents
 
 1. [What a driver is](#what-a-driver-is)
-2. [Plug one in](#plug-one-in)
+2. [Register a driver](#register-a-driver)
 3. [The driver file](#the-driver-file)
 4. [The functions](#the-functions)
 5. [Positions and the canvas](#positions-and-the-canvas)
@@ -44,7 +44,7 @@ desk. It is also a complete example of how a driver is built.
 [The anatomy of a ZMART driver](https://github.com/thomdehoog/ZMART-drivers/blob/main/docs/driver-anatomy.md)
 describes that structure, which the drivers at the ZMB share.
 
-## Plug one in
+## Register a driver
 
 Plugging in a driver means telling the controller, once, where the driver's
 functions are on this computer. That is **registering** it. After that,
@@ -321,7 +321,7 @@ Setting the environment variable `ZMART_MICROSCOPY_ROOT` points it somewhere
 else, for example on a shared test computer. A driver's own setup step
 writes its files under this folder, and its `connect` loads them. The
 controller also keeps the list of registered drivers there, as
-[Plug one in](#plug-one-in) describes.
+[Register a driver](#register-a-driver) describes.
 
 ## Check a driver
 
