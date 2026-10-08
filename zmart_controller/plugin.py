@@ -29,19 +29,14 @@ from typing import Any
 
 
 class NotConfirmed(Exception):
-    """Raise this from a ``ZmartDriver`` method for a soft outcome: the command was
+    """Raise this from a ``ZmartDriver`` method for a soft failure: the command was
     sent, but what it asked for never showed up, and it is safe to carry on.
 
-    The controller answers ``{"success": False, "content": {"confirmed": False,
-    "reason": ...}}``, plus any extra keys given here, such as which settings
-    stayed unconfirmed. Never raise it from ``set_xyz``: carrying on at an
-    unknown position is not safe, so a move that cannot be confirmed raises
-    ``RuntimeError``.
+    The controller answers ``{"success": False, "content": error_text}``,
+    where ``error_text`` is the message given here. Never raise it from
+    ``set_xyz``: carrying on at an unknown position is not safe, so a move
+    that cannot be confirmed raises ``RuntimeError``.
     """
-
-    def __init__(self, reason: str, **content: Any) -> None:
-        super().__init__(reason)
-        self.content = {"confirmed": False, "reason": reason, **content}
 
 
 def _soft_outcomes(function):
@@ -50,8 +45,8 @@ def _soft_outcomes(function):
     def answering(handle, *args, **kwargs):
         try:
             return function(handle, *args, **kwargs)
-        except NotConfirmed as outcome:
-            return {"success": False, "content": outcome.content}
+        except NotConfirmed as failure:
+            return {"success": False, "content": str(failure)}
 
     answering.__name__ = function.__name__
     answering.__doc__ = function.__doc__
