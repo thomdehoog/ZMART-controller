@@ -108,7 +108,7 @@ there; the shipped file looks the same, and you replace every value:
 
 ### The ZmartController
 
-One class, `ZmartController`, in `zmart_controller/zmart_controller.py`.
+The controller consists of one class, `ZmartController`, in `zmart_controller/zmart_controller.py`.
 
 **In:** your `ZmartDriver`. Making a controller makes one from the
 connection, and every command becomes a call to the method of the same
