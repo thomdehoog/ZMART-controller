@@ -313,14 +313,14 @@ class TestRegisteredDrivers:
     def test_the_mock_is_always_listed(self):
         import zmart_controller
 
-        assert zmart_controller.get_drivers() == ["mock"]
+        assert list(zmart_controller.get_instruments()) == ["mock"]
 
     def test_register_once_then_plug_in_by_name(self, tmp_path):
         import zmart_controller
 
         folder = _driver_folder(tmp_path, connection={"client": "bench-pc"})
         assert zmart_controller.register_driver(folder) == "bench"
-        assert zmart_controller.get_drivers() == ["mock", "bench"]
+        assert list(zmart_controller.get_instruments()) == ["mock", "bench"]
         session = zmart_controller.set_instrument("bench")
         assert session.context == {"driver": "bench"}
         assert session.get_info()["content"]["client"] == "bench-pc"  # its CONNECTION
@@ -337,7 +337,7 @@ class TestRegisteredDrivers:
 
         with pytest.raises(ValueError, match="zmart_controller_plugin.py"):
             zmart_controller.register_driver(tmp_path)
-        assert zmart_controller.get_drivers() == ["mock"]
+        assert list(zmart_controller.get_instruments()) == ["mock"]
 
     def test_a_driver_missing_a_function_is_refused_and_not_saved(self, tmp_path):
         import zmart_controller
@@ -348,7 +348,7 @@ class TestRegisteredDrivers:
         )
         with pytest.raises(ValueError, match="missing functions"):
             zmart_controller.register_driver(folder)
-        assert zmart_controller.get_drivers() == ["mock"]
+        assert list(zmart_controller.get_instruments()) == ["mock"]
 
     def test_the_plugin_file_itself_can_be_given(self, tmp_path):
         import zmart_controller
@@ -369,7 +369,7 @@ class TestRegisteredDrivers:
     def test_an_unknown_name_is_refused(self):
         import zmart_controller
 
-        with pytest.raises(ValueError, match="no driver registered as 'ghost'"):
+        with pytest.raises(ValueError, match="no driver installed as 'ghost'"):
             zmart_controller.set_instrument("ghost")
 
     def test_remove_driver(self, tmp_path):
@@ -378,7 +378,7 @@ class TestRegisteredDrivers:
         zmart_controller.register_driver(_driver_folder(tmp_path))
         assert zmart_controller.remove_driver("bench") is True
         assert zmart_controller.remove_driver("bench") is False
-        assert zmart_controller.get_drivers() == ["mock"]
+        assert list(zmart_controller.get_instruments()) == ["mock"]
 
     @pytest.mark.skipif(sys.platform == "win32", reason="Windows folders ignore chmod")
     def test_falls_back_to_the_home_folder_when_the_computers_folder_is_read_only(
@@ -394,6 +394,6 @@ class TestRegisteredDrivers:
         try:
             zmart_controller.register_driver(_driver_folder(tmp_path))
             assert (utils.user_root() / "drivers.json").is_file()
-            assert zmart_controller.get_drivers() == ["mock", "bench"]
+            assert list(zmart_controller.get_instruments()) == ["mock", "bench"]
         finally:
             shared.chmod(0o700)

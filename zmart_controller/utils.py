@@ -12,9 +12,9 @@ one acquisition, which the driver's own tests take, since checking it means
 taking a picture.
 
 :func:`register_driver` adds a driver's ``zmart_controller_plugin.py`` to this
-computer's list once, under the ``NAME`` it gives. :func:`get_drivers`
-lists the registered names, :func:`get_instruments` adds the connection each
-one will use, and ``set_instrument`` accepts any of the names. The
+computer's list once, under the ``NAME`` it gives. :func:`get_instruments`
+lists the installed drivers with the connection each one will use, and
+``set_instrument`` accepts any of their names. The
 list is a small file in :func:`config_root`, or in your home folder when that
 folder cannot be written.
 
@@ -130,11 +130,8 @@ def _registered() -> dict[str, dict[str, Any]]:
     return entries
 
 
-def get_drivers() -> list[str]:
-    """The names of the drivers registered on this computer, the mock first.
-
-    Pass any of them to ``set_instrument``.
-    """
+def _names() -> list[str]:
+    """The names of the installed drivers, the mock first."""
     return [MOCK, *sorted(name for name in _registered() if name != MOCK)]
 
 
@@ -146,6 +143,7 @@ SECRET_WORDS = ("password", "token", "secret")
 def get_instruments() -> dict[str, dict[str, Any]]:
     """Every installed driver, by name, with the connection it will use.
 
+    Pass any of the names to ``set_instrument``. The mock is always first.
     The connection is the dictionary ``set_instrument`` hands to the driver's
     ``connect`` when none is given: the one saved at ``register_driver``, or
     else the driver's own ``CONNECTION``. Secrets are left out: any key whose
@@ -155,7 +153,7 @@ def get_instruments() -> dict[str, dict[str, Any]]:
     hides the others.
     """
     instruments: dict[str, dict[str, Any]] = {}
-    for name in get_drivers():
+    for name in _names():
         try:
             _, connection = find_driver(name)
         except Exception as exc:
@@ -286,7 +284,7 @@ def find_driver(name: str) -> tuple[Any, dict[str, Any]]:
         return importlib.import_module("zmart_controller.mock"), {}
     entry = _registered().get(name)
     if entry is None:
-        raise ValueError(f"no driver registered as {name!r}; registered: {get_drivers()}")
+        raise ValueError(f"no driver installed as {name!r}; installed: {_names()}")
     if "settings" in entry:
         from .plugin import load
 

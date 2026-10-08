@@ -51,16 +51,16 @@ the stage has arrived. When `acquire` returns, the files are saved.
 ```python
 import zmart_controller
 
-zmart_controller.get_drivers()
+zmart_controller.get_instruments()
 ```
 ```
-['mock']
+{'mock': {}}
 ```
 
-`get_drivers()` lists the drivers installed on this computer. The mock
-driver is always there. `get_instruments()` lists the same drivers with how
-each one connects to its microscope, such as the host, without passwords.
-Part 1 explains how to install the driver of a real microscope.
+`get_instruments()` lists the drivers installed on this computer, each with
+how it connects to its microscope, such as the host, without passwords. The
+mock driver is always there and needs no connection. Part 1 explains how to
+install the driver of a real microscope.
 
 ```python
 zmart_controller.set_instrument("mock")
@@ -69,7 +69,7 @@ zmart_controller.set_instrument("mock")
 `set_instrument(driver, connection=None)` plugs in a driver and connects to
 its microscope. Every command you call afterwards goes to it.
 
-- `driver` is a name from `get_drivers()`. It can also be the driver module
+- `driver` is a name from `get_instruments()`. It can also be the driver module
   itself, such as `zmart_controller.mock`.
 - `connection` is an optional dictionary that is handed to the driver
   unchanged. It holds whatever that driver needs to connect. Each driver's

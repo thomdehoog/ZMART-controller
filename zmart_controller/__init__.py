@@ -4,8 +4,7 @@ Plug in a driver, then drive the microscope through the module itself::
 
     import zmart_controller
 
-    zmart_controller.get_drivers()            # ["mock", ...]: the drivers installed here
-    zmart_controller.get_instruments()        # the same, with how each one connects
+    zmart_controller.get_instruments()        # the drivers installed here, and how each connects
     zmart_controller.set_instrument("mock")   # the simulated microscope
     zmart_controller.set_xyz(10, 20, 5)
     zmart_controller.acquire(position_label="A1")
@@ -52,7 +51,6 @@ from .session import Session, ZmartController
 from .session import set_instrument as _set_instrument
 from .utils import (
     check_acquire_answer,
-    get_drivers,
     get_instruments,
     register_driver,
     remove_driver,
@@ -62,7 +60,6 @@ from .utils import (
 __all__ = [
     "ZmartController",
     "Session",
-    "get_drivers",
     "get_instruments",
     "load_driver",
     "register_driver",
@@ -80,7 +77,7 @@ _active: ZmartController | None = None
 def set_instrument(driver, connection=None) -> ZmartController:
     """Plug in a driver, connect to its microscope, and make it the active one.
 
-    ``driver`` is the name of a registered driver, from :func:`get_drivers`,
+    ``driver`` is the name of a registered driver, from :func:`get_instruments`,
     or a module with one function per command, such as
     ``zmart_controller.mock``; ``connection`` is handed to its ``connect``.
     Module-level commands then go to it. The previously active microscope is
