@@ -24,6 +24,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from .plugin import NotConfirmed
 from .utils import driver_functions, driver_name, find_driver
 
 
@@ -59,6 +60,13 @@ class ZmartController:
 
         self.context = {"driver": name or driver_name(driver)}
 
+    def _call(self, command: str, *args: Any, **kwargs: Any) -> dict:
+        """Hand one command to the driver. A NotConfirmed from it is the soft answer."""
+        try:
+            return self._ops[command](self._handle, *args, **kwargs)
+        except NotConfirmed as failure:
+            return {"success": False, "content": str(failure)}
+
     # --- state and procedures ------------------------------------------------
 
     def get_state(self) -> dict:
@@ -68,7 +76,7 @@ class ZmartController:
         :meth:`set_state` applies. ``"observed"`` is a read-only description of
         the instrument. The controller does not look inside either.
         """
-        return self._ops["get_state"](self._handle)
+        return self._call("get_state")
 
     def set_state(self, state: dict) -> dict:
         """Apply a state captured with :meth:`get_state` (pass its ``content``).
@@ -76,15 +84,15 @@ class ZmartController:
         The driver applies the ``"changeable"`` part only. ``"observed"`` is
         never an instruction.
         """
-        return self._ops["set_state"](self._handle, state)
+        return self._call("set_state", state)
 
     def get_procedures(self) -> dict:
         """The routines this microscope offers, such as autofocus."""
-        return self._ops["get_procedures"](self._handle)
+        return self._call("get_procedures")
 
     def run_procedure(self, procedure: dict) -> dict:
         """Run one routine from :meth:`get_procedures`, chosen by ``{"name": ...}``."""
-        return self._ops["run_procedure"](self._handle, procedure)
+        return self._call("run_procedure", procedure)
 
     # --- movement -----------------------------------------------------------
 
@@ -94,7 +102,7 @@ class ZmartController:
         Pick one per axis with ``with_actuators`` on :meth:`get_xyz` and
         :meth:`set_xyz`.
         """
-        return self._ops["get_actuators"](self._handle)
+        return self._call("get_actuators")
 
     def get_xyz(self, with_actuators: dict | None = None) -> dict:
         """Read each axis: its position, and how far it can travel.
@@ -103,7 +111,7 @@ class ZmartController:
         per axis, e.g. ``{"z": "piezo"}``. The names come from
         :meth:`get_actuators`; the driver checks them.
         """
-        return self._ops["get_xyz"](self._handle, with_actuators=with_actuators)
+        return self._call("get_xyz", with_actuators=with_actuators)
 
     def set_xyz(self, x: float, y: float, z: float, with_actuators: dict | None = None) -> dict:
         """Move to a position, in micrometres from the origin.
@@ -111,7 +119,7 @@ class ZmartController:
         ``with_actuators`` names the motor to use per axis. Left out, the
         driver uses its default. Any calibration is the driver's job.
         """
-        return self._ops["set_xyz"](self._handle, x, y, z, with_actuators=with_actuators)
+        return self._call("set_xyz", x, y, z, with_actuators=with_actuators)
 
     # --- acquire ---------------------------------------------------------------
 
@@ -120,7 +128,7 @@ class ZmartController:
 
         Asked of the driver afresh on every call.
         """
-        return self._ops["get_acquisition_settings"](self._handle)
+        return self._call("get_acquisition_settings")
 
     def acquire(self, position_label: str, acquisition_settings: dict | None = None) -> dict:
         """Capture an image here and save it, in one step.
@@ -131,8 +139,8 @@ class ZmartController:
         under ``files``, so a workflow finds its pictures the same way on every
         microscope.
         """
-        return self._ops["acquire"](
-            self._handle, position_label=position_label, acquisition_settings=acquisition_settings
+        return self._call(
+            "acquire", position_label=position_label, acquisition_settings=acquisition_settings
         )
 
     # --- information and lifecycle --------------------------------------------
@@ -144,7 +152,7 @@ class ZmartController:
         saved. Anything else is an extra of that driver, and a workflow meant
         for any microscope should not rely on it.
         """
-        return self._ops["get_info"](self._handle)
+        return self._call("get_info")
 
     def disconnect(self) -> None:
         """Close the connection, if the driver has a way to close it."""
