@@ -176,9 +176,12 @@ PLUGIN_FILE = "zmart_controller_plugin.py"
 def register_driver(plugin: str | Path, connection: dict[str, Any] | None = None) -> str:
     """Add a driver to this computer's list of drivers, once.
 
-    ``plugin`` is the driver's ``zmart_controller_plugin.py``, or the folder
-    holding it: the file with the functions the controller calls. It also
-    gives the driver's name, and may give its configuration::
+    ``plugin`` is the driver's ``zmart_driver.json``, the file that holds the
+    driver's name and how to reach the microscope, or its
+    ``zmart_controller_plugin.py``, the file with the functions the
+    controller calls, or the folder holding them. The plugin gives the
+    driver's name, and may give its configuration, in a driver made from
+    the template by reading them from the JSON file next to it::
 
         NAME = "stellaris"
         CONNECTION = {"output_root": "D:/images"}   # optional
@@ -192,6 +195,8 @@ def register_driver(plugin: str | Path, connection: dict[str, Any] | None = None
     file = Path(plugin).resolve()
     if file.is_dir():
         file = file / PLUGIN_FILE
+    elif file.suffix == ".json":
+        file = file.with_name(PLUGIN_FILE)  # the settings file sits next to the plugin
     module, root = _module_of(file)
     loaded = _import(module, root)
     driver_functions(loaded)
