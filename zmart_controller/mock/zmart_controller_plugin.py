@@ -20,7 +20,7 @@ The mock is a complete driver, built from the same parts a real one has::
 
 Plug it in like any driver::
 
-    zmart_controller.set_instrument(zmart_controller.mock)
+    zmart_controller.ZmartController(zmart_controller.mock)
 
 The connection dictionary is optional. It may hold ``output_root`` (where
 images are saved), ``token`` (the vendor login, default ``"mock-token"``) and

@@ -58,30 +58,30 @@ import zmart_controller
 
 # 1) See which drivers are installed and how each connects, then connect to one
 zmart_controller.get_instruments()
-zmart_controller.set_instrument(String)
+mic = zmart_controller.ZmartController(String)
 
 # 2) Learn about the connected setup: where images go, and the microscope in plain words
-zmart_controller.get_info()
+mic.get_info()
 
 # 3) Discover the motors, then read the position and where pictures can show, or move (micrometres)
-zmart_controller.get_actuators()
-zmart_controller.get_xyz()
-zmart_controller.set_xyz(x, y, z, with_actuators=Dict)
+mic.get_actuators()
+mic.get_xyz()
+mic.set_xyz(x, y, z, with_actuators=Dict)
 
 # 4) Capture the instrument settings, and apply them again later
-zmart_controller.get_state()
-zmart_controller.set_state(Dict)
+mic.get_state()
+mic.set_state(Dict)
 
 # 5) Capture and save an image with the current settings and position
-zmart_controller.get_acquisition_settings()
-zmart_controller.acquire(position_label=String, acquisition_settings=Dict)
+mic.get_acquisition_settings()
+mic.acquire(position_label=String, acquisition_settings=Dict)
 
 # 6) Run a routine the microscope offers (for example autofocus)
-zmart_controller.get_procedures()
-zmart_controller.run_procedure(Dict)
+mic.get_procedures()
+mic.run_procedure(Dict)
 
 # 7) Close the connection
-zmart_controller.disconnect()
+mic.disconnect()
 ```
 
 `set_state` and `run_procedure` take one dictionary, and so do the `acquisition_settings` of

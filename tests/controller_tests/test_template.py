@@ -96,7 +96,7 @@ def test_a_filled_in_driver_passes_validation_and_acquires(tmp_path):
     PretendDriver.folder = tmp_path
     driver = PretendDriver
     assert validate_driver(driver) == []
-    session = zmart_controller.set_instrument(driver)
+    session = zmart_controller.ZmartController(driver)
     try:
         session.set_xyz(100.0, 50.0, 0.0)
         answer = session.acquire(position_label="A1")
@@ -108,7 +108,7 @@ def test_a_filled_in_driver_passes_validation_and_acquires(tmp_path):
 
 def test_the_three_outcomes(tmp_path):
     PretendDriver.folder = tmp_path
-    session = zmart_controller.set_instrument(PretendDriver)
+    session = zmart_controller.ZmartController(PretendDriver)
     try:
         ok = session.set_state({"changeable": {"exposure_ms": 20.0}})
         assert ok == {"success": True, "content": {"applied": {"exposure_ms": 20.0}}}
@@ -154,7 +154,7 @@ def test_a_copied_template_is_installed_from_its_folder_or_json(tmp_path):
         shown = zmart_controller.get_instruments()["my-scope-2"]
         assert shown["host"] == "127.0.0.1" and "password" not in shown
         with pytest.raises(NotImplementedError):  # it connects through the class
-            zmart_controller.set_instrument("my-scope-2")
+            zmart_controller.ZmartController("my-scope-2")
     finally:
         zmart_controller.remove_driver("my-scope-2")
 

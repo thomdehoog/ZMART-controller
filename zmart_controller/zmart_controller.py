@@ -236,12 +236,3 @@ class ZmartController:
 #: The commands: the public methods of the controller. A ZmartDriver has a
 #: method for each, a module driver a function. disconnect is optional.
 COMMANDS = tuple(name for name in vars(ZmartController) if not name.startswith("_"))
-
-
-#: The old name of :class:`ZmartController`, kept so existing code keeps working.
-Session = ZmartController
-
-
-def set_instrument(driver: Any, connection: dict[str, Any] | None = None) -> ZmartController:
-    """The same as ``ZmartController(driver, connection)``."""
-    return ZmartController(driver, connection)

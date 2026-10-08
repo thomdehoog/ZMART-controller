@@ -63,11 +63,13 @@ mock driver is always there and needs no connection. Part 1 explains how to
 install the driver of a real microscope.
 
 ```python
-zmart_controller.set_instrument("mock")
+from zmart_controller import ZmartController
+
+mic = ZmartController("mock")
 ```
 
-`set_instrument(driver, connection=None)` plugs in a driver and connects to
-its microscope. Every command you call afterwards goes to it.
+Making a `ZmartController(driver, connection=None)` connects to the
+microscope. Every command is a method on it.
 
 - `driver` is a name from `get_instruments()`. It can also be the driver module
   itself, such as `zmart_controller.mock`.
@@ -85,29 +87,19 @@ The mock accepts three entries:
 | `token` | its pretend login |
 
 ```python
-zmart_controller.set_instrument("mock", {"output_root": "my_images"})
+mic = ZmartController("mock", {"output_root": "my_images"})
 ```
 
-If the driver is missing a function the controller needs, `set_instrument`
-refuses it with a `ValueError` before anything connects.
+If the driver is missing a method the controller needs, making the
+controller refuses it with a `ValueError` before anything connects.
 
-Plugging in a second microscope disconnects the first. To close the
-connection yourself:
+To close the connection:
 
 ```python
-zmart_controller.disconnect()
+mic.disconnect()
 ```
 
-Afterwards every command raises an error until `set_instrument` is called
-again. Calling `disconnect` twice is harmless.
-
-Two things to know about this short style:
-
-- **Call through the module each time**, as in `zmart_controller.set_xyz(...)`.
-  A command saved in a variable keeps pointing at the old microscope after
-  you plug in another one.
-- **It assumes one thread.** For several threads, give each its own `ZmartController`
-  (see [Several microscopes at once](#several-microscopes-at-once)).
+Afterwards every command on that controller fails until you make a new one.
 
 ## Every answer has the same shape
 
@@ -129,7 +121,7 @@ from is raised as an error instead. See
 ## Learn about the setup: get_info
 
 ```python
-zmart_controller.get_info()["content"]
+mic.get_info()["content"]
 ```
 ```
 {'output_root': '/tmp/zmart-mock-output',
@@ -165,7 +157,7 @@ The driver says so in its `description`.
 ### get_xyz
 
 ```python
-zmart_controller.get_xyz()["content"]
+mic.get_xyz()["content"]
 ```
 ```
 {'x': {'value': 0.0, 'actuator': 'motoric', 'canvas': [-5032.0, 5032.0]},
@@ -194,7 +186,7 @@ Some axes have more than one motor. On the mock, z has a coarse `"motoric"`
 drive for long moves and a `"piezo"` for fine, fast steps.
 
 ```python
-zmart_controller.get_actuators()["content"]
+mic.get_actuators()["content"]
 ```
 ```
 {'x': ['motoric'], 'y': ['motoric'], 'z': ['motoric', 'piezo']}
@@ -204,7 +196,7 @@ Name the motor you want per axis with `with_actuators`, on both `get_xyz`
 and `set_xyz`. Axes you leave out use the first motor in the list.
 
 ```python
-zmart_controller.get_xyz(with_actuators={"z": "piezo"})["content"]["z"]["actuator"]
+mic.get_xyz(with_actuators={"z": "piezo"})["content"]["z"]["actuator"]
 ```
 ```
 'piezo'
@@ -213,7 +205,7 @@ zmart_controller.get_xyz(with_actuators={"z": "piezo"})["content"]["z"]["actuato
 ### set_xyz
 
 ```python
-zmart_controller.set_xyz(100, 50, 0)["content"]
+mic.set_xyz(100, 50, 0)["content"]
 ```
 ```
 {'position': {'x': 100, 'y': 50, 'z': 0},
@@ -230,7 +222,7 @@ A move outside the travel is refused with `ValueError` before anything
 moves:
 
 ```python
-zmart_controller.set_xyz(99999, 0, 0)
+mic.set_xyz(99999, 0, 0)
 ```
 ```
 ValueError: move refused: x would go to 149999.00 µm (stage coordinates),
@@ -249,7 +241,7 @@ A *state* is a snapshot of the microscope's settings: everything that decides
 what an image looks like, such as the objective, laser power and exposure.
 
 ```python
-zmart_controller.get_state()["content"]
+mic.get_state()["content"]
 ```
 ```
 {'changeable': {'laser_power': 10.0, 'gain': 100.0, 'exposure_ms': 10.0, 'objective': 1},
@@ -269,10 +261,10 @@ It has two parts:
 The usual way to work: capture a state, change what you need, and apply it.
 
 ```python
-overview = zmart_controller.get_state()["content"]
+overview = mic.get_state()["content"]
 overview["changeable"]["laser_power"] = 20.0
 
-zmart_controller.set_state(overview)["content"]
+mic.set_state(overview)["content"]
 ```
 ```
 {'applied': {'objective': 1, 'laser_power': 20.0, 'gain': 100.0, 'exposure_ms': 10.0},
@@ -282,7 +274,7 @@ zmart_controller.set_state(overview)["content"]
 You can also apply only a few settings. The rest stay as they are.
 
 ```python
-zmart_controller.set_state({"changeable": {"gain": 200.0}})["content"]
+mic.set_state({"changeable": {"gain": 200.0}})["content"]
 ```
 ```
 {'applied': {'gain': 200.0}, 'unconfirmed': {}}
@@ -307,7 +299,7 @@ own. For each one, `options` says what values it may take and `active` which
 value is used when you say nothing.
 
 ```python
-zmart_controller.get_acquisition_settings()["content"]
+mic.get_acquisition_settings()["content"]
 ```
 ```
 {'folder': {'options': 'any text; empty saves straight into output_root', 'active': ''},
@@ -329,7 +321,7 @@ On the mock:
 ### acquire
 
 ```python
-answer = zmart_controller.acquire(position_label="A1")
+answer = mic.acquire(position_label="A1")
 answer["content"]
 ```
 ```
@@ -368,7 +360,7 @@ up to the driver. A position the driver cannot know is `None`.
 A z-stack, saved in a folder of its own:
 
 ```python
-answer = zmart_controller.acquire(
+answer = mic.acquire(
     position_label="cell 1",
     acquisition_settings={"z_planes": 3, "z_step_um": 2.0, "folder": "stacks"},
 )
@@ -391,7 +383,7 @@ Procedures are routines the microscope offers, such as autofocus. Each driver
 offers its own.
 
 ```python
-zmart_controller.get_procedures()["content"]
+mic.get_procedures()["content"]
 ```
 ```
 {'autofocus': {'description': 'Take a short z-stack around the current height,
@@ -407,7 +399,7 @@ Run one by name. Anything else in the dictionary goes to the procedure as its
 options, as its description says.
 
 ```python
-answer = zmart_controller.run_procedure({"name": "autofocus", "range_um": 10, "step_um": 1})
+answer = mic.run_procedure({"name": "autofocus", "range_um": 10, "step_um": 1})
 answer["content"]["ran"]
 ```
 ```
@@ -438,20 +430,12 @@ ValueError: unknown procedure 'nope'
 RuntimeError: session is disconnected
 ```
 
-Calling a command before any microscope is plugged in raises an
-`AttributeError` that says so:
-
-```
-AttributeError: no active microscope - call set_instrument(...) before zmart_controller.get_xyz(...)
-```
-
 The controller passes every error from the driver to you unchanged.
 
 ## Several microscopes at once
 
-The module-level style drives one microscope at a time. To drive several,
-make a `ZmartController` for each. It has the same commands as the module,
-and making one connects.
+A `ZmartController` drives one microscope. To drive several, make one for
+each.
 
 ```python
 from zmart_controller import ZmartController
@@ -468,9 +452,8 @@ left.disconnect()
 right.disconnect()
 ```
 
-Controllers made this way are independent of each other. Plugging in one never
-disconnects another. This is also the way to drive microscopes from several
-threads: one controller per thread.
+Controllers are independent of each other. This is also the way to drive
+microscopes from several threads: one controller per thread.
 
 ## What works on every microscope
 
@@ -496,7 +479,7 @@ Then your workflow tells you clearly when a microscope lacks something.
 
 | Command | What it does | Key parts of the answer |
 |---|---|---|
-| `set_instrument(driver, connection=None)` | Plug in a driver and connect | returns the session |
+| `ZmartController(driver, connection=None)` | Plug in a driver and connect | the controller |
 | `disconnect()` | Close the connection | nothing |
 | `get_info()` | Describe the setup | `output_root`, `description` |
 | `get_actuators()` | The motors of each axis | `{axis: [motor names]}` |

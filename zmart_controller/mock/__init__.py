@@ -5,7 +5,7 @@ It is built from the same parts as every ZMART driver, described in
 MockScope Control, pretend vendor software in ``testing/mock_api``. Read it as the template for a new driver,
 and use it to try workflows without hardware. Plug it in with::
 
-    zmart_controller.set_instrument(zmart_controller.mock)
+    zmart_controller.ZmartController(zmart_controller.mock)
 
 The functions the controller calls, one per command, are in
 ``zmart_controller_plugin.py``. They are listed here, which is how the

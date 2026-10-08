@@ -63,7 +63,7 @@ From then on the driver is on the list, and can be connected to by name:
 
 ```python
 zmart_controller.get_instruments()           # {'mock': {}, 'my-scope': {'microscope': ..., 'host': ..., ...}}
-zmart_controller.set_instrument("my-scope")
+mic = zmart_controller.ZmartController("my-scope")
 ```
 
 `get_instruments` lists every installed driver with how it connects,

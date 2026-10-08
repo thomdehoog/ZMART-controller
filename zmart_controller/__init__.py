@@ -1,41 +1,21 @@
 """ZMART Controller: one small, universal way to drive any microscope.
 
-Plug in a driver, then drive the microscope through the module itself::
-
-    import zmart_controller
-
-    zmart_controller.get_instruments()        # the drivers installed here, and how each connects
-    zmart_controller.set_instrument("mock")   # the simulated microscope
-    zmart_controller.set_xyz(10, 20, 5)
-    zmart_controller.acquire(position_label="A1")
-    zmart_controller.disconnect()
-
-A driver is a folder with two files: ``zmart_driver.json``, its name and how
-to reach the microscope, and ``zmart_driver.py``, a ``ZmartDriver`` class
-with one method per command. Install it on the computer once, then plug it
-in by name::
-
-    zmart_controller.register_driver("path/to/my-scope/zmart_driver.json")
-    zmart_controller.set_instrument("my-scope")
-
-While writing one, load it from its folder instead::
-
-    zmart_controller.set_instrument(zmart_controller.load_driver("path/to/my-scope/zmart_driver.json"))
-
-To drive several microscopes at once, make a ``ZmartController`` for each::
+Make a ``ZmartController`` with a driver, and drive the microscope through it::
 
     from zmart_controller import ZmartController
 
-    mic_a = ZmartController(driver_a)
-    mic_b = ZmartController(driver_b, {"host": "scope-b"})
-    mic_a.acquire(position_label="A1")
+    mic = ZmartController("mock")             # the simulated microscope
+    mic.set_xyz(10, 20, 5)
+    mic.acquire(position_label="A1")
+    mic.disconnect()
 
-Two cautions for the short way. Call through the module each time, as in
-``zmart_controller.set_xyz(...)``; a command saved in a variable keeps pointing
-at the old microscope after a switch. And it assumes that one thread drives the
-microscope (a thread is one line of execution in a program; most scripts have
-just one). A program that drives microscopes from several threads holds a
-session for each.
+A driver is two files: ``zmart_driver.json``, its name and how to reach the
+microscope, and ``zmart_driver.py``, a ``ZmartDriver`` class with one method
+per command. Check it, install it once on the computer, and connect by name::
+
+    zmart_controller.validate_driver("path/to/my-scope/zmart_driver.json")
+    zmart_controller.register_driver("path/to/my-scope/zmart_driver.json")
+    zmart_controller.get_instruments()        # the drivers installed here, and how each connects
 
 Author: Thom de Hoog, Center for Microscopy and Image Analysis (ZMB),
 University of Zurich (thom.dehoog@zmb.uzh.ch, thomdehoog@gmail.com).
@@ -48,56 +28,17 @@ __affiliation__ = "Center for Microscopy and Image Analysis (ZMB), University of
 
 from .registry import get_instruments, load_driver, register_driver, remove_driver
 from .validate import check_acquire_answer, validate_driver
-from .zmart_controller import Session, ZmartController
+from .zmart_controller import ZmartController
 
 __all__ = [
     "ZmartController",
-    "Session",
     "get_instruments",
     "load_driver",
     "validate_driver",
     "check_acquire_answer",
     "register_driver",
     "remove_driver",
-    "disconnect",
-    "set_instrument",
 ]
-
-# The one active microscope that the module-level commands go to.
-_active: ZmartController | None = None
-
-
-def set_instrument(driver, connection=None) -> ZmartController:
-    """Plug in a driver, connect to its microscope, and make it the active one.
-
-    ``driver`` is the name of a registered driver, from :func:`get_instruments`,
-    or a module with one function per command, such as
-    ``zmart_controller.mock``; ``connection`` is handed to its ``connect``.
-    Module-level commands then go to it. The previously active microscope is
-    disconnected. Returns the :class:`ZmartController` as well, for those who want to
-    hold it.
-    """
-    global _active
-    new = ZmartController(driver, connection)
-    # Connect the new one first, so a failed connect never loses a working
-    # session. Record it before closing the old one, so it is never lost if
-    # closing raises.
-    previous, _active = _active, new
-    if previous is not None and previous is not new:
-        previous.disconnect()
-    return new
-
-
-def disconnect() -> None:
-    """Disconnect the active microscope.
-
-    Module-level commands then raise until :func:`set_instrument` picks a new
-    one. With no active microscope this does nothing.
-    """
-    global _active
-    previous, _active = _active, None
-    if previous is not None:
-        previous.disconnect()
 
 
 def __getattr__(name: str):
@@ -107,11 +48,4 @@ def __getattr__(name: str):
         import importlib
 
         return importlib.import_module(".mock", __name__)
-    # Send commands such as acquire or set_xyz to the active microscope.
-    if _active is not None and hasattr(_active, name):
-        return getattr(_active, name)
-    if _active is None and not name.startswith("_"):
-        raise AttributeError(
-            f"no active microscope - call set_instrument(...) before zmart_controller.{name}(...)"
-        )
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

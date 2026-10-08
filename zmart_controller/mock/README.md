@@ -16,10 +16,10 @@ the same code a real driver would need.
 ```python
 import zmart_controller
 
-zmart_controller.set_instrument(zmart_controller.mock)
+mic = zmart_controller.ZmartController(zmart_controller.mock)
 
-zmart_controller.set_xyz(100, 50, 0)
-answer = zmart_controller.acquire(position_label="A1")
+mic.set_xyz(100, 50, 0)
+answer = mic.acquire(position_label="A1")
 answer["content"]["files"]  # real OME-TIFF files you can open in Fiji or napari
 answer["content"]["planes"]  # for each picture: its file, channel, depth and stage position
 ```
@@ -33,7 +33,7 @@ experimenting: `"mock_timing": "instant"` makes every move and acquisition
 finish at once, and `"token"` is the pretend login (`"mock-token"`). For example:
 
 ```python
-zmart_controller.set_instrument(
+mic = zmart_controller.ZmartController(
     zmart_controller.mock, {"output_root": "mock-images", "mock_timing": "instant"}
 )
 ```
