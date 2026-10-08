@@ -78,14 +78,16 @@ command a workflow gives the controller calls the method of the same name.
 ### Input and output
 
 A method hands back `True` and the values, or `False` and a message. The
-controller turns that into the answer the workflow sees:
+controller turns that into the answer the workflow sees. An error that
+happens anyway, a bug or the vendor library failing, is answered the same
+way, with its text:
 
 ```python
 def set_state(self, changeable):
     ...
     return True, applied                     # {"success": True,  "content": {"applied": applied}}
     return False, "exposure_ms stayed 10.0"  # {"success": False, "content": "exposure_ms stayed 10.0"}
-    raise ValueError("unknown setting")      # {"success": False, "content": "ValueError: unknown setting"}
+    raise ValueError("unknown setting")      # anything that raises: {"success": False, "content": "ValueError: unknown setting"}
 ```
 
 ### Per call
@@ -125,10 +127,9 @@ def get_xyz(self, with_actuators):
 
 ```python
 def set_xyz(self, x, y, z, with_actuators):
-    # raise ValueError when x, y, z is outside the travel
     # move, then read back until the stage has arrived
     return True, (x_motor, y_motor, z_motor)
-    return False, "stage stopped at x = ..."       # when it never arrives
+    return False, "x = 5000 is outside the travel"   # or: "stage stopped at x = ..."
 ```
 
 ```python
@@ -140,10 +141,9 @@ def get_state(self):
 
 ```python
 def set_state(self, changeable):
-    # raise ValueError for a setting the microscope does not have
     # apply each one, then read it back
     return True, applied                           # {"exposure_ms": 20.0, ...}: what took
-    return False, "exposure_ms stayed 10.0"        # when one did not
+    return False, "exposure_ms stayed 10.0"        # or: "unknown setting gian"
 ```
 
 ```python
@@ -155,7 +155,6 @@ def get_acquisition_settings(self):
 
 ```python
 def acquire(self, position_label, acquisition_settings):
-    # raise ValueError for an acquisition setting that is not listed
     # capture here, save the files named after position_label; never overwrite an earlier one
     return True, (files, planes)
     # files:  ["D:/images/A1.ome.tif", ...]: every file saved
@@ -171,8 +170,8 @@ def get_procedures(self):
 ```python
 def run_procedure(self, procedure):
     # procedure: {"name": "autofocus", ...}: the routine and its arguments
-    # raise ValueError for a name that get_procedures does not list
     return True, procedure["name"]
+    return False, "unknown procedure"
 ```
 
 ```python
