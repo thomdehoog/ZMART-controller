@@ -72,76 +72,55 @@ The zmart_driver.json is formatted in the following way:
 
 ## 3) Writing a driver
 
-Writing a ZMART driver means filling in the methods of the `ZmartDriver`
-class in `zmart_driver.py`. Every command a workflow gives the controller
-becomes a call to the method of the same name on your class.
+Fill in the methods of the `ZmartDriver` class in `zmart_driver.py`. Each
+command a workflow gives the controller calls the method of the same name.
 
-These are the methods that need to be filled in:
+### Input and output
+
+A method hands back `True` and the values, or `False` and a message. The
+controller turns that into the answer the workflow sees:
 
 ```python
-class ZmartDriver:
-    def __init__(self, connection): ...
-    def disconnect(self): ...
-
-    def get_info(self): ...
-    def get_actuators(self): ...
-    def get_xyz(self, with_actuators): ...
-    def set_xyz(self, x, y, z, with_actuators): ...
-    def get_state(self): ...
-    def set_state(self, changeable): ...
-    def get_acquisition_settings(self): ...
-    def acquire(self, position_label, acquisition_settings): ...
-    def get_procedures(self): ...
-    def run_procedure(self, procedure): ...
+def set_state(self, changeable):
+    ...
+    return True, applied                     # {"success": True,  "content": {"applied": applied}}
+    return False, "exposure_ms stayed 10.0"  # {"success": False, "content": "exposure_ms stayed 10.0"}
+    raise ValueError("unknown setting")      # {"success": False, "content": "ValueError: unknown setting"}
 ```
 
-### General rules
-
-Input: the arguments the workflow gave the command, unchanged. `connection`
-is the dictionary from `zmart_driver.json`.
-
-Output: a pair. `True` and the values when the microscope did what was
-asked, or `False` and a message saying why not. The controller turns that
-into the answer the workflow sees:
-
-| Your method | The answer |
-|---|---|
-| `True, values` | `{"success": True, "content": {...}}`, the values under fixed keys |
-| `False, message` | `{"success": False, "content": message}` |
-| raises | `{"success": False, "content": "<the error text>"}` |
-
-Raise `ValueError` for a request that is wrong, such as an unknown setting
-or a position outside the travel. Positions are micrometres from the
-origin saved for this microscope; in a saved image, right is +x and down
-is +y.
-
-While you write, one call tells you which methods still hand back the
-wrong thing, one plain sentence each; an empty list means the driver fits:
-
 ```python
-zmart_controller.validate_driver("C:/drivers/my-scope/zmart_driver.json")
+zmart_controller.validate_driver("C:/drivers/my-scope/zmart_driver.json")   # [] when every method fits
 ```
 
 ### Per call
 
-| Method | Hands back |
-|---|---|
-| `__init__(connection)` | nothing; opens the vendor connection and keeps what you need on `self` |
-| `disconnect()` | nothing; closes it |
-| `get_info()` | `output_root`, the folder where images are saved, and `description`, the microscope in plain words |
-| `get_actuators()` | `x_motors, y_motors, z_motors`: the motor names per axis, at least one each |
-| `get_xyz(with_actuators)` | `x, y, z, x_motor, y_motor, z_motor, canvas`; `canvas` is `(x_min, x_max, y_min, y_max, z_min, z_max)`, the travel widened by half a field of view |
-| `set_xyz(x, y, z, with_actuators)` | `x_motor, y_motor, z_motor` once the stage has arrived; `False` and where it is when it never does |
-| `get_state()` | `changeable`, the settings `set_state` can apply, and `observed`, what can only be read; two dictionaries |
-| `set_state(changeable)` | `applied`, the settings that took; `False` and which did not |
-| `get_acquisition_settings()` | `{name: {"options": [...], "active": value}}` |
-| `acquire(position_label, acquisition_settings)` | `files`, the path of every file saved, and `planes`, one entry per image plane: `{"path", "c", "z", "t", "x_um", "y_um", "z_um"}` |
-| `get_procedures()` | `{name: {"description": ...}}` |
-| `run_procedure(procedure)` | the name that ran; `procedure["name"]` picks it, the other keys are its arguments |
+```python
+class ZmartDriver:
+    def __init__(self, connection): ...                            # connection: the dict from zmart_driver.json
+    def disconnect(self): ...
 
-`with_actuators` picks a motor per axis, such as `{"z": "piezo"}`, or is
-`None` for the first one. The docstring of each method in the template
-says the rest.
+    def get_info(self): ...                                        # True, (output_root, description)
+    def get_actuators(self): ...                                   # True, (x_motors, y_motors, z_motors)
+    def get_xyz(self, with_actuators): ...                         # True, (x, y, z, x_motor, y_motor, z_motor, canvas)
+    def set_xyz(self, x, y, z, with_actuators): ...                # True, (x_motor, y_motor, z_motor)
+    def get_state(self): ...                                       # True, (changeable, observed)
+    def set_state(self, changeable): ...                           # True, applied
+    def get_acquisition_settings(self): ...                        # True, {name: {"options": [...], "active": value}}
+    def acquire(self, position_label, acquisition_settings): ...   # True, (files, planes)
+    def get_procedures(self): ...                                  # True, {name: {"description": ...}}
+    def run_procedure(self, procedure): ...                        # True, procedure["name"]
+```
+
+```python
+x, y, z          # micrometres from the saved origin; in a saved image, right is +x and down is +y
+with_actuators   # {"z": "piezo"} or None for the first motor
+canvas           # (x_min, x_max, y_min, y_max, z_min, z_max): the travel plus half a field of view
+changeable       # {"exposure_ms": 10.0, ...}: the settings set_state can apply
+observed         # {"objective": "10x", ...}: what can only be read
+files            # ["D:/images/A1.ome.tif", ...]: every file saved
+planes           # [{"path": ..., "c": 0, "z": 0, "t": 0, "x_um": ..., "y_um": ..., "z_um": ...}, ...]
+procedure        # {"name": "autofocus", ...}: the routine and its arguments
+```
 
 ---
 
