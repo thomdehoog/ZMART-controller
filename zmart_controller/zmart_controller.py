@@ -44,8 +44,8 @@ class ZmartController:
         if driver_class is not None:
             self._handle = driver_class(connection)  # making it connects
             return
-        # A module with one function per command: its functions answer directly,
-        # so they stand in for the methods below.
+        # An older driver, a module with one function per command: its
+        # functions answer directly, so they stand in for the methods below.
         functions = driver_functions(driver)
         self._handle = functions.pop("connect")(connection)
         for command, function in functions.items():
