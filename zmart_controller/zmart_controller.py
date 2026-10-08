@@ -61,7 +61,7 @@ class ZmartController:
         functions = driver_functions(driver)
         self._handle = functions.pop("connect")(connection)
         for command, function in functions.items():
-            setattr(self, command, partial(function, self._handle))
+            setattr(self, command, _answering(partial(function, self._handle)))
 
     def disconnect(self) -> None:
         """Close the connection, if the driver has a way to close it."""
@@ -237,6 +237,18 @@ class ZmartController:
         ran = result
 
         return {"success": True, "content": {"ran": ran}}
+
+
+def _answering(function):
+    """Give a module driver's function the same three outcomes as the methods above."""
+
+    def answer(*args, **kwargs):
+        try:
+            return function(*args, **kwargs)
+        except Exception as error:
+            return {"success": False, "content": f"{type(error).__name__}: {error}"}
+
+    return answer
 
 
 #: The commands: the public methods of the controller. A ZmartDriver has a

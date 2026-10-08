@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import ast
 import json
+import re
 import struct
 from pathlib import Path
 
@@ -96,8 +97,9 @@ class TestFaultsThroughTheDriver:
 
     def test_busy_too_often_becomes_a_runtime_error(self, mic):
         mic._handle.scope.faults.add("MoveStage", "busy", times=None)
-        with pytest.raises(RuntimeError, match="failed 3 times"):
-            mic.set_xyz(10, 0, 0)
+        failed = mic.set_xyz(10, 0, 0)
+        assert failed["success"] is False
+        assert re.search("failed 3 times", failed["content"])
 
     def test_lost_reply_is_read_back_not_sent_again(self, mic):
         mic._handle.scope.faults.add("MoveStage", "timeout")
@@ -121,8 +123,9 @@ class TestFaultsThroughTheDriver:
 
     def test_an_unconfirmed_move_is_raised(self, mic):
         mic._handle.scope.faults.add("MoveStage", "ignore", times=None)
-        with pytest.raises(RuntimeError, match="could not be confirmed"):
-            mic.set_xyz(10, 0, 0)
+        failed = mic.set_xyz(10, 0, 0)
+        assert failed["success"] is False
+        assert re.search("could not be confirmed", failed["content"])
 
     def test_stale_reading_only_delays_confirmation(self, mic):
         mic.get_xyz()  # gives the stale fault an old answer to repeat
@@ -133,19 +136,21 @@ class TestFaultsThroughTheDriver:
     @pytest.mark.parametrize("fault", ["hardware_fault", "unknown_error"])
     def test_permanent_problems_are_raised_at_once(self, mic, fault):
         mic._handle.scope.faults.add("SetSetting", fault)
-        with pytest.raises(RuntimeError):
-            mic.set_state({"changeable": {"gain": 3.0}})
+        failed = mic.set_state({"changeable": {"gain": 3.0}})
+        assert failed["success"] is False
         assert len(_sent(mic, "SetSetting")) == 1
 
     def test_vendor_refusal_is_a_value_error(self, mic):
         mic._handle.scope.faults.add("MoveStage", "out_of_range")
-        with pytest.raises(ValueError, match="out of range"):
-            mic.set_xyz(10, 0, 0)
+        failed = mic.set_xyz(10, 0, 0)
+        assert failed["success"] is False
+        assert re.search("out of range", failed["content"])
 
     def test_lost_connection(self, mic):
         mic._handle.scope.faults.add("*", "disconnect")
-        with pytest.raises(RuntimeError, match="closed unexpectedly"):
-            mic.get_xyz()
+        failed = mic.get_xyz()
+        assert failed["success"] is False
+        assert re.search("closed unexpectedly", failed["content"])
 
     def test_temporary_reading_problem_is_retried(self, mic):
         mic._handle.scope.faults.add("GetSettings", "busy")
@@ -153,8 +158,9 @@ class TestFaultsThroughTheDriver:
 
     def test_reading_that_stays_busy_is_unknown(self, mic):
         mic._handle.scope.faults.add("GetSettings", "busy", times=None)
-        with pytest.raises(RuntimeError, match="could not read"):
-            mic.get_state()
+        failed = mic.get_state()
+        assert failed["success"] is False
+        assert re.search("could not read", failed["content"])
 
 
 # --- part 4: the limits gate --------------------------------------------------------
@@ -163,26 +169,28 @@ class TestFaultsThroughTheDriver:
 class TestLimitsGate:
     def test_nothing_is_sent_when_the_limits_refuse(self, mic):
         before = len(_sent(mic, "MoveStage"))
-        with pytest.raises(ValueError, match="outside the travel range"):
-            mic.set_xyz(6000, 0, 0)
+        failed = mic.set_xyz(6000, 0, 0)
+        assert failed["success"] is False
+        assert re.search("outside the travel range", failed["content"])
         assert len(_sent(mic, "MoveStage")) == before
 
     def test_settings_have_limits_too(self, mic):
-        with pytest.raises(ValueError, match="laser_power = 80.0 is outside the limits"):
-            mic.set_state({"changeable": {"laser_power": 80.0}})
+        failed = mic.set_state({"changeable": {"laser_power": 80.0}})
+        assert failed["success"] is False
+        assert re.search("laser_power = 80.0 is outside the limits", failed["content"])
         assert _sent(mic, "SetSetting") == []
 
     def test_a_z_stack_must_stay_inside(self, mic):
         mic.set_xyz(0, 0, 490)
-        with pytest.raises(ValueError, match="z-stack"):
-            mic.acquire(
-                position_label="p",
-                acquisition_settings={
-                    "z_planes": 20,
-                    "z_step_um": 1.0,
-                    "backlash_correction": False,
-                },
-            )
+        failed = mic.acquire(
+            position_label="p",
+            acquisition_settings={
+                "z_planes": 20,
+                "z_step_um": 1.0,
+                "backlash_correction": False,
+            },
+        )
+        assert failed["success"] is False and "z-stack" in failed["content"]
 
     def test_without_limits_everything_is_refused(self):
         assert "not loaded" in Gate(None).check("stage", {"x": 0, "y": 0, "z": 0})
@@ -197,8 +205,8 @@ class TestLimitsGate:
         session = _open(tmp_path, mock_timing="instant")
         try:
             assert session.get_xyz()["content"]["x"]["canvas"] == [-9032.0, 1032.0]
-            with pytest.raises(ValueError):
-                session.set_xyz(1500, 0, 0)
+            failed = session.set_xyz(1500, 0, 0)
+            assert failed["success"] is False
         finally:
             session.disconnect()
 
@@ -214,8 +222,9 @@ class TestActuators:
         assert mic.get_xyz()["content"]["z"]["value"] == 30
 
     def test_beyond_the_piezo_reach(self, mic):
-        with pytest.raises(ValueError, match="beyond its reach"):
-            mic.set_xyz(0, 0, 300, with_actuators={"z": "piezo"})
+        failed = mic.set_xyz(0, 0, 300, with_actuators={"z": "piezo"})
+        assert failed["success"] is False
+        assert re.search("beyond its reach", failed["content"])
 
 
 # --- part 5: procedures ------------------------------------------------------------------
@@ -229,8 +238,9 @@ class TestProcedures:
         assert abs(mic.get_xyz()["content"]["z"]["value"]) <= 2
 
     def test_unknown_entries_are_refused(self, mic):
-        with pytest.raises(ValueError, match="does not take"):
-            mic.run_procedure({"name": "zero_piezo", "speed": "fast"})
+        failed = mic.run_procedure({"name": "zero_piezo", "speed": "fast"})
+        assert failed["success"] is False
+        assert re.search("does not take", failed["content"])
 
     def test_zero_piezo_keeps_the_height(self, mic):
         mic.set_xyz(0, 0, 30, with_actuators={"z": "piezo"})

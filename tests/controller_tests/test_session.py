@@ -7,6 +7,7 @@ University of Zurich (thom.dehoog@zmb.uzh.ch, thomdehoog@gmail.com).
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
 import pytest
@@ -80,8 +81,8 @@ class TestPosition:
         assert pos["x"]["actuator"] == "motoric"  # axes left out use the first motor in the list
 
     def test_unknown_actuator_raises(self, mic):
-        with pytest.raises(ValueError, match="unknown actuator"):
-            mic.set_xyz(0, 0, 0, with_actuators={"z": "hovercraft"})
+        failed = mic.set_xyz(0, 0, 0, with_actuators={"z": "hovercraft"})
+        assert failed["success"] is False and re.search("unknown actuator", failed["content"])
 
 
 class TestAcquire:
@@ -148,8 +149,8 @@ class TestState:
         # A misspelled name is refused before anything is applied, so a typo
         # never passes silently, not even beside a setting that is correct.
         before = mic.get_state()["content"]["changeable"]["gain"]
-        with pytest.raises(ValueError, match="unknown settings \\['gian'\\]"):
-            mic.set_state({"changeable": {"gain": before + 1, "gian": 1}})
+        failed = mic.set_state({"changeable": {"gain": before + 1, "gian": 1}})
+        assert failed["success"] is False and "unknown settings ['gian']" in failed["content"]
         assert mic.get_state()["content"]["changeable"]["gain"] == before
 
     def test_observed_is_a_report_never_an_instruction(self, mic):
@@ -169,8 +170,8 @@ class TestProcedures:
         assert rec["content"]["ran"] == "autofocus"
 
     def test_unknown_procedure_is_refused(self, mic):
-        with pytest.raises(ValueError, match="unknown procedure"):
-            mic.run_procedure({"name": "make_coffee"})
+        failed = mic.run_procedure({"name": "make_coffee"})
+        assert failed["success"] is False and re.search("unknown procedure", failed["content"])
 
 
 class TestInfo:
@@ -186,13 +187,15 @@ class TestDisconnect:
         # The controller refuses nothing itself; what the driver raises comes through.
         mic.disconnect()
         mic.disconnect()  # the mock driver makes a second disconnect harmless
-        with pytest.raises(RuntimeError, match="session is disconnected"):
-            mic.acquire(position_label="A1")
+        failed = mic.acquire(position_label="A1")
+        assert failed["success"] is False and re.search(
+            "session is disconnected", failed["content"]
+        )
 
     def test_ops_after_disconnect_raise(self, mic):
         mic.disconnect()
-        with pytest.raises(RuntimeError, match="disconnected"):
-            mic.get_xyz()
+        failed = mic.get_xyz()
+        assert failed["success"] is False and re.search("disconnected", failed["content"])
 
     def test_actuator_selection_does_not_persist(self, mic):
         """A motor chosen for one call applies to that call only.
@@ -202,10 +205,12 @@ class TestDisconnect:
         assert mic.get_xyz()["content"]["z"]["actuator"] == "motoric"
 
     def test_invalid_acquire_option_rejected(self, mic):
-        with pytest.raises(ValueError, match="unknown acquisition setting"):
-            mic.acquire(position_label="A1", acquisition_settings={"fromat": "x"})
-        with pytest.raises(ValueError, match="invalid value"):
-            mic.acquire(position_label="A1", acquisition_settings={"format": "png"})
+        failed = mic.acquire(position_label="A1", acquisition_settings={"fromat": "x"})
+        assert failed["success"] is False and re.search(
+            "unknown acquisition setting", failed["content"]
+        )
+        failed = mic.acquire(position_label="A1", acquisition_settings={"format": "png"})
+        assert failed["success"] is False and re.search("invalid value", failed["content"])
 
 
 class TestModuleStyle:
@@ -261,8 +266,10 @@ class TestCanvas:
 
     def test_a_move_outside_the_range_is_refused_before_moving(self, mic):
         mic.set_xyz(10, 0, 0)
-        with pytest.raises(ValueError, match="outside the travel range"):
-            mic.set_xyz(9999, 0, 0)
+        failed = mic.set_xyz(9999, 0, 0)
+        assert failed["success"] is False and re.search(
+            "outside the travel range", failed["content"]
+        )
         assert mic.get_xyz()["content"]["x"]["value"] == 10  # did not move
 
 
