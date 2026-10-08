@@ -35,33 +35,33 @@ class PretendDriver(ZmartDriver):
         pass
 
     def get_info(self):
-        return str(self.folder), "A pretend microscope. +z points up."
+        return True, (str(self.folder), "A pretend microscope. +z points up.")
 
     def get_actuators(self):
-        return ["motor"], ["motor"], ["motor", "piezo"]
+        return True, (["motor"], ["motor"], ["motor", "piezo"])
 
     def get_xyz(self, with_actuators):
         p = self.position
-        return p["x"], p["y"], p["z"], "motor", "motor", "motor"
-
-    def get_canvas(self):
-        return -1050.0, 1050.0, -1050.0, 1050.0, -100.0, 100.0
+        canvas = (-1050.0, 1050.0, -1050.0, 1050.0, -100.0, 100.0)
+        return True, (p["x"], p["y"], p["z"], "motor", "motor", "motor", canvas)
 
     def set_xyz(self, x, y, z, with_actuators):
         self.position = {"x": x, "y": y, "z": z}
-        return "motor", "motor", "motor"
+        return True, ("motor", "motor", "motor")
 
     def get_state(self):
-        return {"exposure_ms": self.exposure_ms}, {"objective": "10x"}
+        return True, ({"exposure_ms": self.exposure_ms}, {"objective": "10x"})
 
     def set_state(self, changeable):
         if changeable.get("exposure_ms") == 999.0:  # a value this pretend camera silently ignores
-            raise RuntimeError("exposure_ms stayed 10.0")
+            return False, "exposure_ms stayed 10.0"
+        if changeable.get("exposure_ms") == -1.0:
+            raise ValueError("exposure_ms must be positive")
         self.exposure_ms = changeable.get("exposure_ms", self.exposure_ms)
-        return dict(changeable)
+        return True, dict(changeable)
 
     def get_acquisition_settings(self):
-        return {"format": {"options": ["json"], "active": "json"}}
+        return True, {"format": {"options": ["json"], "active": "json"}}
 
     def acquire(self, position_label, acquisition_settings):
         path = self.folder / f"{position_label}.json"
@@ -69,14 +69,15 @@ class PretendDriver(ZmartDriver):
         p = self.position
         plane = {"path": str(path), "c": 0, "z": 0, "t": 0}
         plane.update(x_um=p["x"], y_um=p["y"], z_um=p["z"])
-        return [str(path)], [plane]
+        return True, ([str(path)], [plane])
 
     def get_procedures(self):
-        return {"park": {"description": "Move the stage to its parking position."}}
+        return True, {"park": {"description": "Move the stage to its parking position."}}
 
     def run_procedure(self, procedure):
         if procedure["name"] != "park":
             raise ValueError(f"unknown procedure {procedure['name']!r}")
+        return True, procedure["name"]
 
 
 def test_the_template_loads_and_offers_every_function():
@@ -105,13 +106,16 @@ def test_a_filled_in_driver_passes_validation_and_acquires(tmp_path):
         session.disconnect()
 
 
-def test_a_method_that_raises_answers_success_false(tmp_path):
+def test_the_three_outcomes(tmp_path):
     PretendDriver.folder = tmp_path
     session = zmart_controller.set_instrument(PretendDriver)
     try:
-        answer = session.set_state({"changeable": {"exposure_ms": 999.0}})
-        assert answer == {"success": False, "content": "RuntimeError: exposure_ms stayed 10.0"}
-        assert session.get_state()["content"]["changeable"] == {"exposure_ms": 10.0}
+        ok = session.set_state({"changeable": {"exposure_ms": 20.0}})
+        assert ok == {"success": True, "content": {"applied": {"exposure_ms": 20.0}}}
+        failed = session.set_state({"changeable": {"exposure_ms": 999.0}})
+        assert failed == {"success": False, "content": "exposure_ms stayed 10.0"}
+        raised = session.set_state({"changeable": {"exposure_ms": -1.0}})
+        assert raised == {"success": False, "content": "ValueError: exposure_ms must be positive"}
     finally:
         session.disconnect()
 

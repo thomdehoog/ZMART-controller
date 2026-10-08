@@ -128,7 +128,8 @@ hands back.
 
 | Your method | The answer |
 |---|---|
-| returns | `{"success": True, "content": {...}}`, your values under fixed keys |
+| hands back `True` and the values | `{"success": True, "content": {...}}`, the values under fixed keys |
+| hands back `False` and a message | `{"success": False, "content": "..."}`, your message |
 | raises | `{"success": False, "content": "..."}`, the error text |
 
 So what is left for you is to write a `ZmartDriver` class that complies
@@ -157,7 +158,7 @@ calibration, from the [configuration folder](#the-configuration-folder).
 ### Describe the microscope
 
 ```python
-def get_info(self): ...            # returns output_root, description
+def get_info(self): ...            # True, (output_root, description)
 ```
 
 `output_root` is the folder where images are saved. `description` is the
@@ -168,10 +169,9 @@ its unit and its bounds, which objective sits in which slot, and which way
 ### Position
 
 ```python
-def get_actuators(self): ...                       # returns x_motors, y_motors, z_motors
-def get_xyz(self, with_actuators): ...             # returns x, y, z, x_motor, y_motor, z_motor
-def get_canvas(self): ...                          # returns x_min, x_max, y_min, y_max, z_min, z_max
-def set_xyz(self, x, y, z, with_actuators): ...    # moves, returns x_motor, y_motor, z_motor
+def get_actuators(self): ...                       # True, (x_motors, y_motors, z_motors)
+def get_xyz(self, with_actuators): ...             # True, (x, y, z, x_motor, y_motor, z_motor, canvas)
+def set_xyz(self, x, y, z, with_actuators): ...    # moves; True, (x_motor, y_motor, z_motor)
 ```
 
 Positions are micrometres from the origin, a point saved once for this
@@ -181,15 +181,16 @@ Turning the vendor's own numbers into this frame is the driver's job.
 
 Each axis has one or more motors; `get_actuators` names them.
 `with_actuators` picks one per axis, such as `{"z": "piezo"}`, or is `None`
-for the first one. The canvas is the travel widened by half a field of view:
-everywhere a picture can show. `set_xyz` checks the limits, moves, and reads
-back until the stage has arrived.
+for the first one. The canvas, `(x_min, x_max, y_min, y_max, z_min, z_max)`,
+is the travel widened by half a field of view: everywhere a picture can
+show. `set_xyz` checks the limits, moves, and reads back until the stage
+has arrived; when it never does, hand back `False` and say where it is.
 
 ### Settings
 
 ```python
-def get_state(self): ...               # returns changeable, observed
-def set_state(self, changeable): ...   # applies them, returns applied
+def get_state(self): ...               # True, (changeable, observed)
+def set_state(self, changeable): ...   # applies them; True, applied
 ```
 
 `changeable` holds the settings `set_state` can apply, such as exposure
@@ -200,8 +201,8 @@ confirm it took, and returns what it applied.
 ### Acquire
 
 ```python
-def get_acquisition_settings(self): ...                        # returns {name: {"options": [...], "active": value}}
-def acquire(self, position_label, acquisition_settings): ...   # captures and saves, returns files, planes
+def get_acquisition_settings(self): ...                        # True, {name: {"options": [...], "active": value}}
+def acquire(self, position_label, acquisition_settings): ...   # captures and saves; True, (files, planes)
 ```
 
 Acquisition settings are the choices for one picture, such as the file
@@ -216,8 +217,8 @@ earlier picture.
 ### Procedures
 
 ```python
-def get_procedures(self): ...             # returns {name: {"description": ...}}
-def run_procedure(self, procedure): ...   # runs the one named procedure["name"]
+def get_procedures(self): ...             # True, {name: {"description": ...}}
+def run_procedure(self, procedure): ...   # runs the one named procedure["name"]; True, name
 ```
 
 Procedures are the routines the microscope offers, such as autofocus.
@@ -226,13 +227,12 @@ raises `ValueError`.
 
 ## Rules for every driver
 
-- **Return for success, raise for failure.** Raise `ValueError` when the
-  request is wrong: an unknown setting, a position outside the limits.
-  Raise `RuntimeError` when the microscope fails. Say what happened in
-  plain words; the workflow reads it as the content.
+- **`True` and the values, or `False` and a message.** Raise `ValueError`
+  when the request is wrong: an unknown setting, a position outside the
+  limits. Say what happened in plain words; the workflow reads it.
 - **Read back to confirm.** Microscope software often accepts a command
-  before it has happened. Read the position or the setting back, and raise
-  when it never showed up.
+  before it has happened. Read the position or the setting back, and hand
+  back `False` when it never showed up.
 - **Reject what you do not understand.** An unknown setting, acquisition
   setting, motor name or procedure raises `ValueError`. A typo that passes
   silently can cost someone an experiment.
