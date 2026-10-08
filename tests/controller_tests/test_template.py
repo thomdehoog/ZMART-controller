@@ -104,8 +104,11 @@ def test_every_method_the_plugin_calls_exists_on_the_class():
 
 
 def test_the_readme_shows_the_shipped_plugin():
-    """The code block in the Part 1 README is the template file itself, so they cannot drift."""
+    """The Part 1 README quotes the start of the template file, and names every method."""
     text = README.read_text()
     block = text.split("```python\n# zmart_controller_plugin.py\n", 1)[1].split("```", 1)[0]
     source = Path(plugin.__file__).read_text().split('"""', 2)[2]
-    assert block.strip("\n") == source.strip("\n")
+    assert source.strip("\n").startswith(block.strip("\n"))
+    for name in dir(ZmartDriver):
+        if not name.startswith("_"):
+            assert f"def {name}(self" in text
