@@ -104,7 +104,7 @@ there; the shipped file looks the same, and you replace every value:
 }
 ```
 
-`get_instruments()` shows this back for every installed driver, without the password.
+`get_instruments()` shows this back for every installed driver.
 
 ### The ZmartController
 
