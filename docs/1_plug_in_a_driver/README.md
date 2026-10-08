@@ -1,7 +1,5 @@
 # 1. How do I plug in a ZMART-driver
 
-How the ZMART Controller connects to a microscope, and what a ZMART driver must
-provide to make that work.
 ## Contents
 
 1. [What is a ZMART driver](#1-what-is-a-driver)
