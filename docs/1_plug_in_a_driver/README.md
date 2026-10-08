@@ -90,6 +90,9 @@ def set_state(self, changeable):
     raise ValueError("unknown setting")      # anything that raises: {"success": False, "content": "ValueError: unknown setting"}
 ```
 
+Apply only what is under `changeable`. Read each setting back to confirm
+it took; a setting the microscope does not have is a failure.
+
 ### Per call
 
 ```python
@@ -99,10 +102,17 @@ def __init__(self, connection):
     # load what was measured once for this microscope: origin, travel limits, calibration
 ```
 
+Making the driver is the connection. Open the vendor software with what is
+in `connection`, and load what was measured once for this microscope, the
+origin, the travel limits and the calibration, so that every later command
+works in the sample's coordinate system.
+
 ```python
 def disconnect(self):
     # close the vendor connection
 ```
+
+Close the vendor connection cleanly, so the next driver can open it.
 
 ```python
 def get_info(self):
@@ -111,11 +121,19 @@ def get_info(self):
     # description: the microscope in plain words: each setting, its unit and bounds, the objectives, which way +z points
 ```
 
+The description is read by whoever drives the microscope, a person or a
+program, so say what the other commands cannot: what each setting means,
+its unit and its bounds, which objective sits in which slot, which way +z
+points.
+
 ```python
 def get_actuators(self):
     return True, (x_motors, y_motors, z_motors)
     # the motor names per axis, at least one each, e.g. ["motoric", "piezo"]
 ```
+
+Name every motor that can move an axis. The first one is the default
+when a command does not pick one.
 
 ```python
 def get_xyz(self, with_actuators):
@@ -125,6 +143,11 @@ def get_xyz(self, with_actuators):
     # canvas: (x_min, x_max, y_min, y_max, z_min, z_max): the travel plus half a field of view
 ```
 
+Read the stage and answer in the sample's coordinate system: micrometres
+from the saved origin, with right as +x and down as +y in a saved image.
+The canvas is everywhere a picture can show, so a viewer can lay out the
+whole specimen before the first picture.
+
 ```python
 def set_xyz(self, x, y, z, with_actuators):
     # move, then read back until the stage has arrived
@@ -132,12 +155,20 @@ def set_xyz(self, x, y, z, with_actuators):
     return False, "<error message>"                # e.g. outside the travel, or the stage never arrived
 ```
 
+Move in the sample's coordinate system. Check the travel limits before
+moving, then read the position back until the stage has arrived; a move
+that never arrives is a failure, so the workflow stops.
+
 ```python
 def get_state(self):
     return True, (changeable, observed)
     # changeable: {"exposure_ms": 10.0, ...}: the settings set_state can apply
     # observed:   {"objective": "10x", ...}: what can only be read
 ```
+
+Capture the settings so they can be applied again later. Only
+`changeable` is ever sent back; `observed` describes and is never an
+instruction.
 
 ```python
 def set_state(self, changeable):
@@ -153,6 +184,9 @@ def get_acquisition_settings(self):
     # active: the value used when the setting is left out of acquire
 ```
 
+List the choices for one picture, such as the file format or the planes of
+a z-stack, with the values each may take and the one in use.
+
 ```python
 def acquire(self, position_label, acquisition_settings):
     # capture here, save the files named after position_label; never overwrite an earlier one
@@ -161,11 +195,20 @@ def acquire(self, position_label, acquisition_settings):
     # planes: [{"path": ..., "c": 0, "z": 0, "t": 0, "x_um": ..., "y_um": ..., "z_um": ...}, ...]
 ```
 
+Capture at the current position with the current settings, and save so
+that a workflow finds the files the same way on every microscope: every
+file in `files`, and every image plane in `planes`, with its stage position
+in the sample's coordinate system. Save a second picture with the same
+label under a new name.
+
 ```python
 def get_procedures(self):
     return True, {name: {"description": ...}}
     # the routines the microscope offers, such as autofocus
 ```
+
+List the routines this microscope offers, with a description a person can
+pick from.
 
 ```python
 def run_procedure(self, procedure):
@@ -173,6 +216,9 @@ def run_procedure(self, procedure):
     return True, procedure["name"]
     return False, "<error message>"                # e.g. a name that get_procedures does not list
 ```
+
+Run the routine named in `procedure`; the other keys are its arguments. A
+name that is not listed is a failure.
 
 ```python
 zmart_controller.validate_driver("C:/drivers/my-scope/zmart_driver.json")   # [] when every method fits
