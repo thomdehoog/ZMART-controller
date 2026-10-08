@@ -2,34 +2,13 @@
 
 ## Contents
 
-1. [What is the controller](#1-what-is-the-controller)
-2. [Overview of the calls](#2-overview-of-the-calls)
-3. [More information about the calls](#3-more-information-about-the-calls)
+1. [Overview of the calls](#1-overview-of-the-calls)
+2. [More information about the calls](#2-more-information-about-the-calls)
 
 For a step-by-step walk-through on the mock driver, the simulated microscope
 that comes with the controller, open the [tutorial notebook](tutorial.ipynb).
 
-## 1) What is the controller
-
-The controller offers a short, fixed list of commands: connect to a
-microscope, learn about it, move, read and apply settings, acquire, run a
-routine such as autofocus, and disconnect. You send the commands. The driver
-of the connected microscope carries them out and answers. Every command
-waits until the driver has finished.
-
-```
-your workflow ──► controller ──► driver ──► vendor software ──► microscope
-             ◄── {"success", "content"} ◄──
-```
-
-Every command answers in the same shape:
-
-```python
-{"success": True,  "content": {...}}       # the driver did it; content is what it has to say
-{"success": False, "content": "<error message>"}   # it did not; content says why
-```
-
-## 2) Overview of the calls
+## 1) Overview of the calls
 
 ```python
 import zmart_controller
@@ -62,7 +41,7 @@ mic.run_procedure(Dict)
 mic.disconnect()
 ```
 
-## 3) More information about the calls
+## 2) More information about the calls
 
 The answers below are real answers from the mock, trimmed where they are
 long. On another microscope the numbers differ; the keys shown are the same
