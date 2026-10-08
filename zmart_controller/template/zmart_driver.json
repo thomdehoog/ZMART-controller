@@ -1,11 +1,11 @@
 {
-  "name": "my-scope",
+  "name": "<the driver's name, as get_drivers() will list it>",
   "driver": "zmart_driver.py",
   "connection": {
-    "microscope": "my-scope-01",
-    "api_type": "socket",
-    "host": "127.0.0.1",
-    "password": "",
-    "config": "C:/VendorSoftware/config.ini"
+    "microscope": "<which instrument this is>",
+    "api_type": "<how the vendor software is reached>",
+    "host": "<where it listens>",
+    "password": "<its password, or empty>",
+    "config": "<the vendor's configuration file>"
   }
 }
