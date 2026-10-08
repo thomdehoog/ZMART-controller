@@ -69,8 +69,6 @@ The zmart_driver.json is formatted in the following way:
 }
 ```
 
-`get_instruments()` shows this back for every installed driver.
-
 
 ## 3) Writing a driver
 
