@@ -77,14 +77,15 @@ errors and saving data, but this one file is its front door. It is the only
 file the controller needs to know about.
 
 You do not write it. The controller ships it, ready to copy, in the folder
-`zmart_controller/template` together with a `scope.py` to fill in. Copy the
-whole folder, rename it, and write the functions in `scope.py`. This is the
+`zmart_controller/template` together with a `zmart_driver.py` to fill in. Copy the
+whole folder, rename it, and write the methods of `ZmartDriver` in
+`zmart_driver.py`. This is the
 plugin file as shipped:
 
 ```python
 # zmart_controller_plugin.py
 
-from . import scope  # scope.py, in this folder: the code that talks to the vendor software
+from .zmart_driver import ZmartDriver  # zmart_driver.py: the code that talks to the vendor software
 
 NAME = "my-scope"  # the driver's name in the controller's list
 
@@ -100,36 +101,36 @@ CONNECTION = {  # how to reach this microscope; get_instruments() shows it
 
 def connect(connection):
 
-    handle = scope.connect(connection)
+    handle = ZmartDriver(connection)
 
-    return handle  # any object that holds the live connection
+    return handle  # the connected driver; every other function receives it back
 
 
 def disconnect(handle):  # optional
 
-    scope.disconnect(handle)
+    handle.disconnect()
 
     return None
 
 
 def get_info(handle):
 
-    output_root, description = scope.get_info(handle)
+    output_root, description = handle.get_info()
 
     return {"success": True, "content": {"output_root": output_root, "description": description}}
 
 
 def get_actuators(handle):
 
-    x_motors, y_motors, z_motors = scope.get_actuators(handle)
+    x_motors, y_motors, z_motors = handle.get_actuators()
 
     return {"success": True, "content": {"x": x_motors, "y": y_motors, "z": z_motors}}
 
 
 def get_xyz(handle, *, with_actuators=None):
 
-    x, y, z, x_motor, y_motor, z_motor = scope.get_xyz(handle, with_actuators)
-    x_min, x_max, y_min, y_max, z_min, z_max = scope.get_canvas(handle)
+    x, y, z, x_motor, y_motor, z_motor = handle.get_xyz(with_actuators)
+    x_min, x_max, y_min, y_max, z_min, z_max = handle.get_canvas()
 
     return {
         "success": True,
@@ -143,7 +144,7 @@ def get_xyz(handle, *, with_actuators=None):
 
 def set_xyz(handle, x, y, z, *, with_actuators=None):
 
-    x_motor, y_motor, z_motor = scope.set_xyz(handle, x, y, z, with_actuators)
+    x_motor, y_motor, z_motor = handle.set_xyz(x, y, z, with_actuators)
 
     return {
         "success": True,
@@ -156,28 +157,28 @@ def set_xyz(handle, x, y, z, *, with_actuators=None):
 
 def get_state(handle):
 
-    changeable, observed = scope.get_state(handle)
+    changeable, observed = handle.get_state()
 
     return {"success": True, "content": {"changeable": changeable, "observed": observed}}
 
 
 def set_state(handle, state):
 
-    applied = scope.set_state(handle, state["changeable"])
+    applied = handle.set_state(state["changeable"])
 
     return {"success": True, "content": {"applied": applied}}
 
 
 def get_acquisition_settings(handle):
 
-    settings = scope.get_acquisition_settings(handle)  # {name: {"options": [...], "active": value}}
+    settings = handle.get_acquisition_settings()  # {name: {"options": [...], "active": value}}
 
     return {"success": True, "content": settings}
 
 
 def acquire(handle, *, position_label, acquisition_settings=None):
 
-    files, planes = scope.acquire(handle, position_label, acquisition_settings)
+    files, planes = handle.acquire(position_label, acquisition_settings)
 
     return {
         "success": True,
@@ -191,24 +192,27 @@ def acquire(handle, *, position_label, acquisition_settings=None):
 
 def get_procedures(handle):
 
-    procedures = scope.get_procedures(handle)  # {name: {"description": ...}}
+    procedures = handle.get_procedures()  # {name: {"description": ...}}
 
     return {"success": True, "content": procedures}
 
 
 def run_procedure(handle, procedure):
 
-    scope.run_procedure(handle, procedure)
+    handle.run_procedure(procedure)
 
     return {"success": True, "content": {"ran": procedure["name"]}}
 ```
 
-This file does not talk to the microscope itself. Each function calls the
-function of the same name in `scope.py`, the file next to it, and wraps
-what comes back in the answer shape. `scope.py` is where you write the code
-that drives the vendor software. Every function in it starts out raising
-`NotImplementedError`, with a docstring saying what it must hand back, so
-`validate_driver` tells you which one is still to write. The `return` at
+This file does not talk to the microscope itself. `connect` creates one
+`ZmartDriver`, the class in `zmart_driver.py` next to it, and hands it back
+as the handle. Every other function calls the method of the same name on
+that handle and wraps what comes back in the answer shape. `ZmartDriver` is
+where you write the code that drives the vendor software: it opens the
+vendor connection when it is made and keeps it, and each method does one
+command with it. Every method starts out raising `NotImplementedError`,
+with a docstring saying what it must hand back, so `validate_driver` tells
+you which one is still to write. The `return` at
 the end of each plugin function shows the least every answer must contain.
 The sections below say what each key means. A driver may add keys of its
 own to any answer.

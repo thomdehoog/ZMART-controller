@@ -1,9 +1,9 @@
 """A ZMART driver to copy: the file the controller plugs into.
 
-Copy the whole ``template`` folder, give it a name, and fill in ``scope.py``.
+Copy the whole ``template`` folder, give it a name, and fill in the ``ZmartDriver`` class in ``zmart_driver.py``.
 This file stays as it is. It gives the controller the twelve functions it
-looks for, and each one does the same two things: call the function of the
-same name in ``scope.py``, and wrap what comes back in the answer shape
+looks for, and each one does the same two things: call the method of the
+same name on the ``ZmartDriver`` made at connect, the handle, and wrap what comes back in the answer shape
 every command shares, ``{"success": ..., "content": ...}``.
 
 ``docs/1_plug_in_a_driver/README.md`` explains every key in the answers.
@@ -12,7 +12,7 @@ Author: Thom de Hoog, Center for Microscopy and Image Analysis (ZMB),
 University of Zurich (thom.dehoog@zmb.uzh.ch, thomdehoog@gmail.com).
 """
 
-from . import scope  # scope.py, in this folder: the code that talks to the vendor software
+from .zmart_driver import ZmartDriver  # zmart_driver.py: the code that talks to the vendor software
 
 NAME = "my-scope"  # the driver's name in the controller's list
 
@@ -28,36 +28,36 @@ CONNECTION = {  # how to reach this microscope; get_instruments() shows it
 
 def connect(connection):
 
-    handle = scope.connect(connection)
+    handle = ZmartDriver(connection)
 
-    return handle  # any object that holds the live connection
+    return handle  # the connected driver; every other function receives it back
 
 
 def disconnect(handle):  # optional
 
-    scope.disconnect(handle)
+    handle.disconnect()
 
     return None
 
 
 def get_info(handle):
 
-    output_root, description = scope.get_info(handle)
+    output_root, description = handle.get_info()
 
     return {"success": True, "content": {"output_root": output_root, "description": description}}
 
 
 def get_actuators(handle):
 
-    x_motors, y_motors, z_motors = scope.get_actuators(handle)
+    x_motors, y_motors, z_motors = handle.get_actuators()
 
     return {"success": True, "content": {"x": x_motors, "y": y_motors, "z": z_motors}}
 
 
 def get_xyz(handle, *, with_actuators=None):
 
-    x, y, z, x_motor, y_motor, z_motor = scope.get_xyz(handle, with_actuators)
-    x_min, x_max, y_min, y_max, z_min, z_max = scope.get_canvas(handle)
+    x, y, z, x_motor, y_motor, z_motor = handle.get_xyz(with_actuators)
+    x_min, x_max, y_min, y_max, z_min, z_max = handle.get_canvas()
 
     return {
         "success": True,
@@ -71,7 +71,7 @@ def get_xyz(handle, *, with_actuators=None):
 
 def set_xyz(handle, x, y, z, *, with_actuators=None):
 
-    x_motor, y_motor, z_motor = scope.set_xyz(handle, x, y, z, with_actuators)
+    x_motor, y_motor, z_motor = handle.set_xyz(x, y, z, with_actuators)
 
     return {
         "success": True,
@@ -84,28 +84,28 @@ def set_xyz(handle, x, y, z, *, with_actuators=None):
 
 def get_state(handle):
 
-    changeable, observed = scope.get_state(handle)
+    changeable, observed = handle.get_state()
 
     return {"success": True, "content": {"changeable": changeable, "observed": observed}}
 
 
 def set_state(handle, state):
 
-    applied = scope.set_state(handle, state["changeable"])
+    applied = handle.set_state(state["changeable"])
 
     return {"success": True, "content": {"applied": applied}}
 
 
 def get_acquisition_settings(handle):
 
-    settings = scope.get_acquisition_settings(handle)  # {name: {"options": [...], "active": value}}
+    settings = handle.get_acquisition_settings()  # {name: {"options": [...], "active": value}}
 
     return {"success": True, "content": settings}
 
 
 def acquire(handle, *, position_label, acquisition_settings=None):
 
-    files, planes = scope.acquire(handle, position_label, acquisition_settings)
+    files, planes = handle.acquire(position_label, acquisition_settings)
 
     return {
         "success": True,
@@ -119,13 +119,13 @@ def acquire(handle, *, position_label, acquisition_settings=None):
 
 def get_procedures(handle):
 
-    procedures = scope.get_procedures(handle)  # {name: {"description": ...}}
+    procedures = handle.get_procedures()  # {name: {"description": ...}}
 
     return {"success": True, "content": procedures}
 
 
 def run_procedure(handle, procedure):
 
-    scope.run_procedure(handle, procedure)
+    handle.run_procedure(procedure)
 
     return {"success": True, "content": {"ran": procedure["name"]}}
