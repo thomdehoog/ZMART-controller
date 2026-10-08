@@ -15,14 +15,10 @@ Positions are micrometres from the origin, the saved zero point of this
 microscope. In a saved image, right is +x and down is +y. Raise
 ``ValueError`` for a request that is wrong, such as a position outside the
 travel or an unknown setting, and ``RuntimeError`` when the microscope
-fails. Raise ``NotConfirmed(reason)`` for a soft outcome: the command was
-sent, but what it asked for never showed up, and it is safe to carry on;
-the controller answers ``success: False`` with your text as the content. Every method
-below raises ``NotImplementedError`` until you write it, so
+fails. The controller answers ``success: False`` with the error text.
+Every method below raises ``NotImplementedError`` until you write it, so
 ``validate_driver`` tells you what is still missing.
 """
-
-from zmart_controller import NotConfirmed  # noqa: F401  for your methods to raise
 
 
 class ZmartDriver:
@@ -101,7 +97,7 @@ class ZmartDriver:
 
         Raise ``ValueError`` for a setting name the microscope does not have.
         Read each setting back to confirm it took, and raise
-        ``NotConfirmed("...")`` saying which one did not.
+        ``RuntimeError`` saying which one did not.
         """
         raise NotImplementedError("ZmartDriver.set_state: apply the settings and return applied")
 
@@ -122,8 +118,8 @@ class ZmartDriver:
         has one entry per saved image plane: its ``path``, its ``c``, ``z`` and
         ``t`` counted from 0, and ``x_um``, ``y_um``, ``z_um``, the stage
         position it was taken at. Raise ``ValueError`` for an acquisition
-        setting that is not listed, and ``NotConfirmed(reason)`` when the
-        capture was sent but no complete file ever appeared.
+        setting that is not listed, and ``RuntimeError`` when the capture
+        was sent but no complete file ever appeared.
         """
         raise NotImplementedError("ZmartDriver.acquire: capture, save, then return files, planes")
 

@@ -30,7 +30,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 
-from .zmart_controller import OPS
+from .zmart_controller import COMMANDS
 
 logger = logging.getLogger(__name__)
 
@@ -44,8 +44,8 @@ def driver_functions(driver: Any) -> dict[str, Any]:
     function, so a half-finished driver is refused before it connects.
     """
     find = driver.get if isinstance(driver, dict) else lambda name: getattr(driver, name, None)
-    ops = {name: find(name) for name in (*OPS, "disconnect")}
-    missing = [name for name in OPS if not callable(ops[name])]
+    ops = {name: find(name) for name in ("connect", *COMMANDS)}
+    missing = [name for name in ops if name != "disconnect" and not callable(ops[name])]
     if missing:
         raise ValueError(f"driver {driver_name(driver)} is missing functions: {missing}")
     return {name: func for name, func in ops.items() if func is not None}

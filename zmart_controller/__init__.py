@@ -47,14 +47,13 @@ __email__ = "thom.dehoog@zmb.uzh.ch, thomdehoog@gmail.com"
 __affiliation__ = "Center for Microscopy and Image Analysis (ZMB), University of Zurich"
 
 from .registry import get_instruments, load_driver, register_driver, remove_driver
-from .zmart_controller import NotConfirmed, Session, ZmartController
+from .zmart_controller import Session, ZmartController
 
 __all__ = [
     "ZmartController",
     "Session",
     "get_instruments",
     "load_driver",
-    "NotConfirmed",
     "register_driver",
     "remove_driver",
     "disconnect",

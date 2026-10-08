@@ -6,13 +6,10 @@ Make one with a driver, and it connects::
     mic = ZmartController("my-scope")                # once installed
     mic.set_xyz(100, 50, 0)
 
-Each method calls the method of the same name on the ``ZmartDriver`` and
-answers ``{"success": True, "content": ...}`` with what it returned. A
-method that raises :class:`NotConfirmed` is a soft failure, answered as
-``{"success": False, "content": "..."}`` with the text. Anything else it
-raises reaches the workflow unchanged: ``ValueError`` for a mistake in the
-request, ``RuntimeError`` for a failure on the microscope. Every call
-returns when the driver has finished.
+Each method calls the method of the same name on the ``ZmartDriver``. When
+it returns, the answer is ``{"success": True, "content": ...}`` with what it
+returned. When it raises, the answer is ``{"success": False, "content": ...}``
+with the error text. Every call returns when the driver has finished.
 
 A driver may also be a module with one function per command, such as the
 mock; its functions already build the answers themselves.
@@ -23,32 +20,8 @@ University of Zurich (thom.dehoog@zmb.uzh.ch, thomdehoog@gmail.com).
 
 from __future__ import annotations
 
-from functools import partial, wraps
+from functools import partial
 from typing import Any
-
-#: The commands. A ZmartDriver has a method for each; a module driver a function. disconnect is optional.
-OPS: tuple[str, ...] = (
-    "connect",
-    "get_acquisition_settings",
-    "get_actuators",
-    "get_xyz",
-    "set_xyz",
-    "acquire",
-    "get_state",
-    "set_state",
-    "get_procedures",
-    "run_procedure",
-    "get_info",
-)
-
-
-class NotConfirmed(Exception):
-    """Raise this from a ``ZmartDriver`` method for a soft failure: the command was
-    sent, but what it asked for never showed up, and it is safe to carry on.
-    The controller answers ``{"success": False, "content": error_text}``.
-    Never raise it from ``set_xyz``: a move that cannot be confirmed raises
-    ``RuntimeError``, because carrying on at an unknown position is not safe.
-    """
 
 
 class ZmartController:
@@ -85,84 +58,107 @@ class ZmartController:
 
     def get_info(self) -> dict:
         """Where images are saved, and the microscope in plain words."""
-        output_root, description = self._handle.get_info()
-        return _answer({"output_root": output_root, "description": description})
+        try:
+            output_root, description = self._handle.get_info()
+            return {
+                "success": True,
+                "content": {"output_root": output_root, "description": description},
+            }
+        except Exception as error:
+            return {"success": False, "content": f"{type(error).__name__}: {error}"}
 
     def get_actuators(self) -> dict:
         """The motors that can move each axis, e.g. ``{"z": ["motoric", "piezo"]}``."""
-        x_motors, y_motors, z_motors = self._handle.get_actuators()
-        return _answer({"x": x_motors, "y": y_motors, "z": z_motors})
+        try:
+            x_motors, y_motors, z_motors = self._handle.get_actuators()
+            return {"success": True, "content": {"x": x_motors, "y": y_motors, "z": z_motors}}
+        except Exception as error:
+            return {"success": False, "content": f"{type(error).__name__}: {error}"}
 
     def get_xyz(self, with_actuators: dict | None = None) -> dict:
         """Each axis: its position in micrometres from the origin, the motor read, and the canvas."""
-        x, y, z, x_motor, y_motor, z_motor = self._handle.get_xyz(with_actuators)
-        x_min, x_max, y_min, y_max, z_min, z_max = self._handle.get_canvas()
-        return _answer(
-            {
-                "x": {"value": x, "actuator": x_motor, "canvas": [x_min, x_max]},
-                "y": {"value": y, "actuator": y_motor, "canvas": [y_min, y_max]},
-                "z": {"value": z, "actuator": z_motor, "canvas": [z_min, z_max]},
+        try:
+            x, y, z, x_motor, y_motor, z_motor = self._handle.get_xyz(with_actuators)
+            x_min, x_max, y_min, y_max, z_min, z_max = self._handle.get_canvas()
+            return {
+                "success": True,
+                "content": {
+                    "x": {"value": x, "actuator": x_motor, "canvas": [x_min, x_max]},
+                    "y": {"value": y, "actuator": y_motor, "canvas": [y_min, y_max]},
+                    "z": {"value": z, "actuator": z_motor, "canvas": [z_min, z_max]},
+                },
             }
-        )
+        except Exception as error:
+            return {"success": False, "content": f"{type(error).__name__}: {error}"}
 
     def set_xyz(self, x: float, y: float, z: float, with_actuators: dict | None = None) -> dict:
         """Move to a position in micrometres from the origin; ``with_actuators`` picks the motor per axis."""
-        x_motor, y_motor, z_motor = self._handle.set_xyz(x, y, z, with_actuators)
-        return _answer(
-            {
-                "position": {"x": x, "y": y, "z": z},
-                "actuators": {"x": x_motor, "y": y_motor, "z": z_motor},
+        try:
+            x_motor, y_motor, z_motor = self._handle.set_xyz(x, y, z, with_actuators)
+            return {
+                "success": True,
+                "content": {
+                    "position": {"x": x, "y": y, "z": z},
+                    "actuators": {"x": x_motor, "y": y_motor, "z": z_motor},
+                },
             }
-        )
+        except Exception as error:
+            return {"success": False, "content": f"{type(error).__name__}: {error}"}
 
     def get_state(self) -> dict:
         """The settings: ``changeable``, which ``set_state`` applies, and ``observed``, read-only."""
-        changeable, observed = self._handle.get_state()
-        return _answer({"changeable": changeable, "observed": observed})
+        try:
+            changeable, observed = self._handle.get_state()
+            return {"success": True, "content": {"changeable": changeable, "observed": observed}}
+        except Exception as error:
+            return {"success": False, "content": f"{type(error).__name__}: {error}"}
 
     def set_state(self, state: dict) -> dict:
         """Apply the settings under ``changeable``; the answer names what was applied."""
-        applied = self._handle.set_state(state["changeable"])
-        return _answer({"applied": applied})
+        try:
+            applied = self._handle.set_state(state["changeable"])
+            return {"success": True, "content": {"applied": applied}}
+        except Exception as error:
+            return {"success": False, "content": f"{type(error).__name__}: {error}"}
 
     def get_acquisition_settings(self) -> dict:
         """The choices for one acquisition: ``{name: {"options": [...], "active": value}}``."""
-        return _answer(self._handle.get_acquisition_settings())
+        try:
+            return {"success": True, "content": self._handle.get_acquisition_settings()}
+        except Exception as error:
+            return {"success": False, "content": f"{type(error).__name__}: {error}"}
 
     def acquire(self, position_label: str, acquisition_settings: dict | None = None) -> dict:
         """Capture an image here and save it; the answer lists every file and image plane."""
-        files, planes = self._handle.acquire(position_label, acquisition_settings)
-        return _answer({"position_label": position_label, "files": files, "planes": planes})
+        try:
+            files, planes = self._handle.acquire(position_label, acquisition_settings)
+            return {
+                "success": True,
+                "content": {"position_label": position_label, "files": files, "planes": planes},
+            }
+        except Exception as error:
+            return {"success": False, "content": f"{type(error).__name__}: {error}"}
 
     def get_procedures(self) -> dict:
         """The routines the microscope offers: ``{name: {"description": ...}}``."""
-        return _answer(self._handle.get_procedures())
+        try:
+            return {"success": True, "content": self._handle.get_procedures()}
+        except Exception as error:
+            return {"success": False, "content": f"{type(error).__name__}: {error}"}
 
     def run_procedure(self, procedure: dict) -> dict:
         """Run the routine named by ``procedure["name"]``; the other keys are its arguments."""
-        self._handle.run_procedure(procedure)
-        return _answer({"ran": procedure["name"]})
-
-
-def _answer(content: Any) -> dict:
-    return {"success": True, "content": content}
-
-
-def _soft_failures(method):
-    """A NotConfirmed raised by the driver becomes the soft answer."""
-
-    @wraps(method)
-    def answering(self, *args, **kwargs):
         try:
-            return method(self, *args, **kwargs)
-        except NotConfirmed as failure:
-            return {"success": False, "content": str(failure)}
+            self._handle.run_procedure(procedure)
+            return {"success": True, "content": {"ran": procedure["name"]}}
+        except Exception as error:
+            return {"success": False, "content": f"{type(error).__name__}: {error}"}
 
-    return answering
 
+#: The commands: the public methods of the controller. A ZmartDriver has a
+#: method for each, a module driver a function. disconnect is optional.
+COMMANDS = tuple(name for name in vars(ZmartController) if not name.startswith("_"))
 
-for _command in OPS[1:]:
-    setattr(ZmartController, _command, _soft_failures(getattr(ZmartController, _command)))
 
 #: The old name of :class:`ZmartController`, kept so existing code keeps working.
 Session = ZmartController
