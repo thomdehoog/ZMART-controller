@@ -1,0 +1,11 @@
+{
+  "name": "my-scope",
+  "connection": {
+    "microscope": "my-scope-01",
+    "api_type": "socket",
+    "host": "127.0.0.1",
+    "password": "",
+    "config": "C:/my-scope/config.ini",
+    "output_root": "D:/images"
+  }
+}
