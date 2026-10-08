@@ -82,8 +82,6 @@ controller turns that into the answer the workflow sees. An error that
 happens anyway, a bug or the vendor library failing, is answered the same
 way, with its text:
 
-#### set_state
-
 ```python
 def set_state(self, changeable):
     ...
