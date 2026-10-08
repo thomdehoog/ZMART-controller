@@ -102,9 +102,8 @@ We have not defined a vocabulary for error messages at this point.
 
 ## Want to give it a try?
 
-1. **[Plug in a driver](docs/2_plug_in_a_driver/README.md).** What a driver is, what it must provide, where its functions go, and how to
-   plug it in.
-2. **[Use the controller](docs/1_use_the_controller/README.md).** Every command, what it does, and what it answers.
+1. **[Using the ZMART-controller](docs/1_use_the_controller/README.md).** Every command, what it does, and what it answers.
+2. **[How do I plug in a ZMART-driver](docs/2_plug_in_a_driver/README.md).** What a driver is, how to install it, and how to write one.
 
 ## Install it
 
