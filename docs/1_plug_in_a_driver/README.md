@@ -103,20 +103,20 @@ def disconnect(handle):               # optional
 
 def get_info(handle):
     # Ask the vendor software where images go, and describe the microscope in words.
-    return {"success": True, "content": {"output_root": "D:/images", "description": "..."}}
+    return {"success": True, "content": {"output_root": output_root, "description": description}}
 
 
 def get_actuators(handle):
     # List the motors that can move each axis.
-    return {"success": True, "content": {"x": ["motor"], "y": ["motor"], "z": ["motor", "piezo"]}}
+    return {"success": True, "content": {"x": x_motors, "y": y_motors, "z": z_motors}}
 
 
 def get_xyz(handle, *, with_actuators=None):
     # Read the stage position and turn it into micrometres from the origin.
     return {"success": True, "content": {
-        "x": {"value": 0.0, "actuator": "motor", "canvas": [-5000.0, 5000.0]},
-        "y": {"value": 0.0, "actuator": "motor", "canvas": [-5000.0, 5000.0]},
-        "z": {"value": 0.0, "actuator": "motor", "canvas": [-500.0, 500.0]},
+        "x": {"value": x, "actuator": x_motor, "canvas": [x_min, x_max]},
+        "y": {"value": y, "actuator": y_motor, "canvas": [y_min, y_max]},
+        "z": {"value": z, "actuator": z_motor, "canvas": [z_min, z_max]},
     }}
 
 
@@ -124,38 +124,37 @@ def set_xyz(handle, x, y, z, *, with_actuators=None):
     # Check the travel limits, send the move, and read back until the stage has arrived.
     return {"success": True, "content": {
         "position": {"x": x, "y": y, "z": z},
-        "actuators": {"x": "motor", "y": "motor", "z": "motor"},
+        "actuators": {"x": x_motor, "y": y_motor, "z": z_motor},
     }}
 
 
 def get_state(handle):
     # Read the settings that can be changed, and what can only be observed.
-    return {"success": True, "content": {"changeable": {"exposure_ms": 10.0}, "observed": {"objective": "10x"}}}
+    return {"success": True, "content": {"changeable": changeable, "observed": observed}}
 
 
 def set_state(handle, state):
     # Apply each setting under changeable, and read back to confirm it took.
-    return {"success": True, "content": {"applied": {"exposure_ms": 10.0}}}
+    return {"success": True, "content": {"applied": applied}}
 
 
 def get_acquisition_settings(handle):
     # List the choices for one acquisition, and the value each has now.
-    return {"success": True, "content": {"format": {"options": ["ome-tiff", "ome-zarr"], "active": "ome-tiff"}}}
+    return {"success": True, "content": {name: {"options": options, "active": active}}}
 
 
 def acquire(handle, *, position_label, acquisition_settings=None):
     # Capture, wait for the vendor's file, save it as OME-TIFF or OME-Zarr named after position_label.
     return {"success": True, "content": {
         "position_label": position_label,
-        "files": ["D:/images/A1.ome.tif"],
-        "planes": [{"path": "D:/images/A1.ome.tif", "c": 0, "z": 0, "t": 0,
-                    "x_um": 0.0, "y_um": 0.0, "z_um": 0.0}],
+        "files": files,               # the path of every file saved
+        "planes": [{"path": path, "c": c, "z": z, "t": t, "x_um": x_um, "y_um": y_um, "z_um": z_um}],
     }}
 
 
 def get_procedures(handle):
     # List the routines this microscope offers, such as autofocus.
-    return {"success": True, "content": {"autofocus": {"description": "..."}}}
+    return {"success": True, "content": {name: {"description": description}}}
 
 
 def run_procedure(handle, procedure):
@@ -165,7 +164,7 @@ def run_procedure(handle, procedure):
 
 In each function, the comment is where your code that controls the
 microscope goes. The `return` at the end shows the least every answer must
-contain; the values are examples. The sections below say what each key means. A driver may add
+contain. Each name in it is a variable your code has to fill in. The sections below say what each key means. A driver may add
 keys of its own to any answer.
 
 `NAME` is the name the driver is listed under once it is installed.
