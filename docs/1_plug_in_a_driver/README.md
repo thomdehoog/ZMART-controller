@@ -82,6 +82,8 @@ controller turns that into the answer the workflow sees. An error that
 happens anyway, a bug or the vendor library failing, is answered the same
 way, with its text:
 
+#### set_state
+
 ```python
 def set_state(self, changeable):
     ...
@@ -95,6 +97,8 @@ it took; a setting the microscope does not have is a failure.
 
 ### Per call
 
+#### __init__
+
 ```python
 def __init__(self, connection):
     # connection: the dict from zmart_driver.json
@@ -107,12 +111,16 @@ in `connection`, and load what was measured once for this microscope, the
 origin, the travel limits and the calibration, so that every later command
 works in the sample's coordinate system.
 
+#### disconnect
+
 ```python
 def disconnect(self):
     # close the vendor connection
 ```
 
 Close the vendor connection cleanly, so the next driver can open it.
+
+#### get_info
 
 ```python
 def get_info(self):
@@ -126,6 +134,8 @@ program, so say what the other commands cannot: what each setting means,
 its unit and its bounds, which objective sits in which slot, which way +z
 points.
 
+#### get_actuators
+
 ```python
 def get_actuators(self):
     return True, (x_motors, y_motors, z_motors)
@@ -134,6 +144,8 @@ def get_actuators(self):
 
 Name every motor that can move an axis. The first one is the default
 when a command does not pick one.
+
+#### get_xyz
 
 ```python
 def get_xyz(self, with_actuators):
@@ -148,6 +160,8 @@ from the saved origin, with right as +x and down as +y in a saved image.
 The canvas is everywhere a picture can show, so a viewer can lay out the
 whole specimen before the first picture.
 
+#### set_xyz
+
 ```python
 def set_xyz(self, x, y, z, with_actuators):
     # move, then read back until the stage has arrived
@@ -158,6 +172,8 @@ def set_xyz(self, x, y, z, with_actuators):
 Move in the sample's coordinate system. Check the travel limits before
 moving, then read the position back until the stage has arrived; a move
 that never arrives is a failure, so the workflow stops.
+
+#### get_state
 
 ```python
 def get_state(self):
@@ -170,12 +186,16 @@ Capture the settings so they can be applied again later. Only
 `changeable` is ever sent back; `observed` describes and is never an
 instruction.
 
+#### set_state
+
 ```python
 def set_state(self, changeable):
     # apply each one, then read it back
     return True, applied                           # {"exposure_ms": 20.0, ...}: what took
     return False, "<error message>"                # e.g. a setting that did not take, or an unknown one
 ```
+
+#### get_acquisition_settings
 
 ```python
 def get_acquisition_settings(self):
@@ -186,6 +206,8 @@ def get_acquisition_settings(self):
 
 List the choices for one picture, such as the file format or the planes of
 a z-stack, with the values each may take and the one in use.
+
+#### acquire
 
 ```python
 def acquire(self, position_label, acquisition_settings):
@@ -201,6 +223,8 @@ file in `files`, and every image plane in `planes`, with its stage position
 in the sample's coordinate system. Save a second picture with the same
 label under a new name.
 
+#### get_procedures
+
 ```python
 def get_procedures(self):
     return True, {name: {"description": ...}}
@@ -209,6 +233,8 @@ def get_procedures(self):
 
 List the routines this microscope offers, with a description a person can
 pick from.
+
+#### run_procedure
 
 ```python
 def run_procedure(self, procedure):
