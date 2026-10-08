@@ -106,32 +106,32 @@ there; the shipped file looks the same, and you replace every value:
 
 `get_instruments()` shows this back for every installed driver, without the password.
 
-### The class: zmart_driver.py
+### The ZmartController
 
-When the controller connects, it makes one `ZmartDriver` from the
-connection and keeps it for as long as the microscope is connected. Every
-command a workflow sends, such as `set_xyz` or `acquire`, becomes a call
-to the method of the same name on that object. Your methods return plain
-values. The controller wraps them in the shape every command answers
-with, `{"success": True, "content": {...}}`, where `content` holds what
-the method returned under fixed keys. The sections below say which.
+The controller is one class, `ZmartController`, in
+`zmart_controller/zmart_controller.py`. Making one connects: it makes one
+`ZmartDriver` from the connection and keeps it for as long as the
+microscope is connected.
 
-A method has two ways to answer: it returns, or it raises.
+```python
+from zmart_controller import ZmartController
 
-- **Success: return.** The answer is `success: True`, with what you returned
-  in `content`.
-- **Failure: raise.** Which exception you raise decides what the workflow
-  sees. `NotConfirmed("...")` is the soft failure, for when the command
-  was sent but what it asked for never showed up and it is safe to carry
-  on: the answer is `success: False`, and `content` is just your error
-  text. `ValueError` for a wrong request and `RuntimeError` for a
-  microscope that fails are the hard failures: they go to the workflow as
-  errors, unchanged, because carrying on is not safe.
+mic = ZmartController("my-scope")
+mic.set_xyz(100, 50, 0)
+```
 
-A driver can also be written without the class, as a module with twelve
-functions that build those answers themselves; the drivers at the ZMB are
-built that way, and the list of function names is kept in
-`zmart_controller.zmart_controller.OPS`. The class is the shorter road.
+Every command, such as `set_xyz` or `acquire`, becomes a call to the method
+of the same name on your `ZmartDriver`. The controller wraps what the
+method hands back into the answer every command gives:
+
+- **The method returns.** The answer is
+  `{"success": True, "content": {...}}`, with what you returned under
+  fixed keys.
+- **The method raises.** `NotConfirmed("...")` is the soft failure, for a
+  command that was sent but never showed up when it is safe to carry on:
+  the answer is `{"success": False, "content": "..."}` with your text.
+  `ValueError` and `RuntimeError` are the hard failures: they reach the
+  workflow as errors, unchanged, because carrying on is not safe.
 
 So what is left for you is to write a `ZmartDriver` class that complies
 with the following.
