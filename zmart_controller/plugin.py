@@ -1,8 +1,9 @@
 """The plugin: how a driver made of a ``ZmartDriver`` class is plugged into the controller.
 
-A driver is a folder with two files: ``zmart_driver.json``, the driver's name
-and how to reach the microscope, and ``zmart_driver.py``, a ``ZmartDriver``
-class with one method per command. This module is the same for every such
+A driver is two files: ``zmart_driver.json``, the driver's name, where its
+class file is, and how to reach the microscope, and that class file,
+``zmart_driver.py`` by default, with a ``ZmartDriver`` class that has one
+method per command. This module is the same for every such
 driver, so it lives here rather than in each driver's folder.
 
 :func:`load` reads the two files and returns the driver as the controller
@@ -24,7 +25,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 
-#: The two files a driver is made of.
+#: The settings file a driver is installed from, and the class file it names by default.
 SETTINGS_FILE = "zmart_driver.json"
 DRIVER_FILE = "zmart_driver.py"
 
@@ -32,8 +33,10 @@ DRIVER_FILE = "zmart_driver.py"
 def load(where: str | Path) -> SimpleNamespace:
     """The driver in the folder ``where``, or at that ``zmart_driver.json``, ready to plug in.
 
-    Reads the name and connection from ``zmart_driver.json``, imports the
-    ``ZmartDriver`` class from ``zmart_driver.py`` next to it, and returns
+    Reads the name, the connection and the class file's path from
+    ``zmart_driver.json`` (``driver``, relative to the JSON's folder,
+    ``zmart_driver.py`` when left out), imports the ``ZmartDriver`` class
+    from that file, and returns
     an object with ``NAME``, ``CONNECTION`` and one function per command,
     which ``set_instrument``, ``validate_driver`` and ``register_driver``
     all accept. Raises ``ValueError`` naming what is missing.
@@ -43,15 +46,19 @@ def load(where: str | Path) -> SimpleNamespace:
     folder = Path(where).resolve()
     if folder.is_file():
         folder = folder.parent
-    settings_file, driver_file = folder / SETTINGS_FILE, folder / DRIVER_FILE
-    for file in (settings_file, driver_file):
-        if not file.is_file():
-            raise ValueError(f"a driver needs {SETTINGS_FILE} and {DRIVER_FILE}; {file} is missing")
+    settings_file = folder / SETTINGS_FILE
+    if not settings_file.is_file():
+        raise ValueError(
+            f"a driver is installed from its {SETTINGS_FILE}; {settings_file} is missing"
+        )
     settings = json.loads(settings_file.read_text())
     name, connection = settings.get("name"), settings.get("connection") or {}
     if not isinstance(name, str) or not name.strip():
         raise ValueError(f'{settings_file} must give the driver\'s "name"')
-    module = _import(f"{_FILE_PREFIX}{driver_file}", str(folder))
+    driver_file = (folder / settings.get("driver", DRIVER_FILE)).resolve()
+    if not driver_file.is_file():
+        raise ValueError(f'{settings_file} names the class file "driver": {driver_file} is missing')
+    module = _import(f"{_FILE_PREFIX}{driver_file}", str(driver_file.parent))
     driver_class = getattr(module, "ZmartDriver", None)
     if not isinstance(driver_class, type):
         raise ValueError(f"{driver_file} must define the class ZmartDriver")
