@@ -130,11 +130,16 @@ def test_a_copied_template_is_installed_from_its_folder_or_json(tmp_path):
         zmart_controller.remove_driver("my-scope-2")
 
 
-def test_the_readme_quotes_the_plugin_and_names_every_method():
+def test_the_readme_quotes_the_controller_and_names_every_method():
+    """Every controller function the README quotes is the code itself, so they cannot drift."""
     text = README.read_text()
     source = Path(plugin.__file__).read_text()
-    quoted = text.split("```python\n# zmart_controller/plugin.py\n", 1)[1].split("```", 1)[0]
-    assert quoted.strip("\n") in source
+    quoted = re.findall(r"```python\n# zmart_controller/plugin.py\n\n(.*?)```", text, re.S)
+    assert quoted
+    for block in quoted:
+        for function in block.strip("\n").split("\n\n\n"):
+            indented = "\n".join("    " + line if line else line for line in function.splitlines())
+            assert function in source or indented in source
     for name in dir(ZmartDriver):
         if not name.startswith("_"):
             assert f"def {name}(self" in text

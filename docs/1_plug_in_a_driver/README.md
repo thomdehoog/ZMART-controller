@@ -10,7 +10,7 @@ small driver and plugs it in, open the [tutorial notebook](tutorial.ipynb).
 
 1. [What a driver is](#what-a-driver-is)
 2. [Install a driver into the controller](#install-a-driver-into-the-controller)
-3. [The plugin](#the-plugin)
+3. [The two files of a driver](#the-two-files-of-a-driver)
 4. [Writing the ZmartDriver](#writing-the-zmartdriver)
 5. [Rules for every driver](#rules-for-every-driver)
 6. [The configuration folder](#the-configuration-folder)
@@ -68,21 +68,18 @@ The mock driver is always on the list, and the name `"mock"` is taken.
 The drivers for the microscopes at the ZMB are in
 [ZMART drivers](https://github.com/thomdehoog/ZMART-drivers).
 
-## The plugin
+## The two files of a driver
 
 A driver is a folder with two files, and both are yours:
 
 - `zmart_driver.json` holds the driver's name and how to reach the
   microscope. It is what you point at to install the driver.
 - `zmart_driver.py` holds the `ZmartDriver` class, the code that drives the
-  microscope, one method per command. The
-  [next section](#writing-the-zmartdriver) goes through it.
+  microscope, one method per command.
 
 The controller ships both, ready to copy, in the folder
 `zmart_controller/template`. Copy that folder, rename it, and adapt the
-two files. The code that plugs them into the controller, the **plugin**, is
-the same for every driver, so it lives inside the controller and you never
-touch it.
+two files.
 
 ### The settings: zmart_driver.json
 
@@ -108,36 +105,26 @@ edit them without touching Python:
 `connection` is how to reach this microscope: which instrument this is,
 how its vendor software is reached, where it listens, the password, the
 vendor's configuration file, and where images are saved. The controller
-hands it to the driver unchanged and reads nothing from it itself, so a
+hands it to your class unchanged and reads nothing from it itself, so a
 driver may add keys, but every driver starts from these. Leave a key empty
 when the microscope does not need it. `get_instruments()` shows the
 connection of every installed driver, with password, token and secret keys
 left out.
 
-### How the plugin calls your class
+### The class: zmart_driver.py
 
-When the controller connects, the plugin makes one `ZmartDriver` from the
-connection and keeps it as the **handle**. The controller never looks
-inside the handle; it hands it back with every command. For each command,
-the plugin calls the method of the same name on the handle and wraps what
-comes back in the shape every command shares. This is the plugin's
-function for `get_info`, and every other one looks the same:
+When the controller connects, it makes one `ZmartDriver` from the
+connection and keeps it for as long as the microscope is connected. Every
+command a workflow sends, such as `set_xyz` or `acquire`, becomes a call
+to the method of the same name on that object. Your methods return plain
+values. The controller wraps them in the shape every command answers
+with, `{"success": True, "content": {...}}`, where `content` holds what
+the method returned under fixed keys. The sections below say which.
 
-```python
-# zmart_controller/plugin.py
-
-def get_info(handle):
-
-    output_root, description = handle.get_info()
-
-    return {"success": True, "content": {"output_root": output_root, "description": description}}
-```
-
-`success` says whether the driver did what was asked. `content` is what the
-driver has to say about it. A driver that brings its own plugin file,
-`zmart_controller_plugin.py` with these twelve functions, is installed from
-that file instead; the drivers at the ZMB are built that way, and the list
-of function names is kept in `zmart_controller.utils.OPS`.
+A driver can also be written without the class, as a module with twelve
+functions that build those answers themselves; the drivers at the ZMB are
+built that way, and the list of function names is kept in
+`zmart_controller.utils.OPS`. The class is the shorter road.
 
 So what is left for you is to write a `ZmartDriver` class that complies
 with the following.
@@ -152,16 +139,35 @@ it. Every method starts out raising `NotImplementedError`, with a docstring
 saying what it must hand back, so `validate_driver` tells you which one is
 still to write.
 
-The plugin calls these methods and expects their answers in a fixed form.
+The controller calls these methods and expects their answers in a fixed form.
 Each method returns the plain values named beside it, never the `success`
-and `content` wrapping; the plugin adds that. The headings below show the method, what it returns,
-and what the plugin then puts in `content`.
+and `content` wrapping; the controller adds that. The headings below show the method, what it returns,
+and what the controller then puts in `content`.
 
 ### Connect and disconnect
 
 ```python
 def __init__(self, connection): ...    # open the vendor connection, keep what you need on self
 def disconnect(self): ...              # close it; afterwards every other call should raise RuntimeError
+```
+
+On the controller's side, `connect` makes the `ZmartDriver` and keeps it as
+the handle, and `disconnect` closes it:
+
+```python
+# zmart_controller/plugin.py
+
+def connect(connection):
+    handle = driver_class(connection)
+
+    return handle  # the connected driver; every other function receives it back
+
+
+def disconnect(handle):  # optional
+
+    handle.disconnect()
+
+    return None
 ```
 
 `connection` is the one from `zmart_driver.json`, or the dictionary given
@@ -175,6 +181,18 @@ the origin, the travel limits and the calibration, from the
 def get_info(self): ...                # returns output_root, description
 ```
 
+On the controller's side, this is what receives it:
+
+```python
+# zmart_controller/plugin.py
+
+def get_info(handle):
+
+    output_root, description = handle.get_info()
+
+    return {"success": True, "content": {"output_root": output_root, "description": description}}
+```
+
 `output_root` is the folder where images are saved. `description` is the
 microscope in plain words, read by whoever drives it: a person, a notebook,
 or the ZMART AI agent. Say what the other answers cannot: what each
@@ -183,7 +201,7 @@ which slot, which way +z points, and anything about the sample worth
 knowing. Leave out what `get_xyz` and `get_procedures` already report. It
 must be text with something in it.
 
-The plugin puts both in `content`. Anything else a driver adds there is an
+The controller puts both in `content`. Anything else a driver adds there is an
 extra of that driver, and a workflow that depends on it will not run on
 other microscopes.
 
@@ -194,6 +212,46 @@ def get_actuators(self): ...                      # returns x_motors, y_motors, 
 def get_xyz(self, with_actuators): ...            # returns x, y, z, x_motor, y_motor, z_motor
 def get_canvas(self): ...                         # returns x_min, x_max, y_min, y_max, z_min, z_max
 def set_xyz(self, x, y, z, with_actuators): ...   # moves, then returns x_motor, y_motor, z_motor
+```
+
+On the controller's side, this is what receives it:
+
+```python
+# zmart_controller/plugin.py
+
+def get_actuators(handle):
+
+    x_motors, y_motors, z_motors = handle.get_actuators()
+
+    return {"success": True, "content": {"x": x_motors, "y": y_motors, "z": z_motors}}
+
+
+def get_xyz(handle, *, with_actuators=None):
+
+    x, y, z, x_motor, y_motor, z_motor = handle.get_xyz(with_actuators)
+    x_min, x_max, y_min, y_max, z_min, z_max = handle.get_canvas()
+
+    return {
+        "success": True,
+        "content": {
+            "x": {"value": x, "actuator": x_motor, "canvas": [x_min, x_max]},
+            "y": {"value": y, "actuator": y_motor, "canvas": [y_min, y_max]},
+            "z": {"value": z, "actuator": z_motor, "canvas": [z_min, z_max]},
+        },
+    }
+
+
+def set_xyz(handle, x, y, z, *, with_actuators=None):
+
+    x_motor, y_motor, z_motor = handle.set_xyz(x, y, z, with_actuators)
+
+    return {
+        "success": True,
+        "content": {
+            "position": {"x": x, "y": y, "z": z},
+            "actuators": {"x": x_motor, "y": y_motor, "z": z_motor},
+        },
+    }
 ```
 
 Positions are in **micrometres from the origin**. The origin is a point
@@ -211,7 +269,7 @@ axis. `with_actuators` is a dictionary that names the motor to use per
 axis, such as `{"z": "piezo"}`, or `None`. An axis left out uses the first
 motor in its list. A name that is not in the list raises `ValueError`.
 
-For `get_xyz`, the plugin builds `content` per axis from the position and
+For `get_xyz`, the controller builds `content` per axis from the position and
 the canvas:
 
 | Key | What it is |
@@ -231,7 +289,7 @@ The stage itself still stops at the travel limits.
 position outside them. It sends the move and reads the position back until
 the stage has arrived, and raises `RuntimeError` when it cannot be
 confirmed, because carrying on at an unknown position is never safe. The
-plugin reports `position`, the position asked for, and `actuators`, the
+controller reports `position`, the position asked for, and `actuators`, the
 motor used per axis.
 
 ### Settings: get_state, set_state
@@ -239,6 +297,25 @@ motor used per axis.
 ```python
 def get_state(self): ...               # returns changeable, observed
 def set_state(self, changeable): ...   # applies them, returns applied
+```
+
+On the controller's side, this is what receives it:
+
+```python
+# zmart_controller/plugin.py
+
+def get_state(handle):
+
+    changeable, observed = handle.get_state()
+
+    return {"success": True, "content": {"changeable": changeable, "observed": observed}}
+
+
+def set_state(handle, state):
+
+    applied = handle.set_state(state["changeable"])
+
+    return {"success": True, "content": {"applied": applied}}
 ```
 
 The state is the instrument's settings, captured by `get_state` so they can
@@ -249,16 +326,42 @@ be applied again later with `set_state`. It has two dictionaries:
 - `observed`: a read-only description, such as the objective in place and
   the pixel size. It is never used as an instruction.
 
-The plugin hands `set_state` only the `changeable` part of what the
+The controller hands `set_state` only the `changeable` part of what the
 workflow sent. Apply each setting, read it back to confirm it took, raise
 `ValueError` for a name the microscope does not have, and return what was
-applied; the plugin reports it under `applied`.
+applied; the controller reports it under `applied`.
 
 ### Acquire: get_acquisition_settings, acquire
 
 ```python
 def get_acquisition_settings(self): ...                      # returns {name: {"options": [...], "active": value}}
 def acquire(self, position_label, acquisition_settings): ... # captures and saves, returns files, planes
+```
+
+On the controller's side, this is what receives it:
+
+```python
+# zmart_controller/plugin.py
+
+def get_acquisition_settings(handle):
+
+    settings = handle.get_acquisition_settings()  # {name: {"options": [...], "active": value}}
+
+    return {"success": True, "content": settings}
+
+
+def acquire(handle, *, position_label, acquisition_settings=None):
+
+    files, planes = handle.acquire(position_label, acquisition_settings)
+
+    return {
+        "success": True,
+        "content": {
+            "position_label": position_label,
+            "files": files,  # the path of every file saved
+            "planes": planes,  # [{"path", "c", "z", "t", "x_um", "y_um", "z_um"}, ...]
+        },
+    }
 ```
 
 Acquisition settings are the choices for one acquisition, such as the file
@@ -269,7 +372,7 @@ out of `acquire`. An acquisition setting that is not listed raises
 `ValueError`.
 
 `acquire` captures an image at the current position with the current
-settings, and saves it. The plugin puts three things in `content`:
+settings, and saves it. The controller puts three things in `content`:
 
 | Key | What it is |
 |---|---|
@@ -304,10 +407,29 @@ def get_procedures(self): ...             # returns {name: {"description": ...}}
 def run_procedure(self, procedure): ...   # runs the one named procedure["name"]
 ```
 
+On the controller's side, this is what receives it:
+
+```python
+# zmart_controller/plugin.py
+
+def get_procedures(handle):
+
+    procedures = handle.get_procedures()  # {name: {"description": ...}}
+
+    return {"success": True, "content": procedures}
+
+
+def run_procedure(handle, procedure):
+
+    handle.run_procedure(procedure)
+
+    return {"success": True, "content": {"ran": procedure["name"]}}
+```
+
 Procedures are the routines a microscope offers, such as autofocus or
 parking the stage. `procedure` is a dictionary whose `name` picks one; its
 other keys are the arguments. A name that `get_procedures` does not list
-raises `ValueError`. The plugin reports `ran`, the name of the procedure.
+raises `ValueError`. The controller reports `ran`, the name of the procedure.
 
 ## Rules for every driver
 
