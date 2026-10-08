@@ -109,7 +109,7 @@ The mock driver is always on the list, and the name `"mock"` is taken.
 The drivers for the microscopes at the ZMB are in
 [ZMART drivers](https://github.com/thomdehoog/ZMART-drivers).
 
-## The ZmartController
+## 3) The ZmartController
 
 The controller consists of one class, `ZmartController`, in `zmart_controller/zmart_controller.py`.
 
@@ -161,7 +161,7 @@ hands back.
 So what is left for you is to write a `ZmartDriver` class that complies
 with the following.
 
-## Writing the ZmartDriver
+## 4) Writing the ZmartDriver
 
 `ZmartDriver` in `zmart_driver.py` is the code that drives the vendor
 software. Making one opens the connection, and each method does one
