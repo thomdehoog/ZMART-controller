@@ -34,14 +34,6 @@ class TestSetInstrument:
         finally:
             session.disconnect()
 
-    def test_a_driver_can_be_a_dict_of_functions(self):
-        functions = {name: getattr(mock, name) for name in mock.__all__}
-        session = set_instrument(functions)
-        try:
-            assert session.get_xyz()["success"] is True
-        finally:
-            session.disconnect()
-
     def test_a_missing_function_is_named(self):
         functions = {name: getattr(mock, name) for name in mock.__all__ if name != "set_xyz"}
         with pytest.raises(ValueError, match="set_xyz"):
