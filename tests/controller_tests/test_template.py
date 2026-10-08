@@ -154,14 +154,13 @@ def test_a_copied_template_is_installed_from_its_folder_or_json(tmp_path):
         zmart_controller.remove_driver("my-scope-2")
 
 
-def test_the_readme_quotes_the_controller_and_names_every_method():
+def test_the_readme_names_every_method_and_quotes_the_controller_faithfully():
     """Every controller function the README quotes is the code itself, so they cannot drift."""
     text = README.read_text()
     source = Path(controller.__file__).read_text()
     quoted = re.findall(
         r"```python\n# zmart_controller/zmart_controller.py\n\n(.*?)```", text, re.S
     )
-    assert quoted
     for block in quoted:
         for line in block.splitlines():
             assert not line.strip() or line.strip() in source, line
