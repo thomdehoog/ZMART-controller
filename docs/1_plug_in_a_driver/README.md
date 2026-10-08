@@ -36,13 +36,13 @@ command. The controller does the plugging in.
 ## Install a driver into the controller
 
 Installing a driver into the controller means telling it, once, where the
-driver is on this computer, by pointing it at the driver's folder or at
-its `zmart_driver.json`:
+driver is on this computer, by pointing it at the driver's
+`zmart_driver.json`:
 
 ```python
 import zmart_controller
 
-zmart_controller.register_driver("C:/drivers/my-scope")
+zmart_controller.register_driver("C:/drivers/my-scope/zmart_driver.json")
 ```
 
 `register_driver` loads the driver and checks that its name and its
@@ -74,8 +74,9 @@ A driver is a folder with two files, and both are yours:
 
 - `zmart_driver.json` holds the driver's name and how to reach the
   microscope. It is what you point at to install the driver.
-- `zmart_driver.py` holds the `ZmartDriver` class, the code that drives the
-  microscope, one method per command.
+- `zmart_driver.py` holds the `ZmartDriver` class, which integrates the
+  code that drives the microscope, one method per command. What each
+  method hands back must comply with what the controller needs.
 
 The controller ships both, ready to copy, in the folder
 `zmart_controller/template`. Copy that folder, rename it, and adapt the
@@ -481,7 +482,7 @@ The controller can check a driver's answers against the requirements on this
 page, so you do not have to compare them by hand.
 
 ```python
-my_driver = zmart_controller.load_driver("C:/drivers/my-scope")
+my_driver = zmart_controller.load_driver("C:/drivers/my-scope/zmart_driver.json")
 zmart_controller.validate_driver(my_driver)
 ```
 

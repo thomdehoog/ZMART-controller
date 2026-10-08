@@ -16,12 +16,12 @@ to reach the microscope, and ``zmart_driver.py``, a ``ZmartDriver`` class
 with one method per command. Install it on the computer once, then plug it
 in by name::
 
-    zmart_controller.register_driver("path/to/my-scope")
+    zmart_controller.register_driver("path/to/my-scope/zmart_driver.json")
     zmart_controller.set_instrument("my-scope")
 
 While writing one, load it from its folder instead::
 
-    zmart_controller.set_instrument(zmart_controller.load_driver("path/to/my-scope"))
+    zmart_controller.set_instrument(zmart_controller.load_driver("path/to/my-scope/zmart_driver.json"))
 
 To drive several microscopes at once, hold a session for each::
 
