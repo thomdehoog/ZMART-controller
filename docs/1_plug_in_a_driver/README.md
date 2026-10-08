@@ -1,4 +1,4 @@
-# 1. How do I plug in a ZMART-driver
+# 1. How do I plug in a ZMART-driver in the ZMART-Controller
 
 ## Contents
 
