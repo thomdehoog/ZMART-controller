@@ -285,7 +285,7 @@ def load_driver(where: str | Path) -> SimpleNamespace:
     ``zmart_driver.py`` when left out), imports the ``ZmartDriver`` class
     from that file, and returns
     an object with ``NAME``, ``CONNECTION`` and the ``ZmartDriver`` class,
-    which ``ZmartController``, ``set_instrument``, ``validate_driver`` and
+    which ``ZmartController``, ``set_instrument`` and
     ``register_driver`` all accept. Raises ``ValueError`` naming what is
     missing.
     """

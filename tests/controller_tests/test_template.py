@@ -15,6 +15,7 @@ import pytest
 
 import zmart_controller
 from zmart_controller import zmart_controller as controller
+from zmart_controller.template.checks import check_acquire_answer, validate_driver
 from zmart_controller.template.zmart_driver import ZmartDriver
 
 README = Path(__file__).parents[2] / "docs" / "1_plug_in_a_driver" / "README.md"
@@ -87,18 +88,18 @@ def test_the_template_loads_and_offers_every_function():
 
 def test_an_unfilled_driver_says_what_is_missing():
     with pytest.raises(NotImplementedError, match="ZmartDriver.__init__"):
-        zmart_controller.validate_driver(zmart_controller.load_driver(TEMPLATE))
+        validate_driver(zmart_controller.load_driver(TEMPLATE))
 
 
 def test_a_filled_in_driver_passes_validation_and_acquires(tmp_path):
     PretendDriver.folder = tmp_path
     driver = PretendDriver
-    assert zmart_controller.validate_driver(driver) == []
+    assert validate_driver(driver) == []
     session = zmart_controller.set_instrument(driver)
     try:
         session.set_xyz(100.0, 50.0, 0.0)
         answer = session.acquire(position_label="A1")
-        assert zmart_controller.check_acquire_answer(answer) == []
+        assert check_acquire_answer(answer) == []
         assert session.run_procedure({"name": "park"})["content"] == {"ran": "park"}
     finally:
         session.disconnect()
