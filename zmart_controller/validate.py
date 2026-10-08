@@ -221,7 +221,7 @@ def check_acquire_answer(answer: Any) -> list[str]:
 
 #: What every entry of the ``planes`` in acquire's content holds: the file, the
 #: plane's channel, depth and moment counted from 0, and the stage position in
-#: micrometres it was taken at. docs/1_plug_in_a_driver/README.md explains each one.
+#: micrometres it was taken at. docs/2_plug_in_a_driver/README.md explains each one.
 _PLANE_COUNTS = ("c", "z", "t")
 _PLANE_POSITION_UM = ("x_um", "y_um", "z_um")
 _PLANE_KEYS = ("path", *_PLANE_COUNTS, *_PLANE_POSITION_UM)
