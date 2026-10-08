@@ -108,10 +108,11 @@ there; the shipped file looks the same, and you replace every value:
 
 ### The ZmartController
 
-The controller is one class, `ZmartController`, in
-`zmart_controller/zmart_controller.py`. Making one connects: it makes one
-`ZmartDriver` from the connection and keeps it for as long as the
-microscope is connected.
+One class, `ZmartController`, in `zmart_controller/zmart_controller.py`.
+
+**In:** the two files. Making a controller makes one `ZmartDriver` from the
+connection in the JSON, and every command becomes a call to the method of
+the same name on it.
 
 ```python
 from zmart_controller import ZmartController
@@ -120,18 +121,14 @@ mic = ZmartController("my-scope")
 mic.set_xyz(100, 50, 0)
 ```
 
-Every command, such as `set_xyz` or `acquire`, becomes a call to the method
-of the same name on your `ZmartDriver`. The controller wraps what the
-method hands back into the answer every command gives:
+**Out:** one answer shape for every command, built from what your method
+hands back.
 
-- **The method returns.** The answer is
-  `{"success": True, "content": {...}}`, with what you returned under
-  fixed keys.
-- **The method raises.** `NotConfirmed("...")` is the soft failure, for a
-  command that was sent but never showed up when it is safe to carry on:
-  the answer is `{"success": False, "content": "..."}` with your text.
-  `ValueError` and `RuntimeError` are the hard failures: they reach the
-  workflow as errors, unchanged, because carrying on is not safe.
+| Your method | The answer |
+|---|---|
+| returns | `{"success": True, "content": {...}}`, your values under fixed keys |
+| raises `NotConfirmed("...")` | `{"success": False, "content": "..."}`, your text |
+| raises `ValueError` or `RuntimeError` | the error itself, unchanged |
 
 So what is left for you is to write a `ZmartDriver` class that complies
 with the following.
