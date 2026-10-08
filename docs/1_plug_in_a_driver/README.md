@@ -2,7 +2,7 @@
 
 Connect the ZMART Controller to a microscope.
 
-This page is the reference. For a step-by-step walk-through, open the
+This page is acts as documentation. For a step-by-step walk-through, open the
 [tutorial notebook](tutorial.ipynb).
 
 ## Contents
@@ -21,20 +21,12 @@ This page is the reference. For a step-by-step walk-through, open the
 
 ## What a driver is
 
-The controller does not know any microscope. It hands every command to a
-**driver**, and the driver carries it out on its own microscope.
+The controller is microscope-agnostic and acts as an messenger. It hands every command to a
+**driver**. The driver is a set of files the communicates with the vendor software
 
 ```
-your workflow ──► zmart_controller ──► driver ──► vendor software ──► microscope
+your workflow ──► zmart controller ──► driver ──► vendor software ──► microscope
 ```
-
-A driver is the set of files that talks to one microscope. Towards the
-controller, every driver looks the same: one Python function per command,
-with the same name and the same kind of answer. Inside, the driver speaks
-the vendor's own language.
-
-This is why a workflow written once runs on every microscope that has a
-driver.
 
 The controller ships with one driver, the **mock driver**. It is a simulated
 microscope that runs on any computer, so you can try everything at your desk.
@@ -76,11 +68,10 @@ the connection by hand. To drive several microscopes at once, hold a session
 for each. Part 2, [Use the controller](../2_use_the_controller/README.md#several-microscopes-at-once),
 shows how.
 
-## The driver file
+## Plugin the driver through one python file
 
 The functions the controller calls live in one file,
-`zmart_controller_plugin.py`. The same file names the driver and, if needed,
-holds its configuration on this computer.
+`zmart_controller_plugin.py`. This files is part of the driver.
 
 ```python
 # zmart_controller_plugin.py
@@ -91,21 +82,6 @@ CONNECTION = {"host": "localhost", "output_root": "D:/images"}   # optional
 def connect(connection): ...
 def get_xyz(handle, *, with_actuators=None): ...
 # ... one function per command, as in the table below
-```
-
-The controller finds the functions by name. Anything else in the file is
-ignored. `CONNECTION` is handed to `connect` every time the driver is plugged
-in.
-
-The rest of the driver lives beside this file, organised however you like.
-For a small driver, this one file can be the whole driver. For a large one,
-read [the anatomy of a ZMART driver](https://github.com/thomdehoog/ZMART-drivers/blob/main/docs/driver-anatomy.md).
-The mock driver is a complete example of it.
-
-```
-my_driver/
-    zmart_controller_plugin.py   NAME, CONNECTION, and the functions the controller calls
-    ...                          the rest of the driver
 ```
 
 ## The functions
@@ -132,6 +108,8 @@ driver has to say about it. The table lists what `content` must contain, so
 that a workflow written for one microscope keeps working on another. A driver
 may add keys of its own. It must not leave these out.
 
+The functions
+
 | Function | Receives | `content` must contain |
 |---|---|---|
 | `connect` | the connection dictionary | *(returns a handle instead)* |
@@ -147,40 +125,6 @@ may add keys of its own. It must not leave these out.
 | `get_procedures` | handle | `{name: {"description": ...}}` |
 | `run_procedure` | handle, `{"name": ..., ...}` | `ran`: the name of the procedure. Raise `ValueError` for an unknown name |
 
-`with_actuators` names the motor to use per axis, such as `{"z": "piezo"}`.
-The names come from `get_actuators`. Left out, the driver uses its default
-motor.
-
-## Positions and the canvas
-
-**Positions are in micrometres from the origin.** The origin is a point on
-the microscope that reads as (0, 0, 0). It is recorded once during setup and
-stored by the driver (see [The configuration folder](#the-configuration-folder)).
-
-For each axis, `get_xyz` reports three things:
-
-| Key | What it is |
-|---|---|
-| `value` | where the axis is now |
-| `actuator` | the motor that was read |
-| `canvas` | `[min, max]`: everywhere a picture can show on that axis |
-
-The canvas is the stage's travel, widened a little. A picture taken at the
-end of the travel still shows half a field of view beyond it. A z-stack
-started at the end of the focus range reaches half a stack further. So the
-canvas is the travel plus half the largest field (for x and y) and half the
-deepest stack (for z). Where nothing can be seen beyond the travel, the canvas
-is the travel itself. The viewer uses the canvas to lay out the whole specimen
-area before the first picture arrives.
-
-The travel limits themselves stay inside the driver. A move outside them
-raises `ValueError` before anything moves.
-
-**Positions and pictures share one frame.** In a saved image, **right is +x
-and down is +y**. A picture taken further along +x shows the part of the
-specimen that lay to its right. The driver arranges this, however the camera
-or the stage is mounted. Which way +z points is the microscope's own. Say so
-in the `description`.
 
 ## What an acquisition reports
 
@@ -193,31 +137,7 @@ settings, and saves it. Its `content` holds three things.
 | `files` | the path of every file the acquisition saved: the images, and anything saved beside them, such as a log |
 | `planes` | one entry per saved image plane, saying where it sits on the sample |
 
-**About `files`.** Every path must exist when `acquire` returns. A format
-kept as a folder, such as OME-Zarr, is listed by its folder. This is how a
-workflow finds its pictures on any microscope without guessing a path. Where
-the files go is the driver's choice. If a person should be able to choose,
-offer it as an acquisition setting, the way the mock offers `folder`. An
-acquisition that did not succeed may list no files.
 
-**About `planes`.** A file says how large a pixel is, but rarely where the
-stage stood. Only the driver knows, at the moment it acquires. Each entry
-describes one **image plane**: one channel, at one depth, at one moment.
-
-| Key | What it is |
-|---|---|
-| `path` | the file the plane is in. Must be one of `files` |
-| `c` | the channel, counted from 0 |
-| `z` | the depth in the stack, counted from 0. Use 0 for a single plane |
-| `t` | the moment, counted from 0. Use 0 for a single time point |
-| `x_um`, `y_um` | the stage position the plane was taken at, in micrometres from the origin |
-| `z_um` | the height of this plane, in micrometres from the origin |
-
-When one file holds many planes, every plane names that file, and `c`, `z`
-and `t` say where inside it the plane is. No two planes may share the same
-`c`, `z` and `t`. A position the driver cannot know is `None`, never a guess.
-A driver may add entries of its own, such as a channel name. A workflow meant
-for any microscope must not need them.
 
 ## State, acquisition settings and description
 
@@ -269,61 +189,6 @@ depends on it will not run on other microscopes.
   calibration belong to the driver. The controller checks nothing on the
   microscope's behalf.
 
-## The configuration folder
-
-Some things only the microscope itself can tell: where the origin is, how far
-the stage may travel, which way the camera is mounted. A driver measures them
-once, in a setup step of its own, saves them, and loads them every time it
-connects.
-
-They are saved on the microscope computer, never in a repository, so an
-upgrade never loses them. Every ZMART driver uses the same folder:
-
-```python
-from zmart_controller.utils import config_root
-
-config_root()
-```
-
-| System | Folder |
-|---|---|
-| Windows | `C:\ProgramData\zmart-microscopy\` |
-| macOS | `/Library/Application Support/zmart-microscopy/` |
-| Linux | `/etc/zmart-microscopy/` |
-
-Set the environment variable `ZMART_MICROSCOPY_ROOT` to use another folder,
-for example in tests. A driver keeps its files in a folder of its own below
-it. The mock driver shows the pattern in its `configuration/` part: a shipped
-`default.json` for each item, used until something has been measured and
-saved.
-
-## Check a driver
-
-Let the controller check a driver's answers against the requirements above:
-
-```python
-problems = zmart_controller.validate_driver(my_driver)
-problems   # [] means the driver fits
-```
-
-`validate_driver` takes the same driver and connection dictionary as
-`set_instrument`. It connects, calls every `get_*` function, and lists each
-problem in plain words, such as `"get_xyz: axis 'z' is missing 'canvas'"`.
-It moves nothing and acquires nothing.
-
-Because it acquires nothing, it cannot check `acquire`. Do that in your
-driver's own tests, on a simulator or a test bench:
-
-```python
-answer = zmart_controller.acquire(position_label="A1")
-zmart_controller.check_acquire_answer(answer)   # [] means the answer fits
-```
-
-`check_acquire_answer` checks `position_label`, that every file in `files`
-exists, and every entry in `planes`.
-
-The controller's own tests in `tests/` show what a workflow relies on.
-Running your driver through the same scenarios is a quick way to find gaps.
 
 ## Register a driver
 
