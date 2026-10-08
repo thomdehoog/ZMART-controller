@@ -55,9 +55,7 @@ class PretendDriver(ZmartDriver):
 
     def set_state(self, changeable):
         if changeable.get("exposure_ms") == 999.0:  # a value this pretend camera silently ignores
-            raise zmart_controller.NotConfirmed(
-                "exposure_ms stayed 10.0", unconfirmed=["exposure_ms"]
-            )
+            raise zmart_controller.NotConfirmed("exposure_ms stayed 10.0")
         self.exposure_ms = changeable.get("exposure_ms", self.exposure_ms)
         return dict(changeable)
 
