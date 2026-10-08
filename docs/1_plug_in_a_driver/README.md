@@ -10,7 +10,7 @@ small driver and plugs it in, open the [tutorial notebook](tutorial.ipynb).
 
 1. [What a driver is](#what-a-driver-is)
 2. [Install a driver into the controller](#install-a-driver-into-the-controller)
-3. [The driver file](#the-driver-file)
+3. [Writing the zmart_controller_plugin](#writing-the-zmart_controller_plugin)
 4. [The functions](#the-functions)
 5. [Positions and the canvas](#positions-and-the-canvas)
 6. [What an acquisition reports](#what-an-acquisition-reports)
@@ -65,7 +65,7 @@ The drivers for the microscopes at the ZMB are in
 [ZMART drivers](https://github.com/thomdehoog/ZMART-drivers).
 
 
-## The driver file
+## Writing the zmart_controller_plugin
 
 The functions the controller calls live together in one file, called
 `zmart_controller_plugin.py`. A driver may consist of many files, such as
