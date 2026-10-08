@@ -8,12 +8,11 @@ small driver and plugs it in, open the [tutorial notebook](tutorial.ipynb).
 
 ## Contents
 
-1. [What a driver is](#what-a-driver-is)
-2. [Install a driver into the controller](#install-a-driver-into-the-controller)
-3. [The ZmartController](#the-zmartcontroller)
-4. [Writing the ZmartDriver](#writing-the-zmartdriver)
+1. [What is a driver](#1-what-is-a-driver)
+2. [Installing a driver](#2-installing-a-driver)
+3. [Writing a driver](#3-writing-a-driver)
 
-## What a driver is
+## 1) What is a driver
 
 Every microscope's software speaks its own language, so a workflow written
 for one microscope does not run on another. The controller stands in
@@ -30,7 +29,7 @@ In short: a driver is two files, a small JSON with its name and how to
 reach the microscope, and a `ZmartDriver` class with one method per
 command. The controller does the plugging in.
 
-## Install a driver into the controller
+## 2) Installing a driver
 
 A driver is a folder with two files, and both are yours:
 
@@ -109,7 +108,7 @@ The mock driver is always on the list, and the name `"mock"` is taken.
 The drivers for the microscopes at the ZMB are in
 [ZMART drivers](https://github.com/thomdehoog/ZMART-drivers).
 
-## 3) The ZmartController
+## 3) Writing a driver
 
 The controller consists of one class, `ZmartController`, in `zmart_controller/zmart_controller.py`.
 
@@ -160,8 +159,6 @@ hands back.
 
 So what is left for you is to write a `ZmartDriver` class that complies
 with the following.
-
-## 4) Writing the ZmartDriver
 
 `ZmartDriver` in `zmart_driver.py` is the code that drives the vendor
 software. Making one opens the connection, and each method does one
