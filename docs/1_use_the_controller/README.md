@@ -13,20 +13,11 @@ is the same.
 
 ## Contents
 
-1. [The idea](#the-idea)
-2. [Plug in and disconnect](#plug-in-and-disconnect)
-3. [Every answer has the same shape](#every-answer-has-the-same-shape)
-4. [Learn about the setup](#learn-about-the-setup-get_info)
-5. [Position](#position-get_actuators-get_xyz-set_xyz)
-6. [Settings](#settings-get_state-set_state)
-7. [Acquire](#acquire-get_acquisition_settings-acquire)
-8. [Procedures](#procedures-get_procedures-run_procedure)
-9. [When something goes wrong](#when-something-goes-wrong)
-10. [Several microscopes at once](#several-microscopes-at-once)
-11. [What works on every microscope](#what-works-on-every-microscope)
-12. [All commands at a glance](#all-commands-at-a-glance)
+1. [What is the controller](#1-what-is-the-controller)
+2. [Overview of the calls](#2-overview-of-the-calls)
+3. [More information about the calls](#3-more-information-about-the-calls)
 
-## The idea
+## 1) What is the controller
 
 The controller offers a short, fixed list of commands: plug in a microscope,
 learn about it, move, read and apply settings, acquire, run a routine such as
@@ -46,7 +37,97 @@ the driver knows the hardware.
 Every command waits until the driver has finished. When `set_xyz` returns,
 the stage has arrived. When `acquire` returns, the files are saved.
 
-## Plug in and disconnect
+### Every answer has the same shape
+
+Every command except `disconnect` answers with a dictionary of two things:
+
+```python
+{"success": True, "content": {...}}
+```
+
+- `success` says whether the driver did what you asked.
+- `content` is what the driver has to say: a position, a list of saved
+  files, a state.
+
+`success: False` means the outcome is safe to carry on from, but not what you
+asked for. The reason is in `content`. Anything that is not safe to carry on
+from is raised as an error instead. See
+[When something goes wrong](#when-something-goes-wrong).
+
+### Several microscopes at once
+
+A `ZmartController` drives one microscope. To drive several, make one for
+each.
+
+```python
+from zmart_controller import ZmartController
+
+left = ZmartController("mock", {"output_root": "left"})
+right = ZmartController("mock", {"output_root": "right"})
+
+left.set_xyz(0, 0, 0)
+right.set_xyz(200, 0, 0)
+left.acquire(position_label="A1")
+right.acquire(position_label="A1")
+
+left.disconnect()
+right.disconnect()
+```
+
+Controllers are independent of each other. This is also the way to drive
+microscopes from several threads: one controller per thread.
+
+## 2) Overview of the calls
+
+```python
+import zmart_controller
+
+# 1) See which drivers are installed and how each connects, then connect to one
+zmart_controller.get_instruments()
+mic = zmart_controller.ZmartController(String)
+
+# 2) Learn about the connected setup: where images go, and the microscope in plain words
+mic.get_info()
+
+# 3) Discover the motors, then read the position and where pictures can show, or move (micrometres)
+mic.get_actuators()
+mic.get_xyz()
+mic.set_xyz(x, y, z, with_actuators=Dict)
+
+# 4) Capture the instrument settings, and apply them again later
+mic.get_state()
+mic.set_state(Dict)
+
+# 5) Capture and save an image with the current settings and position
+mic.get_acquisition_settings()
+mic.acquire(position_label=String, acquisition_settings=Dict)
+
+# 6) Run a routine the microscope offers (for example autofocus)
+mic.get_procedures()
+mic.run_procedure(Dict)
+
+# 7) Close the connection
+mic.disconnect()
+```
+
+| Command | What it does | Key parts of the answer |
+|---|---|---|
+| `ZmartController(driver, connection=None)` | Plug in a driver and connect | the controller |
+| `disconnect()` | Close the connection | nothing |
+| `get_info()` | Describe the setup | `output_root`, `description` |
+| `get_actuators()` | The motors of each axis | `{axis: [motor names]}` |
+| `get_xyz(with_actuators=None)` | Read the position | per axis: `value`, `actuator`, `canvas` |
+| `set_xyz(x, y, z, with_actuators=None)` | Move, in µm from the origin | `position`, `actuators` |
+| `get_state()` | Capture the settings | `changeable`, `observed` |
+| `set_state(state)` | Apply the `changeable` settings | what was applied |
+| `get_acquisition_settings()` | The choices for capturing and saving | per setting: `options`, `active` |
+| `acquire(position_label, acquisition_settings=None)` | Capture and save here | `position_label`, `files`, `planes` |
+| `get_procedures()` | The routines on offer | per routine: `description` |
+| `run_procedure({"name": ..., ...})` | Run one routine | `ran` |
+
+## 3) More information about the calls
+
+#### Plug in and disconnect
 
 ```python
 import zmart_controller
@@ -101,24 +182,7 @@ mic.disconnect()
 
 Afterwards every command on that controller fails until you make a new one.
 
-## Every answer has the same shape
-
-Every command except `disconnect` answers with a dictionary of two things:
-
-```python
-{"success": True, "content": {...}}
-```
-
-- `success` says whether the driver did what you asked.
-- `content` is what the driver has to say: a position, a list of saved
-  files, a state.
-
-`success: False` means the outcome is safe to carry on from, but not what you
-asked for. The reason is in `content`. Anything that is not safe to carry on
-from is raised as an error instead. See
-[When something goes wrong](#when-something-goes-wrong).
-
-## Learn about the setup: get_info
+#### Learn about the setup: get_info
 
 ```python
 mic.get_info()["content"]
@@ -141,9 +205,9 @@ Two keys are the same on every microscope:
 Everything else in `get_info`, such as the mock's `serial`, is an extra of
 that driver.
 
-## Position: get_actuators, get_xyz, set_xyz
+#### Position: get_actuators, get_xyz, set_xyz
 
-### The coordinates
+#### The coordinates
 
 Positions are in **micrometres from the origin**. The origin is a point
 (0, 0, 0) that was chosen and saved once for this microscope. So a position
@@ -154,7 +218,7 @@ down is +y.** A picture taken further along +x shows what lay to the right.
 This holds on every microscope. Which way +z points is the microscope's own.
 The driver says so in its `description`.
 
-### get_xyz
+#### get_xyz
 
 ```python
 mic.get_xyz()["content"]
@@ -180,7 +244,7 @@ The viewer uses the canvas to lay out the whole specimen area before the
 first picture arrives. Plan your positions half a field inside it. The stage
 itself stops at the travel limits.
 
-### get_actuators and with_actuators
+#### get_actuators and with_actuators
 
 Some axes have more than one motor. On the mock, z has a coarse `"motoric"`
 drive for long moves and a `"piezo"` for fine, fast steps.
@@ -202,7 +266,7 @@ mic.get_xyz(with_actuators={"z": "piezo"})["content"]["z"]["actuator"]
 'piezo'
 ```
 
-### set_xyz
+#### set_xyz
 
 ```python
 mic.set_xyz(100, 50, 0)["content"]
@@ -235,7 +299,7 @@ Those numbers differ from yours by the origin.
 A move the driver cannot confirm raises `RuntimeError`, because carrying on
 at an unknown position is never safe.
 
-## Settings: get_state, set_state
+#### Settings: get_state, set_state
 
 A *state* is a snapshot of the microscope's settings: everything that decides
 what an image looks like, such as the objective, laser power and exposure.
@@ -289,9 +353,9 @@ the reason. A setting name the microscope does not know is refused with
 A state is a plain dictionary. Save it to a file with `json`, and apply it
 again on another day.
 
-## Acquire: get_acquisition_settings, acquire
+#### Acquire: get_acquisition_settings, acquire
 
-### get_acquisition_settings
+#### get_acquisition_settings
 
 Acquisition settings are the choices about *how* to capture and save, as
 opposed to the microscope's settings in the state. Each driver offers its
@@ -318,7 +382,7 @@ On the mock:
 | `format` | OME-TIFF (one file per plane) or OME-Zarr (one folder for the whole acquisition) |
 | `z_planes`, `z_step_um` | a z-stack: that many planes, that far apart in micrometres |
 
-### acquire
+#### acquire
 
 ```python
 answer = mic.acquire(position_label="A1")
@@ -377,7 +441,7 @@ is made safe for a file name.
 When the driver cannot confirm that the acquisition happened, the answer is
 `success: False`, with no files and the reason in `content`.
 
-## Procedures: get_procedures, run_procedure
+#### Procedures: get_procedures, run_procedure
 
 Procedures are routines the microscope offers, such as autofocus. Each driver
 offers its own.
@@ -409,7 +473,7 @@ answer["content"]["ran"]
 The answer always names the procedure under `ran`. The rest is the
 procedure's own. An unknown name is refused with `ValueError`.
 
-## When something goes wrong
+### When something goes wrong
 
 Three kinds of outcome besides plain success, and each tells you where to
 look.
@@ -432,30 +496,7 @@ RuntimeError: session is disconnected
 
 The controller passes every error from the driver to you unchanged.
 
-## Several microscopes at once
-
-A `ZmartController` drives one microscope. To drive several, make one for
-each.
-
-```python
-from zmart_controller import ZmartController
-
-left = ZmartController("mock", {"output_root": "left"})
-right = ZmartController("mock", {"output_root": "right"})
-
-left.set_xyz(0, 0, 0)
-right.set_xyz(200, 0, 0)
-left.acquire(position_label="A1")
-right.acquire(position_label="A1")
-
-left.disconnect()
-right.disconnect()
-```
-
-Controllers are independent of each other. This is also the way to drive
-microscopes from several threads: one controller per thread.
-
-## What works on every microscope
+### What works on every microscope
 
 A workflow that should run on every microscope may rely on:
 
@@ -474,23 +515,6 @@ Extras are fine to use. A workflow that needs them runs only on microscopes
 whose drivers offer them. Look settings and procedures up with `get_state`,
 `get_acquisition_settings` and `get_procedures` rather than assuming them.
 Then your workflow tells you clearly when a microscope lacks something.
-
-## All commands at a glance
-
-| Command | What it does | Key parts of the answer |
-|---|---|---|
-| `ZmartController(driver, connection=None)` | Plug in a driver and connect | the controller |
-| `disconnect()` | Close the connection | nothing |
-| `get_info()` | Describe the setup | `output_root`, `description` |
-| `get_actuators()` | The motors of each axis | `{axis: [motor names]}` |
-| `get_xyz(with_actuators=None)` | Read the position | per axis: `value`, `actuator`, `canvas` |
-| `set_xyz(x, y, z, with_actuators=None)` | Move, in µm from the origin | `position`, `actuators` |
-| `get_state()` | Capture the settings | `changeable`, `observed` |
-| `set_state(state)` | Apply the `changeable` settings | what was applied |
-| `get_acquisition_settings()` | The choices for capturing and saving | per setting: `options`, `active` |
-| `acquire(position_label, acquisition_settings=None)` | Capture and save here | `position_label`, `files`, `planes` |
-| `get_procedures()` | The routines on offer | per routine: `description` |
-| `run_procedure({"name": ..., ...})` | Run one routine | `ran` |
 
 ---
 
