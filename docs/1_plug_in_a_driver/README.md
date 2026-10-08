@@ -33,14 +33,11 @@ to the microscope.
 ## 2) Installing a driver
 
 Installing a driver means pointing the controller, once, at the driver's
-`zmart_driver.json`. Check first that the driver fits: one call tells you
-which methods still hand back the wrong thing, one plain sentence each,
-and an empty list means it fits.
+`zmart_driver.json`:
 
 ```python
 import zmart_controller
 
-zmart_controller.validate_driver("C:/drivers/my-scope/zmart_driver.json")
 zmart_controller.register_driver("C:/drivers/my-scope/zmart_driver.json")
 ```
 
@@ -154,8 +151,13 @@ hands back.
 
 So what is left for you is the methods. Making a `ZmartDriver` opens the
 connection, and each method does one command. Every method starts out
-raising `NotImplementedError`, so `validate_driver` tells you which one is
-still to write.
+raising `NotImplementedError`. While you write, one call tells you which
+methods still hand back the wrong thing, one plain sentence each, and an
+empty list means the driver fits:
+
+```python
+zmart_controller.validate_driver("C:/drivers/my-scope/zmart_driver.json")
+```
 
 ### Connect and disconnect
 
