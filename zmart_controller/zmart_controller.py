@@ -4,7 +4,7 @@ Make one with a driver, and it connects::
 
     from zmart_controller import mic
 
-    mic("my-scope")            # connect to an installed driver
+    mic.connect("my-scope")    # connect to an installed driver
     mic.set_xyz(100, 50, 0)    # every command goes to the microscope connected last
 
 To hold several microscopes at once, keep each one::
@@ -51,7 +51,6 @@ class ZmartController:
             connection = getattr(driver, "CONNECTION", None)
         connection = dict(connection or {})
         self.context = {"driver": name or driver_name(driver)}
-        ZmartController._last = self  # so that mic("mock") then mic.get_xyz() works, see below
 
         driver_class = driver if isinstance(driver, type) else getattr(driver, "ZmartDriver", None)
         if driver_class is not None:
@@ -63,34 +62,6 @@ class ZmartController:
         self._handle = functions.pop("connect")(connection)
         for command, function in functions.items():
             setattr(self, command, partial(function, self._handle))
-
-    @staticmethod
-    def get_instruments() -> dict:
-        """The drivers installed on this computer, by name, each with how it connects."""
-        from .registry import get_instruments
-
-        return get_instruments()
-
-    @staticmethod
-    def register_driver(where) -> str:
-        """Install a driver on this computer: point at its ``zmart_driver.json``. Returns its name."""
-        from .registry import register_driver
-
-        return register_driver(where)
-
-    @staticmethod
-    def remove_driver(name: str) -> bool:
-        """Take an installed driver off this computer's list."""
-        from .registry import remove_driver
-
-        return remove_driver(name)
-
-    @staticmethod
-    def validate_driver(driver, connection=None) -> list:
-        """The problems with a driver's answers, one sentence each; empty when it fits."""
-        from .validate import validate_driver
-
-        return validate_driver(driver, connection)
 
     def disconnect(self) -> None:
         """Close the connection, if the driver has a way to close it."""
@@ -270,36 +241,76 @@ class ZmartController:
 
 #: The commands: the public methods of the controller. A ZmartDriver has a
 #: method for each, a module driver a function. disconnect is optional.
-COMMANDS = tuple(
-    name
-    for name, value in vars(ZmartController).items()
-    if not name.startswith("_") and not isinstance(value, staticmethod)
-)
+COMMANDS = tuple(name for name, value in vars(ZmartController).items() if not name.startswith("_"))
 
 
-class _on_the_last_one:
-    """Let a command be called on the class itself, for the short form::
+class Mic:
+    """``mic``: connect once, then every command goes to that microscope::
 
         from zmart_controller import mic
-        mic("mock")        # connect
-        mic.get_xyz()      # goes to the microscope connected last
 
-    On an instance the method works as usual.
+        mic.connect("my-scope")
+        mic.set_xyz(100, 50, 0)
+        mic.disconnect()
+
+    It also carries the calls that need no microscope: ``get_instruments``,
+    ``register_driver``, ``remove_driver`` and ``validate_driver``. To hold
+    several microscopes at once, make a ``ZmartController`` for each instead.
     """
 
-    def __init__(self, method):
-        self.method = method
+    def __init__(self) -> None:
+        self._connected: ZmartController | None = None
 
-    def __get__(self, instance, owner):
-        if instance is None:
-            instance = owner._last
-            if instance is None:
-                raise RuntimeError("no microscope connected: call mic(driver) first")
-        # A module driver put its own function on the instance; that one wins.
-        own = instance.__dict__.get(self.method.__name__)
-        return own if own is not None else self.method.__get__(instance, owner)
+    def connect(self, driver: Any, connection: dict[str, Any] | None = None) -> ZmartController:
+        """Connect to a microscope; the previous one, if any, is disconnected first."""
+        self.disconnect()
+        self._connected = ZmartController(driver, connection)
+        return self._connected
+
+    def disconnect(self) -> None:
+        """Close the connection. With nothing connected this does nothing."""
+        if self._connected is not None:
+            self._connected.disconnect()
+            self._connected = None
+
+    @staticmethod
+    def get_instruments() -> dict:
+        """The drivers installed on this computer, by name, each with how it connects."""
+        from .registry import get_instruments
+
+        return get_instruments()
+
+    @staticmethod
+    def register_driver(where) -> str:
+        """Install a driver on this computer: point at its ``zmart_driver.json``. Returns its name."""
+        from .registry import register_driver
+
+        return register_driver(where)
+
+    @staticmethod
+    def remove_driver(name: str) -> bool:
+        """Take an installed driver off this computer's list."""
+        from .registry import remove_driver
+
+        return remove_driver(name)
+
+    @staticmethod
+    def validate_driver(driver, connection=None) -> list:
+        """The problems with a driver's answers, one sentence each; empty when it fits."""
+        from .validate import validate_driver
+
+        return validate_driver(driver, connection)
+
+    def __getattr__(self, name: str):
+        # A command such as get_xyz goes to the connected microscope.
+        if name in COMMANDS:
+            if self._connected is None:
+                raise RuntimeError(
+                    f"no microscope connected: call mic.connect(driver) before mic.{name}()"
+                )
+            return getattr(self._connected, name)
+        raise AttributeError(f"mic has no command {name!r}")
 
 
-ZmartController._last = None
-for _command in COMMANDS:
-    setattr(ZmartController, _command, _on_the_last_one(getattr(ZmartController, _command)))
+#: Connect once with ``mic.connect(driver)``, then call the commands on ``mic``.
+mic = Mic()
