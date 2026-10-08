@@ -73,8 +73,10 @@ The drivers for the microscopes at the ZMB are in
 The driver is plugged in through `zmart_controller_plugin.py`. It is the
 only file the controller needs to know about, and you do not write it. The
 controller ships it in the folder `zmart_controller/template`, together with
-`zmart_driver.py`, which holds the `ZmartDriver` class to fill in. Copy the
-whole folder and rename it. This is how the shipped file begins:
+two files that are yours: `zmart_driver.json`, the driver's name and how to
+reach the microscope, and `zmart_driver.py`, which holds the `ZmartDriver`
+class to fill in. Copy the whole folder and rename it. This is how the
+shipped plugin begins:
 
 ```python
 # zmart_controller_plugin.py
