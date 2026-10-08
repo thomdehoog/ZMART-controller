@@ -54,11 +54,11 @@ The ZMART controller sits between your workflow and the microscope. It addresses
 Everything you can say to a microscope:
 
 ```python
-import zmart_controller
+from zmart_controller import mic
 
 # 1) See which drivers are installed and how each connects, then connect to one
-zmart_controller.get_instruments()
-mic = zmart_controller.ZmartController(String)
+mic.get_instruments()
+mic(String)
 
 # 2) Learn about the connected setup: where images go, and the microscope in plain words
 mic.get_info()
