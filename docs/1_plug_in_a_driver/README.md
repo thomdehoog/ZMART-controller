@@ -36,19 +36,20 @@ class next to it, one method per command.
 ## Install a driver into the controller
 
 Installing a driver into the controller means telling it, once, where the
-driver's functions are on this computer, by pointing it at the driver's
-`zmart_controller_plugin.py`:
+driver is on this computer, by pointing it at the driver's
+`zmart_driver.json`, the file that holds its name and how to reach the
+microscope:
 
 ```python
 import zmart_controller
 
-zmart_controller.register_driver("C:/drivers/my-scope/zmart_controller_plugin.py")
+zmart_controller.register_driver("C:/drivers/my-scope/zmart_driver.json")
 ```
 
-`register_driver` imports the file and checks that every function and the
-`NAME` are there before it writes anything down. A file that cannot be
-imported, or that misses something, is refused with a message that says
-what is wrong:
+`register_driver` imports the plugin next to that file and checks that
+every function and the name are there before it writes anything down. A
+driver that cannot be imported, or that misses something, is refused with a
+message that says what is wrong:
 
 ```
 ValueError: driver my_driver is missing functions: ['set_xyz']
@@ -71,12 +72,16 @@ The drivers for the microscopes at the ZMB are in
 ## The zmart_controller_plugin
 
 The driver is plugged in through `zmart_controller_plugin.py`. It is the
-only file the controller needs to know about, and you do not write it. The
-controller ships it in the folder `zmart_controller/template`, together with
-two files that are yours: `zmart_driver.json`, the driver's name and how to
-reach the microscope, and `zmart_driver.py`, which holds the `ZmartDriver`
-class to fill in. Copy the whole folder and rename it. This is how the
-shipped plugin begins:
+file the controller calls, and you do not write it. The controller ships it
+in the folder `zmart_controller/template`. To make a driver, copy the whole
+folder, rename it, and adapt the two files next to the plugin:
+
+- `zmart_driver.py` holds the `ZmartDriver` class, the code that drives the
+  microscope. The [next section](#writing-the-zmartdriver) goes through it.
+- `zmart_driver.json` holds the driver's name and how to reach the
+  microscope. It is the file you point at to install the driver.
+
+This is how the shipped plugin begins:
 
 ```python
 # zmart_controller_plugin.py

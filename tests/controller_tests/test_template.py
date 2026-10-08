@@ -112,3 +112,18 @@ def test_the_readme_shows_the_shipped_plugin():
     for name in dir(ZmartDriver):
         if not name.startswith("_"):
             assert f"def {name}(self" in text
+
+
+def test_a_copied_template_is_installed_by_pointing_at_its_json(tmp_path):
+    import shutil
+
+    folder = tmp_path / "my_scope"
+    shutil.copytree(Path(plugin.__file__).parent, folder)
+    settings = folder / "zmart_driver.json"
+    settings.write_text(settings.read_text().replace('"my-scope"', '"my-scope-2"'))
+    try:
+        assert zmart_controller.register_driver(settings) == "my-scope-2"
+        assert zmart_controller.get_instruments()["my-scope-2"]["host"] == "127.0.0.1"
+        assert "password" not in zmart_controller.get_instruments()["my-scope-2"]
+    finally:
+        zmart_controller.remove_driver("my-scope-2")

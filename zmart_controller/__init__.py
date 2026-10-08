@@ -15,7 +15,7 @@ A driver is the whole set of files that talks to one microscope; towards the
 controller it offers one function per command. Register a driver's folder on
 the computer once, then plug it in by name::
 
-    zmart_controller.register_driver("path/to/zmart_controller_plugin.py")
+    zmart_controller.register_driver("path/to/zmart_driver.json")
     zmart_controller.set_instrument("stellaris")
 
 To drive several microscopes at once, hold a session for each::
