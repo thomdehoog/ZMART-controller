@@ -46,15 +46,12 @@ __author__ = "Thom de Hoog"
 __email__ = "thom.dehoog@zmb.uzh.ch, thomdehoog@gmail.com"
 __affiliation__ = "Center for Microscopy and Image Analysis (ZMB), University of Zurich"
 
-from .plugin import NotConfirmed
-from .plugin import load as load_driver
-from .session import Session, ZmartController
-from .session import set_instrument as _set_instrument
-from .utils import (
+from .registry import get_instruments, load_driver, register_driver, remove_driver
+from .zmart_controller import (
+    NotConfirmed,
+    Session,
+    ZmartController,
     check_acquire_answer,
-    get_instruments,
-    register_driver,
-    remove_driver,
     validate_driver,
 )
 
@@ -87,7 +84,7 @@ def set_instrument(driver, connection=None) -> ZmartController:
     hold it.
     """
     global _active
-    new = _set_instrument(driver, connection)
+    new = ZmartController(driver, connection)
     # Connect the new one first, so a failed connect never loses a working
     # session. Record it before closing the old one, so it is never lost if
     # closing raises.

@@ -25,7 +25,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from zmart_controller.utils import config_root
+from zmart_controller.registry import config_root
 
 from . import (
     image_stage_registration,

@@ -65,8 +65,8 @@ class TestPosition:
     def test_origin_is_driver_configuration(self):
         # The origin is saved by the driver's own setup step and loaded at
         # connect, never set through the controller.
+        from zmart_controller import set_instrument as open_session
         from zmart_controller.mock.configuration import save
-        from zmart_controller.session import set_instrument as open_session
 
         save("origin", {"x": 50_100.0, "y": 37_500.0, "z": 5_000.0})
         session = open_session(mock)
@@ -268,8 +268,8 @@ class TestCanvas:
         so on x and y the canvas reaches 32 µm past the travel. Its z-stacks
         must stay inside the travel, so on z the canvas is the travel itself.
         """
+        from zmart_controller import set_instrument as open_session
         from zmart_controller.mock.configuration import save
-        from zmart_controller.session import set_instrument as open_session
 
         save("origin", {"x": 51_000.0, "y": 37_500.0, "z": 5_000.0})
         session = open_session(mock)
@@ -385,7 +385,7 @@ class TestRegisteredDrivers:
         self, tmp_path, monkeypatch
     ):
         import zmart_controller
-        from zmart_controller import utils
+        from zmart_controller import registry
 
         shared = tmp_path / "read-only"
         shared.mkdir()
@@ -393,7 +393,7 @@ class TestRegisteredDrivers:
         monkeypatch.setenv("ZMART_MICROSCOPY_ROOT", str(shared))
         try:
             zmart_controller.register_driver(_driver_folder(tmp_path))
-            assert (utils.user_root() / "drivers.json").is_file()
+            assert (registry.user_root() / "drivers.json").is_file()
             assert list(zmart_controller.get_instruments()) == ["mock", "bench"]
         finally:
             shared.chmod(0o700)

@@ -11,23 +11,25 @@ from pathlib import Path
 import pytest
 
 import zmart_controller.mock as mock
-from zmart_controller import check_acquire_answer, utils, validate_driver
+from zmart_controller import check_acquire_answer, registry, validate_driver
 
 
 class TestConfigRoot:
     def test_override_wins(self, monkeypatch, tmp_path):
         monkeypatch.setenv("ZMART_MICROSCOPY_ROOT", str(tmp_path))
-        assert utils.config_root() == tmp_path
+        assert registry.config_root() == tmp_path
 
     def test_per_os_default(self, monkeypatch):
         monkeypatch.delenv("ZMART_MICROSCOPY_ROOT", raising=False)
-        monkeypatch.setattr(utils.platform, "system", lambda: "Windows")
+        monkeypatch.setattr(registry.platform, "system", lambda: "Windows")
         monkeypatch.setenv("PROGRAMDATA", r"C:\ProgramData")
-        assert str(utils.config_root()).endswith("zmart-microscopy")
-        monkeypatch.setattr(utils.platform, "system", lambda: "Darwin")
-        assert utils.config_root() == utils.Path("/Library/Application Support/zmart-microscopy")
-        monkeypatch.setattr(utils.platform, "system", lambda: "Linux")
-        assert utils.config_root() == utils.Path("/etc/zmart-microscopy")
+        assert str(registry.config_root()).endswith("zmart-microscopy")
+        monkeypatch.setattr(registry.platform, "system", lambda: "Darwin")
+        assert registry.config_root() == registry.Path(
+            "/Library/Application Support/zmart-microscopy"
+        )
+        monkeypatch.setattr(registry.platform, "system", lambda: "Linux")
+        assert registry.config_root() == registry.Path("/etc/zmart-microscopy")
 
 
 # ---- validate_driver: does a driver fit the contract?
@@ -336,9 +338,9 @@ CONNECTION = {
 def test_get_instruments_shows_each_connection_without_its_secrets(tmp_path):
     plugin = tmp_path / "pretend_scope.py"
     plugin.write_text(PLUGIN)
-    utils.register_driver(plugin)
+    registry.register_driver(plugin)
     try:
-        assert utils.get_instruments() == {
+        assert registry.get_instruments() == {
             "mock": {},
             "pretend": {
                 "microscope": "pretend-01",
@@ -348,14 +350,14 @@ def test_get_instruments_shows_each_connection_without_its_secrets(tmp_path):
             },
         }
     finally:
-        utils.remove_driver("pretend")
+        registry.remove_driver("pretend")
 
 
 def test_get_instruments_prefers_the_connection_saved_at_registering(tmp_path):
     plugin = tmp_path / "pretend_scope.py"
     plugin.write_text(PLUGIN)
-    utils.register_driver(plugin, {"microscope": "pretend-02", "token": "x"})
+    registry.register_driver(plugin, {"microscope": "pretend-02", "token": "x"})
     try:
-        assert utils.get_instruments()["pretend"] == {"microscope": "pretend-02"}
+        assert registry.get_instruments()["pretend"] == {"microscope": "pretend-02"}
     finally:
-        utils.remove_driver("pretend")
+        registry.remove_driver("pretend")
