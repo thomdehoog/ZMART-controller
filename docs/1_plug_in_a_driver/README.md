@@ -12,7 +12,7 @@ The controller stands in between your workflow and the driver. It knows nothing 
 It takes input from your workflow through a short, fixed list of commands and hands these to the driver. You can have multiple workflows and multiple driver, but you only have one controller.
 
 ```
-your workflow ──► ZMART controller ──► driver ──► vendor software ──► microscope
+your workflow ──► controller ──► driver ──► vendor software ──► microscope
 ```
 
 A ZMART driver is a folder with at least two files:
