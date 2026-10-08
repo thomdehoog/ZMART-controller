@@ -10,7 +10,7 @@ small driver and plugs it in, open the [tutorial notebook](tutorial.ipynb).
 
 1. [What a driver is](#what-a-driver-is)
 2. [Install a driver into the controller](#install-a-driver-into-the-controller)
-3. [The zmart_controller_plugin](#the-zmart_controller_plugin)
+3. [The plugin](#the-plugin)
 4. [Writing the ZmartDriver](#writing-the-zmartdriver)
 5. [Rules for every driver](#rules-for-every-driver)
 6. [The configuration folder](#the-configuration-folder)
@@ -29,26 +29,25 @@ vendor software.
 your workflow ──► zmart controller ──► driver ──► vendor software ──► microscope
 ```
 
-In short: the driver is plugged in through one file, `zmart_controller_plugin.py`,
-which the controller ships ready to copy. What you write is the `ZmartDriver`
-class next to it, one method per command.
+In short: a driver is two files, a small JSON with its name and how to
+reach the microscope, and a `ZmartDriver` class with one method per
+command. The controller does the plugging in.
 
 ## Install a driver into the controller
 
 Installing a driver into the controller means telling it, once, where the
-driver is on this computer, by pointing it at the driver's
-`zmart_driver.json`, the file that holds its name and how to reach the
-microscope:
+driver is on this computer, by pointing it at the driver's folder or at
+its `zmart_driver.json`:
 
 ```python
 import zmart_controller
 
-zmart_controller.register_driver("C:/drivers/my-scope/zmart_driver.json")
+zmart_controller.register_driver("C:/drivers/my-scope")
 ```
 
-`register_driver` imports the plugin next to that file and checks that
-every function and the name are there before it writes anything down. A
-driver that cannot be imported, or that misses something, is refused with a
+`register_driver` loads the driver and checks that its name and its
+`ZmartDriver` class are there before it writes anything down. A driver
+that cannot be imported, or that misses something, is refused with a
 message that says what is wrong:
 
 ```
@@ -69,17 +68,21 @@ The mock driver is always on the list, and the name `"mock"` is taken.
 The drivers for the microscopes at the ZMB are in
 [ZMART drivers](https://github.com/thomdehoog/ZMART-drivers).
 
-## The zmart_controller_plugin
+## The plugin
 
-The driver is plugged in through `zmart_controller_plugin.py`. It is the
-file the controller calls, and you do not write it. The controller ships it
-in the folder `zmart_controller/template`. To make a driver, copy the whole
-folder, rename it, and adapt the two files next to the plugin:
+A driver is a folder with two files, and both are yours:
 
-- `zmart_driver.py` holds the `ZmartDriver` class, the code that drives the
-  microscope. The [next section](#writing-the-zmartdriver) goes through it.
 - `zmart_driver.json` holds the driver's name and how to reach the
-  microscope. It is the file you point at to install the driver.
+  microscope. It is what you point at to install the driver.
+- `zmart_driver.py` holds the `ZmartDriver` class, the code that drives the
+  microscope, one method per command. The
+  [next section](#writing-the-zmartdriver) goes through it.
+
+The controller ships both, ready to copy, in the folder
+`zmart_controller/template`. Copy that folder, rename it, and adapt the
+two files. The code that plugs them into the controller, the **plugin**, is
+the same for every driver, so it lives inside the controller and you never
+touch it.
 
 ### The settings: zmart_driver.json
 
@@ -105,46 +108,24 @@ edit them without touching Python:
 `connection` is how to reach this microscope: which instrument this is,
 how its vendor software is reached, where it listens, the password, the
 vendor's configuration file, and where images are saved. The controller
-hands it to `connect` unchanged and reads nothing from it itself, so a
+hands it to the driver unchanged and reads nothing from it itself, so a
 driver may add keys, but every driver starts from these. Leave a key empty
 when the microscope does not need it. `get_instruments()` shows the
 connection of every installed driver, with password, token and secret keys
 left out.
 
-### The plugin: zmart_controller_plugin.py
+### How the plugin calls your class
 
-The plugin reads the settings file and calls your class. This is how the
-shipped plugin begins:
-
-```python
-# zmart_controller_plugin.py
-
-import json
-from pathlib import Path
-
-from .zmart_driver import ZmartDriver  # zmart_driver.py: the code that talks to the vendor software
-
-# The driver's name and how to reach this microscope live in zmart_driver.json,
-# next to this file, so they can be edited without touching any code.
-_SETTINGS = json.loads((Path(__file__).with_name("zmart_driver.json")).read_text())
-
-NAME = _SETTINGS["name"]  # the driver's name in the controller's list
-CONNECTION = _SETTINGS["connection"]  # how to reach this microscope; get_instruments() shows it
-
-
-def connect(connection):
-
-    handle = ZmartDriver(connection)
-
-    return handle  # the connected driver; every other function receives it back
-```
-
-`connect` makes one `ZmartDriver` from the connection and returns it as the
-**handle**. The controller never looks inside the handle; it hands it back
-to every other function. Each of those calls the method of the same name
-on the handle, and wraps what comes back in the shape every command shares:
+When the controller connects, the plugin makes one `ZmartDriver` from the
+connection and keeps it as the **handle**. The controller never looks
+inside the handle; it hands it back with every command. For each command,
+the plugin calls the method of the same name on the handle and wraps what
+comes back in the shape every command shares. This is the plugin's
+function for `get_info`, and every other one looks the same:
 
 ```python
+# zmart_controller/plugin.py
+
 def get_info(handle):
 
     output_root, description = handle.get_info()
@@ -153,9 +134,10 @@ def get_info(handle):
 ```
 
 `success` says whether the driver did what was asked. `content` is what the
-driver has to say about it. The function names in the plugin are the whole
-connection between the controller and a microscope; the list is kept in
-`zmart_controller.utils.OPS`. Do not rename them.
+driver has to say about it. A driver that brings its own plugin file,
+`zmart_controller_plugin.py` with these twelve functions, is installed from
+that file instead; the drivers at the ZMB are built that way, and the list
+of function names is kept in `zmart_controller.utils.OPS`.
 
 So what is left for you is to write a `ZmartDriver` class that complies
 with the following.
@@ -182,8 +164,8 @@ def __init__(self, connection): ...    # open the vendor connection, keep what y
 def disconnect(self): ...              # close it; afterwards every other call should raise RuntimeError
 ```
 
-`connection` is `CONNECTION` from the plugin, or the dictionary given at
-`set_instrument`. Load what was saved once for this microscope here too:
+`connection` is the one from `zmart_driver.json`, or the dictionary given
+at `set_instrument`. Load what was saved once for this microscope here too:
 the origin, the travel limits and the calibration, from the
 [configuration folder](#the-configuration-folder).
 
@@ -377,11 +359,14 @@ The controller can check a driver's answers against the requirements on this
 page, so you do not have to compare them by hand.
 
 ```python
-zmart_controller.validate_driver(my_driver, {"host": "localhost"})
+my_driver = zmart_controller.load_driver("C:/drivers/my-scope")
+zmart_controller.validate_driver(my_driver)
 ```
 
-`validate_driver` takes a driver, as a registered name or as a module, and
-a connection dictionary if the driver needs one. It connects, calls every `get_*` function, checks each answer against
+`load_driver` reads a driver's folder without installing it, which is how
+you work while writing one; `set_instrument` takes what it returns too.
+`validate_driver` takes a driver, as an installed name or as loaded here,
+and a connection dictionary when the one in the JSON is not the one to use. It connects, calls every `get_*` function, checks each answer against
 this page, and disconnects again. It moves nothing and acquires nothing.
 It returns the problems it found, one plain sentence each, naming the
 function and what is missing. An empty list means every answer fits.

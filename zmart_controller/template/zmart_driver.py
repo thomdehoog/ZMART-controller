@@ -1,9 +1,9 @@
 """The code that talks to your microscope's vendor software. Fill in every method.
 
-``zmart_controller_plugin.py`` in this folder creates one ``ZmartDriver``
-when the controller connects, and hands it back to every command as the
-handle. Each plugin function then calls the method of the same name here
-and wraps what it hands back in the answer shape the controller expects.
+The controller creates one ``ZmartDriver`` when it connects, and hands it
+back to every command as the handle. Its plugin then calls the method of
+the same name here and wraps what it hands back in the answer shape the
+controller expects.
 So each method returns plain values, exactly the ones named in the plugin,
 and never the ``{"success", "content"}`` wrapping.
 
@@ -26,7 +26,7 @@ class ZmartDriver:
     def __init__(self, connection):
         """Open the connection to the vendor software and keep what you need on ``self``.
 
-        ``connection`` is the dictionary from ``CONNECTION`` in the plugin, or
+        ``connection`` is the dictionary from ``zmart_driver.json``, or
         the one given at ``set_instrument``: which microscope, how its software
         is reached, where it listens, its password, its configuration file, and
         where images go.

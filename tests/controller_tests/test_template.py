@@ -1,4 +1,4 @@
-"""Tests for the driver template: the plugin to copy, and the ZmartDriver class to fill in.
+"""Tests for the two-file driver: the template to copy, and the plugin inside the controller.
 
 Author: Thom de Hoog, Center for Microscopy and Image Analysis (ZMB),
 University of Zurich (thom.dehoog@zmb.uzh.ch, thomdehoog@gmail.com).
@@ -8,16 +8,17 @@ from __future__ import annotations
 
 import json
 import re
+import shutil
 from pathlib import Path
 
 import pytest
 
 import zmart_controller
-from zmart_controller import utils
-from zmart_controller.template import zmart_controller_plugin as plugin
+from zmart_controller import plugin, utils
 from zmart_controller.template.zmart_driver import ZmartDriver
 
 README = Path(__file__).parents[2] / "docs" / "1_plug_in_a_driver" / "README.md"
+TEMPLATE = Path(zmart_controller.template.__file__).parent
 
 
 class PretendDriver(ZmartDriver):
@@ -75,20 +76,23 @@ class PretendDriver(ZmartDriver):
             raise ValueError(f"unknown procedure {procedure['name']!r}")
 
 
-def test_the_plugin_offers_every_function():
-    assert utils.driver_functions(plugin).keys() == {*utils.OPS, "disconnect"}
+def test_the_template_loads_and_offers_every_function():
+    driver = zmart_controller.load_driver(TEMPLATE)
+    assert driver.NAME == "my-scope"
+    assert driver.CONNECTION["host"] == "127.0.0.1"
+    assert utils.driver_functions(driver).keys() == {*utils.OPS, "disconnect"}
 
 
 def test_an_unfilled_driver_says_what_is_missing():
     with pytest.raises(NotImplementedError, match="ZmartDriver.__init__"):
-        zmart_controller.validate_driver(plugin)
+        zmart_controller.validate_driver(zmart_controller.load_driver(TEMPLATE))
 
 
-def test_a_filled_in_driver_passes_validation_and_acquires(monkeypatch, tmp_path):
+def test_a_filled_in_driver_passes_validation_and_acquires(tmp_path):
     PretendDriver.folder = tmp_path
-    monkeypatch.setattr(plugin, "ZmartDriver", PretendDriver)
-    assert zmart_controller.validate_driver(plugin) == []
-    session = zmart_controller.set_instrument(plugin)
+    driver = plugin.functions_for(PretendDriver, "pretend", {})
+    assert zmart_controller.validate_driver(driver) == []
+    session = zmart_controller.set_instrument(driver)
     try:
         session.set_xyz(100.0, 50.0, 0.0)
         answer = session.acquire(position_label="A1")
@@ -103,27 +107,34 @@ def test_every_method_the_plugin_calls_exists_on_the_class():
     assert called <= {name for name in dir(ZmartDriver) if not name.startswith("_")}
 
 
-def test_the_readme_shows_the_shipped_plugin():
-    """The Part 1 README quotes the start of the template file, and names every method."""
-    text = README.read_text()
-    block = text.split("```python\n# zmart_controller_plugin.py\n", 1)[1].split("```", 1)[0]
-    source = Path(plugin.__file__).read_text().split('"""', 2)[2]
-    assert source.strip("\n").startswith(block.strip("\n"))
-    for name in dir(ZmartDriver):
-        if not name.startswith("_"):
-            assert f"def {name}(self" in text
+def test_a_folder_missing_a_file_is_refused(tmp_path):
+    shutil.copy(TEMPLATE / "zmart_driver.json", tmp_path)
+    with pytest.raises(ValueError, match="zmart_driver.py is missing"):
+        zmart_controller.load_driver(tmp_path)
 
 
-def test_a_copied_template_is_installed_by_pointing_at_its_json(tmp_path):
-    import shutil
-
+def test_a_copied_template_is_installed_from_its_folder_or_json(tmp_path):
     folder = tmp_path / "my_scope"
-    shutil.copytree(Path(plugin.__file__).parent, folder)
+    shutil.copytree(TEMPLATE, folder)
     settings = folder / "zmart_driver.json"
     settings.write_text(settings.read_text().replace('"my-scope"', '"my-scope-2"'))
     try:
+        assert zmart_controller.register_driver(folder) == "my-scope-2"
         assert zmart_controller.register_driver(settings) == "my-scope-2"
-        assert zmart_controller.get_instruments()["my-scope-2"]["host"] == "127.0.0.1"
-        assert "password" not in zmart_controller.get_instruments()["my-scope-2"]
+        assert zmart_controller.get_drivers() == ["mock", "my-scope-2"]
+        shown = zmart_controller.get_instruments()["my-scope-2"]
+        assert shown["host"] == "127.0.0.1" and "password" not in shown
+        with pytest.raises(NotImplementedError):  # it connects through the plugin
+            zmart_controller.set_instrument("my-scope-2")
     finally:
         zmart_controller.remove_driver("my-scope-2")
+
+
+def test_the_readme_quotes_the_plugin_and_names_every_method():
+    text = README.read_text()
+    source = Path(plugin.__file__).read_text()
+    quoted = text.split("```python\n# zmart_controller/plugin.py\n", 1)[1].split("```", 1)[0]
+    assert quoted.strip("\n") in source
+    for name in dir(ZmartDriver):
+        if not name.startswith("_"):
+            assert f"def {name}(self" in text
