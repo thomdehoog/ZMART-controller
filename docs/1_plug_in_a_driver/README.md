@@ -115,16 +115,14 @@ there; the shipped file looks the same, and you replace every value:
 
 The controller consists of one class, `ZmartController`, in `zmart_controller/zmart_controller.py`.
 
-**In:** your `ZmartDriver`. Making a controller makes one from the
-connection, and every command becomes a call to the method of the same
-name on it.
+**In:** the name of an installed driver. The controller finds its two
+files through the registry, makes one `ZmartDriver` from the connection,
+and every command becomes a call to the method of the same name on it.
 
 ```python
 from zmart_controller import ZmartController
-from zmart_driver import ZmartDriver
 
-mic = ZmartController(ZmartDriver, connection)   # while writing the driver
-mic = ZmartController("my-scope")                # once installed: the JSON gives both
+mic = ZmartController("my-scope")
 mic.set_xyz(100, 50, 0)
 ```
 
