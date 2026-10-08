@@ -42,12 +42,17 @@ class PretendDriver(ZmartDriver):
 
     def get_xyz(self, with_actuators):
         p = self.position
+        actuators = {
+            "x": {"motor": p["x"]},
+            "y": {"motor": p["y"]},
+            "z": {"motor": p["z"], "piezo": 0.0},
+        }
         canvas = (-1050.0, 1050.0, -1050.0, 1050.0, -100.0, 100.0)
-        return True, (p["x"], p["y"], p["z"], "motor", "motor", "motor", canvas)
+        return True, (p["x"], p["y"], p["z"], actuators, canvas)
 
     def set_xyz(self, x, y, z, with_actuators):
         self.position = {"x": x, "y": y, "z": z}
-        return True, ("motor", "motor", "motor")
+        return self.get_xyz(with_actuators)
 
     def get_state(self):
         return True, ({"exposure_ms": self.exposure_ms}, {"objective": "10x"})
