@@ -32,6 +32,17 @@ command. The controller does the plugging in.
 
 ## Install a driver into the controller
 
+Before installing, check that the driver fits. The template brings
+`checks.py`; one call tells you which methods still hand back the wrong
+thing, one plain sentence each, and an empty list means it fits.
+
+```python
+from my_scope.checks import validate_driver
+from my_scope.zmart_driver import ZmartDriver
+
+validate_driver(ZmartDriver, connection)
+```
+
 Installing a driver into the controller means telling it, once, where the
 driver is on this computer, by pointing it at the driver's
 `zmart_driver.json`:
@@ -228,19 +239,6 @@ In every method, raise `ValueError` for a request that is wrong, such as
 an unknown setting or a position outside the travel, and hand back `False`
 with a message when the microscope did not do what was asked. Never put a
 password in a message.
-
-### Check it
-
-The template brings `checks.py`. One call tells you which methods still
-hand back the wrong thing, one plain sentence each; an empty list means
-the driver fits.
-
-```python
-from my_scope.checks import validate_driver
-from my_scope.zmart_driver import ZmartDriver
-
-validate_driver(ZmartDriver, connection)
-```
 
 ---
 
