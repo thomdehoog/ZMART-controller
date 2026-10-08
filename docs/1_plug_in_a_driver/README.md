@@ -91,31 +91,88 @@ def set_state(self, changeable):
 ### Per call
 
 ```python
-class ZmartDriver:
-    def __init__(self, connection): ...                            # connection: the dict from zmart_driver.json
-    def disconnect(self): ...
-
-    def get_info(self): ...                                        # True, (output_root, description)
-    def get_actuators(self): ...                                   # True, (x_motors, y_motors, z_motors)
-    def get_xyz(self, with_actuators): ...                         # True, (x, y, z, x_motor, y_motor, z_motor, canvas)
-    def set_xyz(self, x, y, z, with_actuators): ...                # True, (x_motor, y_motor, z_motor)
-    def get_state(self): ...                                       # True, (changeable, observed)
-    def set_state(self, changeable): ...                           # True, applied
-    def get_acquisition_settings(self): ...                        # True, {name: {"options": [...], "active": value}}
-    def acquire(self, position_label, acquisition_settings): ...   # True, (files, planes)
-    def get_procedures(self): ...                                  # True, {name: {"description": ...}}
-    def run_procedure(self, procedure): ...                        # True, procedure["name"]
+def __init__(self, connection):
+    # connection: the dict from zmart_driver.json
+    # open the vendor software with it; keep what you need on self
+    # load what was measured once for this microscope: origin, travel limits, calibration
 ```
 
 ```python
-x, y, z          # micrometres from the saved origin; in a saved image, right is +x and down is +y
-with_actuators   # {"z": "piezo"} or None for the first motor
-canvas           # (x_min, x_max, y_min, y_max, z_min, z_max): the travel plus half a field of view
-changeable       # {"exposure_ms": 10.0, ...}: the settings set_state can apply
-observed         # {"objective": "10x", ...}: what can only be read
-files            # ["D:/images/A1.ome.tif", ...]: every file saved
-planes           # [{"path": ..., "c": 0, "z": 0, "t": 0, "x_um": ..., "y_um": ..., "z_um": ...}, ...]
-procedure        # {"name": "autofocus", ...}: the routine and its arguments
+def disconnect(self):
+    # close the vendor connection
+```
+
+```python
+def get_info(self):
+    return True, (output_root, description)
+    # output_root: the folder where images are saved
+    # description: the microscope in plain words: each setting, its unit and bounds, the objectives, which way +z points
+```
+
+```python
+def get_actuators(self):
+    return True, (x_motors, y_motors, z_motors)
+    # the motor names per axis, at least one each, e.g. ["motoric", "piezo"]
+```
+
+```python
+def get_xyz(self, with_actuators):
+    # with_actuators: {"z": "piezo"} or None for the first motor of each axis
+    return True, (x, y, z, x_motor, y_motor, z_motor, canvas)
+    # x, y, z: micrometres from the saved origin; in a saved image, right is +x and down is +y
+    # canvas: (x_min, x_max, y_min, y_max, z_min, z_max): the travel plus half a field of view
+```
+
+```python
+def set_xyz(self, x, y, z, with_actuators):
+    # raise ValueError when x, y, z is outside the travel
+    # move, then read back until the stage has arrived
+    return True, (x_motor, y_motor, z_motor)
+    return False, "stage stopped at x = ..."       # when it never arrives
+```
+
+```python
+def get_state(self):
+    return True, (changeable, observed)
+    # changeable: {"exposure_ms": 10.0, ...}: the settings set_state can apply
+    # observed:   {"objective": "10x", ...}: what can only be read
+```
+
+```python
+def set_state(self, changeable):
+    # raise ValueError for a setting the microscope does not have
+    # apply each one, then read it back
+    return True, applied                           # {"exposure_ms": 20.0, ...}: what took
+    return False, "exposure_ms stayed 10.0"        # when one did not
+```
+
+```python
+def get_acquisition_settings(self):
+    return True, {name: {"options": [...], "active": value}}
+    # options: the values a setting may take, or a description such as "number > 0"
+    # active: the value used when the setting is left out of acquire
+```
+
+```python
+def acquire(self, position_label, acquisition_settings):
+    # raise ValueError for an acquisition setting that is not listed
+    # capture here, save the files named after position_label; never overwrite an earlier one
+    return True, (files, planes)
+    # files:  ["D:/images/A1.ome.tif", ...]: every file saved
+    # planes: [{"path": ..., "c": 0, "z": 0, "t": 0, "x_um": ..., "y_um": ..., "z_um": ...}, ...]
+```
+
+```python
+def get_procedures(self):
+    return True, {name: {"description": ...}}
+    # the routines the microscope offers, such as autofocus
+```
+
+```python
+def run_procedure(self, procedure):
+    # procedure: {"name": "autofocus", ...}: the routine and its arguments
+    # raise ValueError for a name that get_procedures does not list
+    return True, procedure["name"]
 ```
 
 ```python
