@@ -29,15 +29,6 @@ Every command answers in the same shape:
 {"success": False, "content": "<error message>"}   # it did not; content says why
 ```
 
-A controller drives one microscope. To drive several, make one for each:
-
-```python
-from zmart_controller import ZmartController
-
-left = ZmartController("mock", {"output_root": "left"})
-right = ZmartController("mock", {"output_root": "right"})
-```
-
 ## 2) Overview of the calls
 
 ```python
