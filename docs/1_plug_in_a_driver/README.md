@@ -59,33 +59,10 @@ zmart_controller.get_drivers()               # ['mock', 'my-scope']
 zmart_controller.set_instrument("my-scope")
 ```
 
-The mock driver is always on the list, and the name `"mock"` is taken.
-
-Some microscopes need details to connect, such as a host name or the folder
-where images should go. The driver file gives them in its `CONNECTION`
-dictionary, described [below](#the-driver-file). `CONNECTION` is read fresh
-every time the driver is connected to, so after you change it there is
-nothing to register again. To save a different connection dictionary with
-the registration, pass it as the second argument of `register_driver`; it
-is then used instead of `CONNECTION`. A dictionary given to `set_instrument`
-wins over both. Registering a driver again replaces its entry.
-`remove_driver("my-scope")` takes a driver off the list.
-
-The list is a small file, `drivers.json`, in the
-[configuration folder](#the-configuration-folder). Everyone who uses the
-microscope computer sees the same drivers. When that folder cannot be
-written, the list is kept in `.zmart-microscopy` in your home folder
-instead, and only you see it.
-
-While you are still writing a driver, there is no need to register it.
-`set_instrument` and `validate_driver` also accept the module itself, such
-as `zmart_controller.mock` or a file you just imported, which is what the
-[tutorial notebook](tutorial.ipynb) does.
-
+The mock driver is always on the list, and the name `"mock"` is taken. 
 The drivers for the microscopes at the ZMB are in
-[ZMART drivers](https://github.com/thomdehoog/ZMART-drivers). Each driver's
-README says where its `zmart_controller_plugin.py` is, what goes in its
-`CONNECTION`, and how to run its setup step.
+[ZMART drivers](https://github.com/thomdehoog/ZMART-drivers).
+
 
 ## The driver file
 
