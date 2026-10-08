@@ -4,7 +4,7 @@ A driver is two files: ``zmart_driver.json``, its name and how to reach the
 microscope, and the class file it names, with a ``ZmartDriver`` class (or,
 for an older driver, one function per command). :func:`load_driver` reads
 them. :func:`register_driver` writes the JSON's path into this computer's
-list, ``drivers.json`` in :func:`config_root`, so that every Python session
+list, :func:`registry_file`, so that every Python session
 can connect by name. :func:`get_instruments` shows the list.
 
 Author: Thom de Hoog, Center for Microscopy and Image Analysis (ZMB),
@@ -47,17 +47,22 @@ def config_root() -> Path:
     return Path("/etc/zmart-microscopy")
 
 
+def registry_file() -> Path:
+    """The controller's list of installed drivers: ``zmart-controller/drivers.json`` under :func:`config_root`."""
+    return config_root() / "zmart-controller" / "drivers.json"
+
+
 def _installed() -> dict[str, str]:
     """The installed drivers: name -> path of its zmart_driver.json."""
     try:
-        return json.loads((config_root() / "drivers.json").read_text())
+        return json.loads(registry_file().read_text())
     except FileNotFoundError:
         return {}
 
 
 def _save(installed: dict[str, str]) -> None:
-    config_root().mkdir(parents=True, exist_ok=True)
-    (config_root() / "drivers.json").write_text(json.dumps(installed, indent=2) + "\n")
+    registry_file().parent.mkdir(parents=True, exist_ok=True)
+    registry_file().write_text(json.dumps(installed, indent=2) + "\n")
 
 
 def get_instruments() -> dict[str, dict[str, Any]]:
