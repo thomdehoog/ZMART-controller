@@ -87,19 +87,19 @@ two files.
 
 The driver's name and the connection are not in the code. They are in
 `zmart_driver.json`, so that whoever sets up the microscope computer can
-edit them without touching Python. This is an example; the values are
-made up, and every microscope fills in its own:
+edit them without touching Python. Each value below says what to put
+there; the shipped file looks the same, and you replace every value:
 
 ```json
 {
-  "name": "my-scope",
-  "driver": "zmart_driver.py",
+  "name": "<the driver's name, as get_drivers() will list it>",
+  "driver": "<the file with the ZmartDriver class, from this folder>",
   "connection": {
-    "microscope": "my-scope-01",
-    "api_type": "socket",
-    "host": "127.0.0.1",
-    "password": "",
-    "config": "C:/VendorSoftware/config.ini"
+    "microscope": "<which instrument this is>",
+    "api_type": "<how the vendor software is reached>",
+    "host": "<where it listens>",
+    "password": "<its password, or empty>",
+    "config": "<the vendor's configuration file>"
   }
 }
 ```

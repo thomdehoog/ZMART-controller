@@ -78,8 +78,8 @@ class PretendDriver(ZmartDriver):
 
 def test_the_template_loads_and_offers_every_function():
     driver = zmart_controller.load_driver(TEMPLATE)
-    assert driver.NAME == "my-scope"
-    assert driver.CONNECTION["host"] == "127.0.0.1"
+    assert driver.NAME.startswith("<the driver's name")
+    assert set(driver.CONNECTION) == {"microscope", "api_type", "host", "password", "config"}
     assert utils.driver_functions(driver).keys() == {*utils.OPS, "disconnect"}
 
 
@@ -119,14 +119,16 @@ def test_the_json_can_point_at_a_class_file_elsewhere(tmp_path):
     settings = json.loads((TEMPLATE / "zmart_driver.json").read_text())
     settings["driver"] = "code/my_scope.py"
     (tmp_path / "zmart_driver.json").write_text(json.dumps(settings))
-    assert zmart_controller.load_driver(tmp_path / "zmart_driver.json").NAME == "my-scope"
+    assert zmart_controller.load_driver(tmp_path / "zmart_driver.json").NAME == settings["name"]
 
 
 def test_a_copied_template_is_installed_from_its_folder_or_json(tmp_path):
     folder = tmp_path / "my_scope"
     shutil.copytree(TEMPLATE, folder)
     settings = folder / "zmart_driver.json"
-    settings.write_text(settings.read_text().replace('"my-scope"', '"my-scope-2"'))
+    filled = json.loads(settings.read_text())
+    filled["name"], filled["connection"]["host"] = "my-scope-2", "127.0.0.1"
+    settings.write_text(json.dumps(filled))
     try:
         assert zmart_controller.register_driver(folder) == "my-scope-2"
         assert zmart_controller.register_driver(settings) == "my-scope-2"
