@@ -79,6 +79,8 @@ file the controller needs to know about.
 ```python
 # zmart_controller_plugin.py
 
+import scope                          # your own file, scope.py: the code that talks to the vendor software
+
 NAME = "my-scope"                     # the driver's name in the controller's list
 
 CONNECTION = {                        # how to reach this microscope; get_instruments() shows it
@@ -93,35 +95,36 @@ CONNECTION = {                        # how to reach this microscope; get_instru
 
 def connect(connection):
 
-    # Insert here: open the connection to the vendor software with what is in connection.
+    handle = scope.connect(connection)
 
     return handle                     # any object that holds the live connection
 
 
 def disconnect(handle):               # optional
 
-    # Insert here: close the connection to the vendor software.
+    scope.disconnect(handle)
 
     return None
 
 
 def get_info(handle):
 
-    # Insert here: ask the vendor software where images go, and describe the microscope in words.
+    output_root, description = scope.get_info(handle)
 
     return {"success": True, "content": {"output_root": output_root, "description": description}}
 
 
 def get_actuators(handle):
 
-    # Insert here: list the motors that can move each axis.
+    x_motors, y_motors, z_motors = scope.get_actuators(handle)
 
     return {"success": True, "content": {"x": x_motors, "y": y_motors, "z": z_motors}}
 
 
 def get_xyz(handle, *, with_actuators=None):
 
-    # Insert here: read the stage position and turn it into micrometres from the origin.
+    x, y, z, x_motor, y_motor, z_motor = scope.get_xyz(handle, with_actuators)
+    x_min, x_max, y_min, y_max, z_min, z_max = scope.get_canvas(handle)
 
     return {"success": True, "content": {
         "x": {"value": x, "actuator": x_motor, "canvas": [x_min, x_max]},
@@ -132,7 +135,7 @@ def get_xyz(handle, *, with_actuators=None):
 
 def set_xyz(handle, x, y, z, *, with_actuators=None):
 
-    # Insert here: check the travel limits, send the move, and read back until the stage has arrived.
+    x_motor, y_motor, z_motor = scope.set_xyz(handle, x, y, z, with_actuators)
 
     return {"success": True, "content": {
         "position": {"x": x, "y": y, "z": z},
@@ -142,53 +145,56 @@ def set_xyz(handle, x, y, z, *, with_actuators=None):
 
 def get_state(handle):
 
-    # Insert here: read the settings that can be changed, and what can only be observed.
+    changeable, observed = scope.get_state(handle)
 
     return {"success": True, "content": {"changeable": changeable, "observed": observed}}
 
 
 def set_state(handle, state):
 
-    # Insert here: apply each setting under changeable, and read back to confirm it took.
+    applied = scope.set_state(handle, state["changeable"])
 
     return {"success": True, "content": {"applied": applied}}
 
 
 def get_acquisition_settings(handle):
 
-    # Insert here: list the choices for one acquisition, and the value each has now.
+    settings = scope.get_acquisition_settings(handle)   # {name: {"options": [...], "active": value}}
 
-    return {"success": True, "content": {name: {"options": options, "active": active}}}
+    return {"success": True, "content": settings}
 
 
 def acquire(handle, *, position_label, acquisition_settings=None):
 
-    # Insert here: capture, wait for the vendor's file, save it as OME-TIFF or OME-Zarr named after position_label.
+    files, planes = scope.acquire(handle, position_label, acquisition_settings)
 
     return {"success": True, "content": {
         "position_label": position_label,
         "files": files,               # the path of every file saved
-        "planes": [{"path": path, "c": c, "z": z, "t": t, "x_um": x_um, "y_um": y_um, "z_um": z_um}],
+        "planes": planes,             # [{"path", "c", "z", "t", "x_um", "y_um", "z_um"}, ...]
     }}
 
 
 def get_procedures(handle):
 
-    # Insert here: list the routines this microscope offers, such as autofocus.
+    procedures = scope.get_procedures(handle)   # {name: {"description": ...}}
 
-    return {"success": True, "content": {name: {"description": description}}}
+    return {"success": True, "content": procedures}
 
 
 def run_procedure(handle, procedure):
 
-    # Insert here: run the routine named in procedure; raise ValueError for a name that is not listed.
+    scope.run_procedure(handle, procedure)
 
     return {"success": True, "content": {"ran": procedure["name"]}}
 ```
 
-In each function, the comment is where your code that controls the
-microscope goes. The `return` at the end shows the least every answer must
-contain. Each name in it is a variable your code has to fill in. The sections below say what each key means. A driver may add
+This file does not talk to the microscope itself. Each function calls the
+function of the same name in `scope.py`, a file of your own next to it, and
+wraps what comes back in the answer shape. `scope.py` is where you write the
+code that drives the vendor software; what each of its functions has to
+hand back is visible from the variables here. The `return` at the end of
+each function shows the least every answer must contain. The sections below say what each key means. A driver may add
 keys of its own to any answer.
 
 `NAME` is the name the driver is listed under once it is installed.
