@@ -12,12 +12,12 @@ from pathlib import Path
 import pytest
 
 import zmart_controller.mock as mock
-from zmart_controller import set_instrument
+from zmart_controller import ZmartController
 
 
 @pytest.fixture
 def mic():
-    session = set_instrument(mock)
+    session = ZmartController(mock)
     yield session
     session.disconnect()
 
@@ -28,7 +28,7 @@ class TestSetInstrument:
 
     def test_connection_reaches_driver(self):
         # the connection dict is forwarded untouched to the driver's connect()
-        session = set_instrument(mock, {"client": "my-client"})
+        session = ZmartController(mock, {"client": "my-client"})
         try:
             assert session.get_info()["content"]["client"] == "my-client"
         finally:
@@ -37,7 +37,7 @@ class TestSetInstrument:
     def test_a_missing_function_is_named(self):
         functions = {name: getattr(mock, name) for name in mock.__all__ if name != "set_xyz"}
         with pytest.raises(ValueError, match="set_xyz"):
-            set_instrument(functions)
+            ZmartController(functions)
 
     def test_the_mock_is_reachable_from_the_package(self):
         import zmart_controller
@@ -57,7 +57,7 @@ class TestPosition:
     def test_origin_is_driver_configuration(self):
         # The origin is saved by the driver's own setup step and loaded at
         # connect, never set through the controller.
-        from zmart_controller import set_instrument as open_session
+        from zmart_controller import ZmartController as open_session
         from zmart_controller.mock.configuration import save
 
         save("origin", {"x": 50_100.0, "y": 37_500.0, "z": 5_000.0})
@@ -210,40 +210,6 @@ class TestDisconnect:
 
 
 class TestModuleStyle:
-    def test_module_delegates_to_active_microscope(self):
-        import zmart_controller as m
-
-        m.set_instrument(mock)
-        m.set_xyz(10, 20, 5)
-        assert m.get_xyz()["content"]["x"]["value"] == 10
-        m.disconnect()
-
-    def test_module_disconnect_clears_active(self):
-        import zmart_controller as m
-
-        m.set_instrument(mock)
-        m.disconnect()
-        with pytest.raises(AttributeError, match="no active microscope"):
-            m.acquire(position_label="A1")
-        m.disconnect()  # no active microscope: still a no-op
-
-    def test_swap_survives_failing_teardown(self):
-        import zmart_controller as m
-
-        first = m.set_instrument(mock)
-        first.disconnect = lambda: (_ for _ in ()).throw(RuntimeError("teardown boom"))
-        with pytest.raises(RuntimeError, match="teardown boom"):
-            m.set_instrument(mock)
-        # the new session must be tracked despite the old teardown failing
-        m.set_xyz(1, 2, 3)
-        assert m.get_xyz()["content"]["x"]["value"] == 1
-
-    def test_no_active_session_error_is_helpful(self):
-        import zmart_controller as m
-
-        with pytest.raises(AttributeError, match="set_instrument"):
-            m.acquire(position_label="A1")
-
     def test_unknown_attribute_raises(self):
         import zmart_controller as m
 
@@ -260,7 +226,7 @@ class TestCanvas:
         so on x and y the canvas reaches 32 µm past the travel. Its z-stacks
         must stay inside the travel, so on z the canvas is the travel itself.
         """
-        from zmart_controller import set_instrument as open_session
+        from zmart_controller import ZmartController as open_session
         from zmart_controller.mock.configuration import save
 
         save("origin", {"x": 51_000.0, "y": 37_500.0, "z": 5_000.0})
@@ -311,7 +277,7 @@ class TestRegisteredDrivers:
         folder = _driver_folder(tmp_path, connection={"client": "bench-pc"})
         assert zmart_controller.register_driver(folder) == "bench"
         assert list(zmart_controller.get_instruments()) == ["mock", "bench"]
-        session = zmart_controller.set_instrument("bench")
+        session = zmart_controller.ZmartController("bench")
         assert session.context == {"driver": "bench"}
         assert session.get_info()["content"]["client"] == "bench-pc"  # its connection
 
@@ -319,7 +285,7 @@ class TestRegisteredDrivers:
         import zmart_controller
 
         zmart_controller.register_driver(_driver_folder(tmp_path, "pkg", package=True))
-        session = zmart_controller.set_instrument("pkg")
+        session = zmart_controller.ZmartController("pkg")
         assert session.get_xyz()["success"] is True
 
     def test_a_folder_without_the_json_is_refused(self, tmp_path):
@@ -358,7 +324,7 @@ class TestRegisteredDrivers:
         import zmart_controller
 
         with pytest.raises(ValueError, match="no driver installed as 'ghost'"):
-            zmart_controller.set_instrument("ghost")
+            zmart_controller.ZmartController("ghost")
 
     def test_remove_driver(self, tmp_path):
         import zmart_controller

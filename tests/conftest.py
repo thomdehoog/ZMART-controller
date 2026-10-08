@@ -25,19 +25,6 @@ def _images_in_a_temporary_folder(tmp_path, monkeypatch):
 
 
 @pytest.fixture(autouse=True)
-def _reset_active_session():
-    """Clear the module-level active session after every test.
-
-    Without this, a test that sets an instrument leaks it into the next test,
-    and the "no active microscope" error branch is never exercised.
-    """
-    yield
-    import zmart_controller
-
-    zmart_controller._active = None
-
-
-@pytest.fixture(autouse=True)
 def _home_in_a_temporary_folder(tmp_path, monkeypatch):
     """Never let a test write to the real home folder's list of drivers."""
     monkeypatch.setenv("HOME", str(tmp_path / "home"))

@@ -115,9 +115,9 @@ def test_a_description_that_says_nothing_is_reported(monkeypatch, description):
 
 
 def test_the_mock_describes_itself():
-    from zmart_controller import set_instrument
+    from zmart_controller import ZmartController
 
-    session = set_instrument(mock)
+    session = ZmartController(mock)
     try:
         description = session.get_info()["content"]["description"]
     finally:
@@ -141,9 +141,9 @@ def test_a_bare_answer_without_the_envelope_is_reported(monkeypatch):
 
 def _acquire(**options):
     """Acquire once on the mock and return its answer, as a driver's own test would."""
-    from zmart_controller import set_instrument
+    from zmart_controller import ZmartController
 
-    session = set_instrument(mock)
+    session = ZmartController(mock)
     try:
         return session.acquire(position_label="A1", acquisition_settings=options or None)
     finally:
