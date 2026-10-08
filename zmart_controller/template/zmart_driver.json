@@ -1,11 +1,11 @@
 {
   "name": "my-scope",
+  "driver": "zmart_driver.py",
   "connection": {
     "microscope": "my-scope-01",
     "api_type": "socket",
     "host": "127.0.0.1",
     "password": "",
-    "config": "C:/VendorSoftware/config.ini",
-    "output_root": "D:/images"
+    "config": "C:/VendorSoftware/config.ini"
   }
 }

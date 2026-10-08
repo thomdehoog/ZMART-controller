@@ -107,10 +107,19 @@ def test_every_method_the_plugin_calls_exists_on_the_class():
     assert called <= {name for name in dir(ZmartDriver) if not name.startswith("_")}
 
 
-def test_a_folder_missing_a_file_is_refused(tmp_path):
+def test_a_missing_class_file_is_refused(tmp_path):
     shutil.copy(TEMPLATE / "zmart_driver.json", tmp_path)
     with pytest.raises(ValueError, match="zmart_driver.py is missing"):
         zmart_controller.load_driver(tmp_path)
+
+
+def test_the_json_can_point_at_a_class_file_elsewhere(tmp_path):
+    (tmp_path / "code").mkdir()
+    shutil.copy(TEMPLATE / "zmart_driver.py", tmp_path / "code" / "my_scope.py")
+    settings = json.loads((TEMPLATE / "zmart_driver.json").read_text())
+    settings["driver"] = "code/my_scope.py"
+    (tmp_path / "zmart_driver.json").write_text(json.dumps(settings))
+    assert zmart_controller.load_driver(tmp_path / "zmart_driver.json").NAME == "my-scope"
 
 
 def test_a_copied_template_is_installed_from_its_folder_or_json(tmp_path):

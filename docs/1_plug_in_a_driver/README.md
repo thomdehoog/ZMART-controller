@@ -72,8 +72,9 @@ The drivers for the microscopes at the ZMB are in
 
 A driver is a folder with two files, and both are yours:
 
-- `zmart_driver.json` holds the driver's name and how to reach the
-  microscope. It is what you point at to install the driver.
+- `zmart_driver.json` holds the driver's name, where its class file is,
+  and how to reach the microscope. It is what you point at to install the
+  driver.
 - `zmart_driver.py` holds the `ZmartDriver` class, which integrates the
   code that drives the microscope, one method per command. What each
   method hands back must comply with what the controller needs.
@@ -91,24 +92,27 @@ edit them without touching Python:
 ```json
 {
   "name": "my-scope",
+  "driver": "zmart_driver.py",
   "connection": {
     "microscope": "my-scope-01",
     "api_type": "socket",
     "host": "127.0.0.1",
     "password": "",
-    "config": "C:/VendorSoftware/config.ini",
-    "output_root": "D:/images"
+    "config": "C:/VendorSoftware/config.ini"
   }
 }
 ```
 
 `name` is the name the driver is listed under once it is installed.
-`connection` is how to reach this microscope: which instrument this is,
-how its vendor software is reached, where it listens, the password, the
-vendor's configuration file, and where images are saved. The controller
-hands it to your class unchanged and reads nothing from it itself, so a
-driver may add keys, but every driver starts from these. Leave a key empty
-when the microscope does not need it. `get_instruments()` shows the
+`driver` is the file that holds the `ZmartDriver` class, as a path from
+the folder of the JSON. `connection` is how to reach this microscope: which
+instrument this is, how its vendor software is reached, where it listens,
+the password, and the vendor's configuration file. The controller hands it
+to your class unchanged and reads nothing from it itself, so a driver may
+add keys, but every driver starts from these five. Leave a key empty when
+the microscope does not need it. Where images are saved is not part of
+it: that changes from experiment to experiment, and `get_info` reports
+the folder in use. `get_instruments()` shows the
 connection of every installed driver, with password, token and secret keys
 left out.
 

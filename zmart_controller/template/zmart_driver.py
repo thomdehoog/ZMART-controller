@@ -28,8 +28,8 @@ class ZmartDriver:
 
         ``connection`` is the dictionary from ``zmart_driver.json``, or
         the one given at ``set_instrument``: which microscope, how its software
-        is reached, where it listens, its password, its configuration file, and
-        where images go.
+        is reached, where it listens, its password, and its configuration file.
+        Where images are saved is your choice here; ``get_info`` reports it.
         """
         raise NotImplementedError("ZmartDriver.__init__: open the connection")
 
