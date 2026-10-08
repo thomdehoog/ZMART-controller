@@ -13,25 +13,25 @@ that comes with the controller, open the [tutorial notebook](tutorial.ipynb).
 ```python
 from zmart_controller import mic
 
-mic.get_instruments()                                              # the drivers installed here, and how each connects
-mic("mock")                                                        # connect
+mic.get_instruments()                                     # the drivers installed here, and how each connects
+mic("mock")                                               # connect
 
-mic.get_info()                                                         # where images go, and the microscope in plain words
+mic.get_info()                                            # where images go, and the microscope in plain words
 
-mic.get_actuators()                                                    # the motors of each axis
-mic.get_xyz(with_actuators=None)                                       # where the stage is, and where pictures can show
-mic.set_xyz(x, y, z, with_actuators=None)                              # move, in micrometres from the origin
+mic.get_actuators()                                       # the motors of each axis
+mic.get_xyz(with_actuators=None)                          # where the stage is, and where pictures can show
+mic.set_xyz(x, y, z, with_actuators=None)                 # move, in micrometres from the origin
 
-mic.get_state()                                                        # the instrument settings
-mic.set_state(state)                                                   # apply them again
+mic.get_state()                                           # the instrument settings
+mic.set_state(state)                                      # apply them again
 
-mic.get_acquisition_settings()                                         # the choices for capturing and saving
-mic.acquire(position_label, acquisition_settings=None)                 # capture and save an image here
+mic.get_acquisition_settings()                            # the choices for capturing and saving
+mic.acquire(position_label, acquisition_settings=None)    # capture and save an image here
 
-mic.get_procedures()                                                   # the routines on offer, such as autofocus
-mic.run_procedure(procedure)                                           # run one
+mic.get_procedures()                                      # the routines on offer, such as autofocus
+mic.run_procedure(procedure)                              # run one
 
-mic.disconnect()                                                       # close the connection
+mic.disconnect()                                          # close the connection
 ```
 
 ## 2) More information about the calls
