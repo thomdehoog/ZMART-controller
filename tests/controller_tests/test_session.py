@@ -176,7 +176,6 @@ class TestProcedures:
 class TestInfo:
     def test_get_info_passthrough(self, mic):
         info = mic.get_info()["content"]
-        assert Path(info["output_root"]).is_dir()
         assert info["serial"] == "MOCK-0001"
         # Nothing has been set up yet, so every configuration item is a shipped default.
         assert all(source.endswith("default.json") for source in info["configuration"].values())

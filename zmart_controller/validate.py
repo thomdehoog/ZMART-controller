@@ -77,14 +77,12 @@ def _envelope(name: str, answer: Any, problems: list[str]):
 
 
 def _check_info(content, problems):
-    if not isinstance(content, dict) or "output_root" not in content:
-        problems.append("get_info: the content must contain output_root")
-        return
-    # Optional: a driver may leave the description out. When it is there it
-    # has to say something, because whoever drives the microscope reads it.
-    description = content.get("description")
-    if "description" in content and not (isinstance(description, str) and description.strip()):
-        problems.append("get_info: description must be text that describes the microscope")
+    # Whoever drives the microscope reads the description, so it has to say something.
+    description = content.get("description") if isinstance(content, dict) else None
+    if not (isinstance(description, str) and description.strip()):
+        problems.append(
+            "get_info: the content must contain description, text that describes the microscope"
+        )
 
 
 def _check_actuators(content, problems):

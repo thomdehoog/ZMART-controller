@@ -16,7 +16,7 @@ from zmart_controller import mic
 mic.get_instruments()                                     # the drivers installed here, and how each connects
 mic("mock")                                               # connect
 
-mic.get_info()                                            # where images go, and the microscope in plain words
+mic.get_info()                                            # the microscope in plain words
 
 mic.get_actuators()                                       # the motors of each axis
 mic.get_xyz(with_actuators=None)                          # where the stage is, and where pictures can show
@@ -76,11 +76,10 @@ mic.get_info()
 - **Output**
 
   ```python
-  {'output_root': '/tmp/zmart-mock-output',
-   'description': 'A pretend widefield fluorescence microscope ...'}
+  {'description': 'A pretend widefield fluorescence microscope ...'}
   ```
 
-- **Note:** `output_root` is where the driver saves images. `description` is the microscope in plain words: what each setting means, its unit and bounds, which objective sits in which slot, which way +z points.
+- **Note:** The microscope in plain words: what each setting means, its unit and bounds, which objective sits in which slot, which way +z points. Read it once when you meet a new microscope.
 
 ### mic.get_actuators()
 

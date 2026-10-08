@@ -98,7 +98,7 @@ class ZmartController:
             self._handle.disconnect()
 
     def get_info(self) -> dict:
-        """Where images are saved, and the microscope in plain words."""
+        """The microscope in plain words."""
         try:
             ok, result = self._handle.get_info()
 
@@ -108,11 +108,11 @@ class ZmartController:
         if not ok:
             return {"success": False, "content": result}
 
-        output_root, description = result
+        description = result
 
         return {
             "success": True,
-            "content": {"output_root": output_root, "description": description},
+            "content": {"description": description},
         }
 
     def get_actuators(self) -> dict:

@@ -32,14 +32,12 @@ class ZmartDriver:
         raise NotImplementedError("ZmartDriver.disconnect: close the connection")
 
     def get_info(self):
-        """Return ``True, (output_root, description)``.
+        """Return ``True, description``: the microscope in plain words.
 
-        ``output_root`` is the folder where images are saved. ``description``
-        is the microscope in plain words: what each changeable setting means,
-        its unit and bounds, which objective sits in which slot, and which
-        way +z points.
+        Say what each changeable setting means, its unit and bounds, which
+        objective sits in which slot, and which way +z points.
         """
-        raise NotImplementedError("ZmartDriver.get_info: return True, (output_root, description)")
+        raise NotImplementedError("ZmartDriver.get_info: return True, description")
 
     def get_actuators(self):
         """Return ``True, (x_motors, y_motors, z_motors)``: the motor names per axis, at least one each."""

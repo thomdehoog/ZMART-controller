@@ -60,7 +60,7 @@ from zmart_controller import mic
 mic.get_instruments()
 mic(String)
 
-# 2) Learn about the connected setup: where images go, and the microscope in plain words
+# 2) Learn about the connected setup: the microscope in plain words
 mic.get_info()
 
 # 3) Discover the motors, then read the position and where pictures can show, or move (micrometres)

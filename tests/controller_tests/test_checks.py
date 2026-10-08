@@ -50,7 +50,7 @@ def test_problems_are_named(monkeypatch):
     _break(monkeypatch, "get_xyz", lambda handle, **kw: {"success": True, "content": {"x": {}}})
     _break(monkeypatch, "get_info", lambda handle: {"success": True, "content": {}})
     problems = validate_driver(mock)
-    assert "get_info: the content must contain output_root" in problems
+    assert any(p.startswith("get_info: the content must contain description") for p in problems)
     assert any(p.startswith("get_xyz: axis 'x' is missing") for p in problems)
     assert any(p.startswith("get_xyz: axis 'y' is missing") for p in problems)
     assert not any(p.startswith("get_state") for p in problems)
@@ -91,14 +91,6 @@ def test_a_canvas_that_is_not_min_then_max_is_reported(monkeypatch, canvas):
     ]
 
 
-def test_a_driver_without_a_description_still_fits(monkeypatch):
-    """The description is for whoever drives the microscope; the controller runs without it."""
-    _break(
-        monkeypatch, "get_info", lambda handle: {"success": True, "content": {"output_root": "x"}}
-    )
-    assert validate_driver(mock) == []
-
-
 @pytest.mark.parametrize("description", ["", "   ", 42, ["a microscope"]])
 def test_a_description_that_says_nothing_is_reported(monkeypatch, description):
     _break(
@@ -106,11 +98,11 @@ def test_a_description_that_says_nothing_is_reported(monkeypatch, description):
         "get_info",
         lambda handle: {
             "success": True,
-            "content": {"output_root": "x", "description": description},
+            "content": {"description": description},
         },
     )
     assert validate_driver(mock) == [
-        "get_info: description must be text that describes the microscope"
+        "get_info: the content must contain description, text that describes the microscope"
     ]
 
 
