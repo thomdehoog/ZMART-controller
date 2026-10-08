@@ -38,7 +38,7 @@ mic.disconnect()                                          # close the connection
 
 The outputs are real answers from the mock, trimmed where they are long, shown as the `content` of the answer. On another microscope the values differ; the keys shown are the same on every microscope, and anything else is an extra of that driver.
 
-### get_instruments
+### mic.get_instruments()
 
 ```python
 mic.get_instruments()
@@ -51,7 +51,7 @@ mic.get_instruments()
   {'mock': {}, 'stellaris': {'microscope': 'stellaris5-room-42', 'host': ..., ...}}
   ```
 
-### ZmartController
+### mic(...)
 
 ```python
 mic(driver, connection=None)
@@ -66,7 +66,7 @@ mic(driver, connection=None)
   a connected controller; every command below is a method on it
   ```
 
-### get_info
+### mic.get_info()
 
 ```python
 mic.get_info()
@@ -82,7 +82,7 @@ mic.get_info()
 
 - **Note:** `output_root` is where the driver saves images. `description` is the microscope in plain words: what each setting means, its unit and bounds, which objective sits in which slot, which way +z points.
 
-### get_actuators
+### mic.get_actuators()
 
 ```python
 mic.get_actuators()
@@ -95,7 +95,7 @@ mic.get_actuators()
   {'x': ['motoric'], 'y': ['motoric'], 'z': ['motoric', 'piezo']}
   ```
 
-### get_xyz
+### mic.get_xyz()
 
 ```python
 mic.get_xyz(with_actuators=None)
@@ -113,7 +113,7 @@ mic.get_xyz(with_actuators=None)
 
 - **Note:** Positions are micrometres from the origin, a point saved once for this microscope; in a saved image, right is +x and down is +y. The canvas is everywhere a picture can show: the travel plus half a field of view.
 
-### set_xyz
+### mic.set_xyz()
 
 ```python
 mic.set_xyz(x, y, z, with_actuators=None)
@@ -131,7 +131,7 @@ mic.set_xyz(x, y, z, with_actuators=None)
 
 - **Note:** When the answer comes back, the stage has arrived. A move outside the travel, or one the driver could not confirm, is `success: False`.
 
-### get_state
+### mic.get_state()
 
 ```python
 mic.get_state()
@@ -147,7 +147,7 @@ mic.get_state()
 
 - **Note:** A snapshot of the settings. `changeable` is what `set_state` can apply; `observed` is read only. A state is a plain dictionary: save it with `json` and apply it again another day.
 
-### set_state
+### mic.set_state()
 
 ```python
 mic.set_state(state)
@@ -161,7 +161,7 @@ mic.set_state(state)
   {'applied': {'gain': 200.0}}
   ```
 
-### get_acquisition_settings
+### mic.get_acquisition_settings()
 
 ```python
 mic.get_acquisition_settings()
@@ -179,7 +179,7 @@ mic.get_acquisition_settings()
 
 - **Note:** The choices about how to capture and save. `options` says what a setting may be, `active` what is used when you say nothing.
 
-### acquire
+### mic.acquire()
 
 ```python
 mic.acquire(position_label, acquisition_settings=None)
@@ -199,7 +199,7 @@ mic.acquire(position_label, acquisition_settings=None)
 
 - **Note:** Captures at the current position with the current settings, and saves. `files` lists every file saved; use those paths. `planes` says for every image plane which file, channel, depth and moment it is, and where on the sample it was taken. A second acquisition with the same label never overwrites the first.
 
-### get_procedures
+### mic.get_procedures()
 
 ```python
 mic.get_procedures()
@@ -213,7 +213,7 @@ mic.get_procedures()
    ...}
   ```
 
-### run_procedure
+### mic.run_procedure()
 
 ```python
 mic.run_procedure(procedure)
@@ -227,7 +227,7 @@ mic.run_procedure(procedure)
   {'ran': 'autofocus'}
   ```
 
-### disconnect
+### mic.disconnect()
 
 ```python
 mic.disconnect()
