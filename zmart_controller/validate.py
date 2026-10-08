@@ -1,10 +1,8 @@
-"""Checks for the driver you are writing: does it answer what the controller expects?
+"""Does a driver fit the controller? One call says which methods still answer wrongly.
 
-This file comes with the template and is part of your driver, not of the
-controller. Run it while you write the ``ZmartDriver``::
+Run it before installing a driver, with the same argument as ``register_driver``::
 
-    from my_scope.checks import validate_driver
-    validate_driver(ZmartDriver, connection)
+    zmart_controller.validate_driver("C:/drivers/my-scope/zmart_driver.json")
 
 :func:`validate_driver` connects and checks every ``get_*`` answer.
 :func:`check_acquire_answer` checks one acquisition, which the driver's own
@@ -20,7 +18,7 @@ import math
 from pathlib import Path
 from typing import Any
 
-from zmart_controller import ZmartController
+from .zmart_controller import ZmartController
 
 #: The three axes every driver reports.
 AXES = ("x", "y", "z")
@@ -29,12 +27,18 @@ AXES = ("x", "y", "z")
 def validate_driver(driver: Any, connection: dict[str, Any] | None = None) -> list[str]:
     """Connect to ``driver`` and check every ``get_*`` answer against the contract.
 
-    ``driver`` and ``connection`` are what you would pass to ``ZmartController``.
-    It moves nothing and acquires nothing.
+    ``driver`` is the driver's ``zmart_driver.json`` or its folder, as for
+    ``register_driver``, or anything ``ZmartController`` accepts, such as a
+    ``ZmartDriver`` class with its ``connection``. It moves nothing and
+    acquires nothing.
 
     Returns the problems found, one sentence each. Empty means the driver fits.
     Raises whatever the driver raises on connect.
     """
+    from .registry import load_driver
+
+    if isinstance(driver, (str, Path)) and Path(driver).exists():
+        driver = load_driver(driver)
     problems: list[str] = []
     session = ZmartController(driver, connection)
     try:

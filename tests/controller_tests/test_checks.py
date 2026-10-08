@@ -12,8 +12,7 @@ from pathlib import Path
 import pytest
 
 import zmart_controller.mock as mock
-from zmart_controller import registry
-from zmart_controller.template.checks import check_acquire_answer, validate_driver
+from zmart_controller import check_acquire_answer, registry, validate_driver
 
 
 class TestConfigRoot:

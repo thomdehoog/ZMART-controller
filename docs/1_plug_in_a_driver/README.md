@@ -32,15 +32,14 @@ command. The controller does the plugging in.
 
 ## Install a driver into the controller
 
-Before installing, check that the driver fits. The template brings
-`checks.py`; one call tells you which methods still hand back the wrong
-thing, one plain sentence each, and an empty list means it fits.
+Before installing, check that the driver fits. One call tells you which
+methods still hand back the wrong thing, one plain sentence each, and an
+empty list means it fits:
 
 ```python
-from my_scope.checks import validate_driver
-from my_scope.zmart_driver import ZmartDriver
+import zmart_controller
 
-validate_driver(ZmartDriver, connection)
+zmart_controller.validate_driver("C:/drivers/my-scope/zmart_driver.json")
 ```
 
 Installing a driver into the controller means telling it, once, where the
@@ -48,8 +47,6 @@ driver is on this computer, by pointing it at the driver's
 `zmart_driver.json`:
 
 ```python
-import zmart_controller
-
 zmart_controller.register_driver("C:/drivers/my-scope/zmart_driver.json")
 ```
 

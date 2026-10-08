@@ -14,8 +14,8 @@ from pathlib import Path
 import pytest
 
 import zmart_controller
+from zmart_controller import check_acquire_answer, validate_driver
 from zmart_controller import zmart_controller as controller
-from zmart_controller.template.checks import check_acquire_answer, validate_driver
 from zmart_controller.template.zmart_driver import ZmartDriver
 
 README = Path(__file__).parents[2] / "docs" / "1_plug_in_a_driver" / "README.md"
