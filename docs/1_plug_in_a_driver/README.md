@@ -137,305 +137,47 @@ with the following.
 
 ## Writing the ZmartDriver
 
-`ZmartDriver` in `zmart_driver.py` is where you write the code that drives
-the vendor software. A class is a bundle of data and the functions that
-work on it, called methods. Making a `ZmartDriver` opens the vendor
-connection and keeps it on `self`, and each method does one command with
-it. Every method starts out raising `NotImplementedError`, with a docstring
-saying what it must hand back, so `validate_driver` tells you which one is
-still to write.
-
-The controller calls these methods and expects their answers in a fixed form.
-Each method returns the plain values named beside it, never the `success`
-and `content` wrapping; the controller adds that. The headings below show the method, what it returns,
-and what the controller then puts in `content`.
-
-### Connect and disconnect
+`ZmartDriver` in `zmart_driver.py` is the code that drives the vendor
+software. Making one opens the connection; each method does one command.
+Every method starts out raising `NotImplementedError`, so `validate_driver`
+tells you which one is still to write. Each returns plain values; the
+controller wraps them.
 
 ```python
-def __init__(self, connection): ...    # open the vendor connection, keep what you need on self
-def disconnect(self): ...              # close it; afterwards every other call should raise RuntimeError
+class ZmartDriver:
+    def __init__(self, connection): ...                             # open the vendor connection, keep what you need on self
+    def disconnect(self): ...                                       # close it
+
+    def get_info(self): ...                                         # returns output_root, description
+    def get_actuators(self): ...                                    # returns x_motors, y_motors, z_motors
+    def get_xyz(self, with_actuators): ...                          # returns x, y, z, x_motor, y_motor, z_motor
+    def get_canvas(self): ...                                       # returns x_min, x_max, y_min, y_max, z_min, z_max
+    def set_xyz(self, x, y, z, with_actuators): ...                 # moves, returns x_motor, y_motor, z_motor
+    def get_state(self): ...                                        # returns changeable, observed
+    def set_state(self, changeable): ...                            # applies them, returns applied
+    def get_acquisition_settings(self): ...                         # returns {name: {"options": [...], "active": value}}
+    def acquire(self, position_label, acquisition_settings): ...    # captures and saves, returns files, planes
+    def get_procedures(self): ...                                   # returns {name: {"description": ...}}
+    def run_procedure(self, procedure): ...                         # runs the one named procedure["name"]
 ```
 
-On the controller's side, making the `ZmartDriver` is the connection, and
-the object is kept as the handle that every command receives:
+What the values mean:
 
-```python
-# zmart_controller/zmart_controller.py
-
-self._handle = driver_class(connection)
-```
-
-```python
-# zmart_controller/zmart_controller.py
-
-def disconnect(handle):
-
-    handle.disconnect()
-
-    return None
-```
-
-`connection` is the one from `zmart_driver.json`, or the dictionary given
-at `set_instrument`. Load what was saved once for this microscope here too:
-the origin, the travel limits and the calibration, from the
-[configuration folder](#the-configuration-folder).
-
-### Describe the microscope: get_info
-
-```python
-def get_info(self): ...                # returns output_root, description
-```
-
-On the controller's side, this is what receives it:
-
-```python
-# zmart_controller/zmart_controller.py
-
-def get_info(handle):
-
-    output_root, description = handle.get_info()
-
-    return {"success": True, "content": {"output_root": output_root, "description": description}}
-```
-
-`output_root` is the folder where images are saved. `description` is the
-microscope in plain words, read by whoever drives it: a person, a notebook,
-or the ZMART AI agent. Say what the other answers cannot: what each
-changeable setting means, its unit and its bounds, which objective sits in
-which slot, which way +z points, and anything about the sample worth
-knowing. Leave out what `get_xyz` and `get_procedures` already report. It
-must be text with something in it.
-
-The controller puts both in `content`. Anything else a driver adds there is an
-extra of that driver, and a workflow that depends on it will not run on
-other microscopes.
-
-### Position: get_actuators, get_xyz, get_canvas, set_xyz
-
-```python
-def get_actuators(self): ...                      # returns x_motors, y_motors, z_motors
-def get_xyz(self, with_actuators): ...            # returns x, y, z, x_motor, y_motor, z_motor
-def get_canvas(self): ...                         # returns x_min, x_max, y_min, y_max, z_min, z_max
-def set_xyz(self, x, y, z, with_actuators): ...   # moves, then returns x_motor, y_motor, z_motor
-```
-
-On the controller's side, this is what receives it:
-
-```python
-# zmart_controller/zmart_controller.py
-
-def get_actuators(handle):
-
-    x_motors, y_motors, z_motors = handle.get_actuators()
-
-    return {"success": True, "content": {"x": x_motors, "y": y_motors, "z": z_motors}}
-
-
-def get_xyz(handle, *, with_actuators=None):
-
-    x, y, z, x_motor, y_motor, z_motor = handle.get_xyz(with_actuators)
-    x_min, x_max, y_min, y_max, z_min, z_max = handle.get_canvas()
-
-    return {
-        "success": True,
-        "content": {
-            "x": {"value": x, "actuator": x_motor, "canvas": [x_min, x_max]},
-            "y": {"value": y, "actuator": y_motor, "canvas": [y_min, y_max]},
-            "z": {"value": z, "actuator": z_motor, "canvas": [z_min, z_max]},
-        },
-    }
-
-
-def set_xyz(handle, x, y, z, *, with_actuators=None):
-
-    x_motor, y_motor, z_motor = handle.set_xyz(x, y, z, with_actuators)
-
-    return {
-        "success": True,
-        "content": {
-            "position": {"x": x, "y": y, "z": z},
-            "actuators": {"x": x_motor, "y": y_motor, "z": z_motor},
-        },
-    }
-```
-
-Positions are in **micrometres from the origin**. The origin is a point
-(0, 0, 0) that was chosen and saved once for this microscope, so that a
-position means the same place on the sample every time someone connects.
-Turning the vendor's own numbers into this frame is the driver's job.
-
-Positions and pictures share one frame. **In a saved image, right is +x and
-down is +y**, on every microscope. If the vendor's images come out mirrored
-or turned, the driver corrects them on saving. Which way +z points is the
-microscope's own; say so in the `description`.
-
-`get_actuators` lists the motors that can move each axis, at least one per
-axis. `with_actuators` is a dictionary that names the motor to use per
-axis, such as `{"z": "piezo"}`, or `None`. An axis left out uses the first
-motor in its list. A name that is not in the list raises `ValueError`.
-
-For `get_xyz`, the controller builds `content` per axis from the position and
-the canvas:
-
-| Key | What it is |
+| Value | Meaning |
 |---|---|
-| `value` | where the axis is now |
-| `actuator` | the motor that was read |
-| `canvas` | `[min, max]`: everywhere a picture can show on that axis |
-
-The canvas is the stage's travel, widened by half a field of view. A picture
-taken at the very edge of the travel still shows half a field beyond it. A
-viewer uses the canvas to lay out the whole specimen area before the first
-picture arrives, so it has to cover everything a picture could ever show.
-Both ends are numbers in micrometres, and `min` is never larger than `max`.
-The stage itself still stops at the travel limits.
-
-`set_xyz` checks the travel limits first and raises `ValueError` for a
-position outside them. It sends the move and reads the position back until
-the stage has arrived, and raises `RuntimeError` when it cannot be
-confirmed, because carrying on at an unknown position is never safe. The
-controller reports `position`, the position asked for, and `actuators`, the
-motor used per axis.
-
-### Settings: get_state, set_state
-
-```python
-def get_state(self): ...               # returns changeable, observed
-def set_state(self, changeable): ...   # applies them, returns applied
-```
-
-On the controller's side, this is what receives it:
-
-```python
-# zmart_controller/zmart_controller.py
-
-def get_state(handle):
-
-    changeable, observed = handle.get_state()
-
-    return {"success": True, "content": {"changeable": changeable, "observed": observed}}
-
-
-def set_state(handle, state):
-
-    applied = handle.set_state(state["changeable"])
-
-    return {"success": True, "content": {"applied": applied}}
-```
-
-The state is the instrument's settings, captured by `get_state` so they can
-be applied again later with `set_state`. It has two dictionaries:
-
-- `changeable`: the settings `set_state` applies, such as laser power or
-  exposure time.
-- `observed`: a read-only description, such as the objective in place and
-  the pixel size. It is never used as an instruction.
-
-The controller hands `set_state` only the `changeable` part of what the
-workflow sent. Apply each setting, read it back to confirm it took, raise
-`ValueError` for a name the microscope does not have, and return what was
-applied; the controller reports it under `applied`.
-
-### Acquire: get_acquisition_settings, acquire
-
-```python
-def get_acquisition_settings(self): ...                      # returns {name: {"options": [...], "active": value}}
-def acquire(self, position_label, acquisition_settings): ... # captures and saves, returns files, planes
-```
-
-On the controller's side, this is what receives it:
-
-```python
-# zmart_controller/zmart_controller.py
-
-def get_acquisition_settings(handle):
-
-    settings = handle.get_acquisition_settings()  # {name: {"options": [...], "active": value}}
-
-    return {"success": True, "content": settings}
-
-
-def acquire(handle, *, position_label, acquisition_settings=None):
-
-    files, planes = handle.acquire(position_label, acquisition_settings)
-
-    return {
-        "success": True,
-        "content": {
-            "position_label": position_label,
-            "files": files,  # the path of every file saved
-            "planes": planes,  # [{"path", "c", "z", "t", "x_um", "y_um", "z_um"}, ...]
-        },
-    }
-```
-
-Acquisition settings are the choices for one acquisition, such as the file
-format or the number of planes in a z-stack. For each one, `options` lists
-the values it may take, or describes them when they cannot be listed, such
-as `"number > 0"`, and `active` is the value used when the setting is left
-out of `acquire`. An acquisition setting that is not listed raises
-`ValueError`.
-
-`acquire` captures an image at the current position with the current
-settings, and saves it. The controller puts three things in `content`:
-
-| Key | What it is |
-|---|---|
-| `position_label` | the name the workflow gave this position, such as `"A1"`. The saved files are named after it |
-| `files` | the path of every file the acquisition saved: the images, and anything saved beside them, such as a log |
-| `planes` | one entry per saved image plane, saying which file it is in and where it sits on the sample |
-
-`files` is how a workflow finds its pictures on any microscope. A driver that
-keeps them under a name of its own, without listing them here, works with
-none of the workflows. Every path listed must exist when `acquire` returns. A
-format that is kept as a folder, such as OME-Zarr, is listed by its folder.
-A successful acquisition lists at least one file. Never overwrite an earlier
-picture: when the same label is used twice, save the second one under a
-new name, as the mock does with `A1_001`.
-
-Each entry of `planes` describes one image plane:
-
-| Key | What it is |
-|---|---|
-| `path` | the file that holds the plane. It must be one of the `files` |
-| `c`, `z`, `t` | the plane's channel, depth and time point, each counted from 0. They also find the plane inside a file that holds many |
-| `x_um`, `y_um`, `z_um` | the stage position the plane was taken at, in micrometres from the origin. `None` where the driver cannot know it |
-
-No two planes may share the same `c`, `z` and `t`. A driver may add entries
-of its own to a plane. An acquisition that did not succeed may list no files
-and no planes.
-
-### Procedures: get_procedures, run_procedure
-
-```python
-def get_procedures(self): ...             # returns {name: {"description": ...}}
-def run_procedure(self, procedure): ...   # runs the one named procedure["name"]
-```
-
-On the controller's side, this is what receives it:
-
-```python
-# zmart_controller/zmart_controller.py
-
-def get_procedures(handle):
-
-    procedures = handle.get_procedures()  # {name: {"description": ...}}
-
-    return {"success": True, "content": procedures}
-
-
-def run_procedure(handle, procedure):
-
-    handle.run_procedure(procedure)
-
-    return {"success": True, "content": {"ran": procedure["name"]}}
-```
-
-Procedures are the routines a microscope offers, such as autofocus or
-parking the stage. `procedure` is a dictionary whose `name` picks one; its
-other keys are the arguments. A name that `get_procedures` does not list
-raises `ValueError`. The controller reports `ran`, the name of the procedure.
+| `connection` | the dictionary from `zmart_driver.json`. Also load here what was measured once for this microscope: origin, travel limits, calibration, from the [configuration folder](#the-configuration-folder) |
+| `output_root` | the folder where images are saved |
+| `description` | the microscope in plain words, for whoever drives it: what each changeable setting means, its unit and bounds, which objective is in which slot, which way +z points |
+| `x_motors`, `y_motors`, `z_motors` | the motor names that can move each axis, at least one each |
+| `with_actuators` | `{"z": "piezo"}` or `None`: the motor to use per axis. Left out, the first one. Unknown name: raise `ValueError` |
+| `x`, `y`, `z` | micrometres from the origin, the point saved once for this microscope. In a saved image, right is +x and down is +y |
+| `x_min` ... `z_max` | the canvas: the travel widened by half a field of view, everywhere a picture can show |
+| `changeable`, `observed` | two dictionaries: the settings `set_state` applies, and a read-only description such as the objective in place |
+| `applied` | the settings that were changed |
+| `options`, `active` | the values a setting may take, or a description such as `"number > 0"`, and the value used when left out |
+| `files` | the path of every file the acquisition saved. Never overwrite an earlier one |
+| `planes` | one entry per saved image plane: `{"path", "c", "z", "t", "x_um", "y_um", "z_um"}`, counts from 0, position in micrometres or `None` |
+| `procedure` | `{"name": ..., ...}`: the routine to run and its arguments. Unknown name: raise `ValueError` |
 
 ## Rules for every driver
 
