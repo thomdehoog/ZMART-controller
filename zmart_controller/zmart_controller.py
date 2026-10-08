@@ -64,6 +64,34 @@ class ZmartController:
         for command, function in functions.items():
             setattr(self, command, partial(function, self._handle))
 
+    @staticmethod
+    def get_instruments() -> dict:
+        """The drivers installed on this computer, by name, each with how it connects."""
+        from .registry import get_instruments
+
+        return get_instruments()
+
+    @staticmethod
+    def register_driver(where) -> str:
+        """Install a driver on this computer: point at its ``zmart_driver.json``. Returns its name."""
+        from .registry import register_driver
+
+        return register_driver(where)
+
+    @staticmethod
+    def remove_driver(name: str) -> bool:
+        """Take an installed driver off this computer's list."""
+        from .registry import remove_driver
+
+        return remove_driver(name)
+
+    @staticmethod
+    def validate_driver(driver, connection=None) -> list:
+        """The problems with a driver's answers, one sentence each; empty when it fits."""
+        from .validate import validate_driver
+
+        return validate_driver(driver, connection)
+
     def disconnect(self) -> None:
         """Close the connection, if the driver has a way to close it."""
         if hasattr(self._handle, "disconnect"):
@@ -242,7 +270,11 @@ class ZmartController:
 
 #: The commands: the public methods of the controller. A ZmartDriver has a
 #: method for each, a module driver a function. disconnect is optional.
-COMMANDS = tuple(name for name in vars(ZmartController) if not name.startswith("_"))
+COMMANDS = tuple(
+    name
+    for name, value in vars(ZmartController).items()
+    if not name.startswith("_") and not isinstance(value, staticmethod)
+)
 
 
 class _on_the_last_one:

@@ -33,9 +33,9 @@ Installing a driver means pointing the controller, once, at the driver's
 `zmart_driver.json`:
 
 ```python
-import zmart_controller
+from zmart_controller import mic
 
-zmart_controller.register_driver("C:/drivers/my-scope/zmart_driver.json")
+mic.register_driver("C:/drivers/my-scope/zmart_driver.json")
 ```
 
 `register_driver` writes the driver into the registry, the file
@@ -46,8 +46,8 @@ then on
 it by name:
 
 ```python
-zmart_controller.get_instruments()           # {'mock': {}, 'my-scope': {'microscope': ..., 'host': ..., ...}}
-mic = zmart_controller.ZmartController("my-scope")
+mic.get_instruments()                        # {'mock': {}, 'my-scope': {'microscope': ..., 'host': ..., ...}}
+mic("my-scope")
 ```
 
 `get_instruments` lists every installed driver with how it connects,
@@ -245,7 +245,7 @@ Run the routine named in `procedure`; the other keys are its arguments. A
 name that is not listed is a failure.
 
 ```python
-zmart_controller.validate_driver("C:/drivers/my-scope/zmart_driver.json")   # [] when every method fits
+mic.validate_driver("C:/drivers/my-scope/zmart_driver.json")   # [] when every method fits
 ```
 
 ---
