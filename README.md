@@ -84,22 +84,6 @@ mic.run_procedure(Dict)
 mic.disconnect()
 ```
 
-`set_state` and `run_procedure` take one dictionary, and so do the `acquisition_settings` of
-`acquire`. The keys come from the matching `get_` command, so a driver can offer whatever its
-microscope can do without the vocabulary having to grow.
-
-Every command except `disconnect` answers with the same two things:
-
-```python
-{"success": True, "content": {...}}
-```
-
-`success` says whether the driver did what you asked. `content` is whatever the
-driver has to say about it: a position, a saved-file record, a state. When
-something unexpected happens, the answer is `success: False`, and the details are in `content`.
-We have not defined a vocabulary for error messages at this point.
-
-
 ## Want to give it a try?
 
 1. **[Using the ZMART-controller](docs/use_the_controller/README.md).** Every command, what it does, and what it answers.
