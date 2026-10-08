@@ -23,7 +23,7 @@ It is part of [**ZMART**](https://github.com/thomdehoog/ZMART-microscopy) (ZMB's
 
 When you want to implement an automated workflow on a microscope, you run into two problems:
 
-1. **You need time on the microscope.** 
+1. **Time on the microscope is often scarse.** 
 
 2. **You want to share the workflow, but it only runs on your specific microscope.** 
 
