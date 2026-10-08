@@ -79,18 +79,17 @@ whole folder and rename it. This is how the shipped file begins:
 ```python
 # zmart_controller_plugin.py
 
+import json
+from pathlib import Path
+
 from .zmart_driver import ZmartDriver  # zmart_driver.py: the code that talks to the vendor software
 
-NAME = "my-scope"  # the driver's name in the controller's list
+# The driver's name and how to reach this microscope live in zmart_driver.json,
+# next to this file, so they can be edited without touching any code.
+_SETTINGS = json.loads((Path(__file__).with_name("zmart_driver.json")).read_text())
 
-CONNECTION = {  # how to reach this microscope; get_instruments() shows it
-    "microscope": "my-scope-01",  # which instrument this is
-    "api_type": "socket",  # how the vendor software is reached
-    "host": "127.0.0.1",  # where it listens
-    "password": "",  # never shown by get_instruments()
-    "config": "C:/my-scope/config.ini",
-    "output_root": "D:/images",  # where images are saved
-}
+NAME = _SETTINGS["name"]  # the driver's name in the controller's list
+CONNECTION = _SETTINGS["connection"]  # how to reach this microscope; get_instruments() shows it
 
 
 def connect(connection):
@@ -100,14 +99,33 @@ def connect(connection):
     return handle  # the connected driver; every other function receives it back
 ```
 
-`NAME` is the name the driver is listed under once it is installed.
-`CONNECTION` is how to reach this microscope. The controller hands it to
-`connect` unchanged and reads nothing from it itself, so a driver may use
-other keys, but every driver starts from the five above: which instrument
-this is, how its vendor software is reached, where it listens, the
-password, and the vendor's configuration file. Leave a key empty when the
-microscope does not need it. `get_instruments()` shows the connection of
-every installed driver, with password, token and secret keys left out.
+The name and the connection are not in the code. They are in
+`zmart_driver.json`, next to the plugin, so that whoever sets up the
+microscope computer can edit them without touching Python:
+
+```json
+{
+  "name": "my-scope",
+  "connection": {
+    "microscope": "my-scope-01",
+    "api_type": "socket",
+    "host": "127.0.0.1",
+    "password": "",
+    "config": "C:/my-scope/config.ini",
+    "output_root": "D:/images"
+  }
+}
+```
+
+`name` is the name the driver is listed under once it is installed.
+`connection` is how to reach this microscope: which instrument this is,
+how its vendor software is reached, where it listens, the password, the
+vendor's configuration file, and where images are saved. The controller
+hands it to `connect` unchanged and reads nothing from it itself, so a
+driver may add keys, but every driver starts from these. Leave a key empty
+when the microscope does not need it. `get_instruments()` shows the
+connection of every installed driver, with password, token and secret keys
+left out.
 
 `connect` makes one `ZmartDriver` from the connection and returns it as the
 **handle**. The controller never looks inside the handle; it hands it back

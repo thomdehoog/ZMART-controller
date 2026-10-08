@@ -36,6 +36,8 @@ include = ["zmart_controller*"]
 [tool.setuptools.package-data]
 # The mock driver's shipped configuration files.
 "zmart_controller.mock" = ["**/*.json"]
+# The driver template's settings file.
+"zmart_controller.template" = ["*.json"]
 
 
 [tool.pytest.ini_options]

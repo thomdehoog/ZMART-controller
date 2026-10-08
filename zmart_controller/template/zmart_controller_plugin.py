@@ -12,18 +12,17 @@ Author: Thom de Hoog, Center for Microscopy and Image Analysis (ZMB),
 University of Zurich (thom.dehoog@zmb.uzh.ch, thomdehoog@gmail.com).
 """
 
+import json
+from pathlib import Path
+
 from .zmart_driver import ZmartDriver  # zmart_driver.py: the code that talks to the vendor software
 
-NAME = "my-scope"  # the driver's name in the controller's list
+# The driver's name and how to reach this microscope live in zmart_driver.json,
+# next to this file, so they can be edited without touching any code.
+_SETTINGS = json.loads((Path(__file__).with_name("zmart_driver.json")).read_text())
 
-CONNECTION = {  # how to reach this microscope; get_instruments() shows it
-    "microscope": "my-scope-01",  # which instrument this is
-    "api_type": "socket",  # how the vendor software is reached
-    "host": "127.0.0.1",  # where it listens
-    "password": "",  # never shown by get_instruments()
-    "config": "C:/my-scope/config.ini",
-    "output_root": "D:/images",  # where images are saved
-}
+NAME = _SETTINGS["name"]  # the driver's name in the controller's list
+CONNECTION = _SETTINGS["connection"]  # how to reach this microscope; get_instruments() shows it
 
 
 def connect(connection):
