@@ -10,7 +10,7 @@ small driver and plugs it in, open the [tutorial notebook](tutorial.ipynb).
 
 1. [What a driver is](#what-a-driver-is)
 2. [Install a driver into the controller](#install-a-driver-into-the-controller)
-3. [The two files of a driver](#the-two-files-of-a-driver)
+3. [The ZmartController](#the-zmartcontroller)
 4. [Writing the ZmartDriver](#writing-the-zmartdriver)
 
 ## What a driver is
@@ -31,6 +31,42 @@ reach the microscope, and a `ZmartDriver` class with one method per
 command. The controller does the plugging in.
 
 ## Install a driver into the controller
+
+A driver is a folder with two files, and both are yours:
+
+- `zmart_driver.json` holds the driver's name, where its class file is,
+  and how to reach the microscope. It is what you point at to install the
+  driver.
+- `zmart_driver.py` holds the `ZmartDriver` class, which integrates the
+  code that drives the microscope, one method per command. What each
+  method hands back must comply with what the controller needs.
+
+The controller ships both, ready to copy, in the folder
+`zmart_controller/template`. Copy that folder, rename it, and adapt the
+two files.
+
+### The settings: zmart_driver.json
+
+The driver's name and the connection are not in the code. They are in
+`zmart_driver.json`, so that whoever sets up the microscope computer can
+edit them without touching Python. Each value below says what to put
+there; the shipped file looks the same, and you replace every value:
+
+```json
+{
+  "name": "<the name you want the driver listed under by get_instruments(), for example stellaris>",
+  "driver": "<the file that holds your ZmartDriver class; leave it unless you moved the file>",
+  "connection": {
+    "microscope": "<a name for this particular instrument, for example stellaris5-room-42>",
+    "api_type": "<how the vendor software is reached, for example socket, grpc or dll>",
+    "host": "<if the vendor software listens on a network address, put it here>",
+    "password": "<if the vendor software requires a password or token, put it here>",
+    "config": "<if the vendor software has a configuration file, put its path here>"
+  }
+}
+```
+
+`get_instruments()` shows this back for every installed driver.
 
 Before installing, check that the driver fits. One call tells you which
 methods still hand back the wrong thing, one plain sentence each, and an
@@ -73,45 +109,7 @@ The mock driver is always on the list, and the name `"mock"` is taken.
 The drivers for the microscopes at the ZMB are in
 [ZMART drivers](https://github.com/thomdehoog/ZMART-drivers).
 
-## The two files of a driver
-
-A driver is a folder with two files, and both are yours:
-
-- `zmart_driver.json` holds the driver's name, where its class file is,
-  and how to reach the microscope. It is what you point at to install the
-  driver.
-- `zmart_driver.py` holds the `ZmartDriver` class, which integrates the
-  code that drives the microscope, one method per command. What each
-  method hands back must comply with what the controller needs.
-
-The controller ships both, ready to copy, in the folder
-`zmart_controller/template`. Copy that folder, rename it, and adapt the
-two files.
-
-### The settings: zmart_driver.json
-
-The driver's name and the connection are not in the code. They are in
-`zmart_driver.json`, so that whoever sets up the microscope computer can
-edit them without touching Python. Each value below says what to put
-there; the shipped file looks the same, and you replace every value:
-
-```json
-{
-  "name": "<the name you want the driver listed under by get_instruments(), for example stellaris>",
-  "driver": "<the file that holds your ZmartDriver class; leave it unless you moved the file>",
-  "connection": {
-    "microscope": "<a name for this particular instrument, for example stellaris5-room-42>",
-    "api_type": "<how the vendor software is reached, for example socket, grpc or dll>",
-    "host": "<if the vendor software listens on a network address, put it here>",
-    "password": "<if the vendor software requires a password or token, put it here>",
-    "config": "<if the vendor software has a configuration file, put its path here>"
-  }
-}
-```
-
-`get_instruments()` shows this back for every installed driver.
-
-### The ZmartController
+## The ZmartController
 
 The controller consists of one class, `ZmartController`, in `zmart_controller/zmart_controller.py`.
 
