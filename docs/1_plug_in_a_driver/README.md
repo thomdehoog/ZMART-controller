@@ -9,7 +9,7 @@
 ## 1) What is a ZMART driver
 
 The controller stands in between your workflow and the driver. It knows nothing about any particular workflow or microscope. 
-It takes input from your workflow through a short, fixed list of commands and hands these to the driver. You can have multiple workflows and multiple driver, but you only have one controller.
+It takes input from your workflow through a short, fixed list of commands and hands these to the driver. You can have multiple workflows and multiple drivers, but you only have one controller.
 
 ```
 your workflow ──► controller ──► driver ──► vendor software ──► microscope
@@ -21,7 +21,7 @@ A ZMART driver is a folder with at least two files:
   and how to reach the microscope. 
 - `zmart_driver.py` holds the `ZmartDriver` class, which integrates the
   code that drives the microscope, one method per command that must comply
-  with what the controller needs.
+  with what the ZMART controller needs.
 - Optional other tooling for interacting with the microscope
 
 The drivers for the microscopes at the ZMB are in
