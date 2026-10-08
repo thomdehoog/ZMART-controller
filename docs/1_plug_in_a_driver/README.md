@@ -87,7 +87,8 @@ two files.
 
 The driver's name and the connection are not in the code. They are in
 `zmart_driver.json`, so that whoever sets up the microscope computer can
-edit them without touching Python:
+edit them without touching Python. This is an example; the values are
+made up, and every microscope fills in its own:
 
 ```json
 {
