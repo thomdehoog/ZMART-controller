@@ -1,5 +1,5 @@
 {
-  "name": "<the name you want the driver listed under, for example stellaris>",
+  "name": "<the name you want the driver listed under by get_instruments(), for example stellaris>",
   "driver": "zmart_driver.py",
   "connection": {
     "microscope": "<a name for this particular instrument, for example stellaris5-room-42>",
