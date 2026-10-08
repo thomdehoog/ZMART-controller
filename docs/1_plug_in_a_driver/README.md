@@ -92,27 +92,37 @@ CONNECTION = {                        # how to reach this microscope; get_instru
 
 
 def connect(connection):
+
     # Open the connection to the vendor software with what is in connection.
+
     return handle                     # any object that holds the live connection
 
 
 def disconnect(handle):               # optional
+
     # Close the connection to the vendor software.
+
     return None
 
 
 def get_info(handle):
+
     # Ask the vendor software where images go, and describe the microscope in words.
+
     return {"success": True, "content": {"output_root": output_root, "description": description}}
 
 
 def get_actuators(handle):
+
     # List the motors that can move each axis.
+
     return {"success": True, "content": {"x": x_motors, "y": y_motors, "z": z_motors}}
 
 
 def get_xyz(handle, *, with_actuators=None):
+
     # Read the stage position and turn it into micrometres from the origin.
+
     return {"success": True, "content": {
         "x": {"value": x, "actuator": x_motor, "canvas": [x_min, x_max]},
         "y": {"value": y, "actuator": y_motor, "canvas": [y_min, y_max]},
@@ -121,7 +131,9 @@ def get_xyz(handle, *, with_actuators=None):
 
 
 def set_xyz(handle, x, y, z, *, with_actuators=None):
+
     # Check the travel limits, send the move, and read back until the stage has arrived.
+
     return {"success": True, "content": {
         "position": {"x": x, "y": y, "z": z},
         "actuators": {"x": x_motor, "y": y_motor, "z": z_motor},
@@ -129,22 +141,30 @@ def set_xyz(handle, x, y, z, *, with_actuators=None):
 
 
 def get_state(handle):
+
     # Read the settings that can be changed, and what can only be observed.
+
     return {"success": True, "content": {"changeable": changeable, "observed": observed}}
 
 
 def set_state(handle, state):
+
     # Apply each setting under changeable, and read back to confirm it took.
+
     return {"success": True, "content": {"applied": applied}}
 
 
 def get_acquisition_settings(handle):
+
     # List the choices for one acquisition, and the value each has now.
+
     return {"success": True, "content": {name: {"options": options, "active": active}}}
 
 
 def acquire(handle, *, position_label, acquisition_settings=None):
+
     # Capture, wait for the vendor's file, save it as OME-TIFF or OME-Zarr named after position_label.
+
     return {"success": True, "content": {
         "position_label": position_label,
         "files": files,               # the path of every file saved
@@ -153,12 +173,16 @@ def acquire(handle, *, position_label, acquisition_settings=None):
 
 
 def get_procedures(handle):
+
     # List the routines this microscope offers, such as autofocus.
+
     return {"success": True, "content": {name: {"description": description}}}
 
 
 def run_procedure(handle, procedure):
+
     # Run the routine named in procedure; raise ValueError for a name that is not listed.
+
     return {"success": True, "content": {"ran": procedure["name"]}}
 ```
 
