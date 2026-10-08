@@ -129,8 +129,7 @@ hands back.
 | Your method | The answer |
 |---|---|
 | returns | `{"success": True, "content": {...}}`, your values under fixed keys |
-| raises `NotConfirmed("...")` | `{"success": False, "content": "..."}`, your text |
-| raises `ValueError` or `RuntimeError` | the error itself, unchanged |
+| raises | `{"success": False, "content": "..."}`, the error text |
 
 So what is left for you is to write a `ZmartDriver` class that complies
 with the following.
@@ -227,23 +226,17 @@ raises `ValueError`.
 
 ## Rules for every driver
 
-- **Raise when carrying on is unsafe.** Raise `ValueError` when the request
-  is wrong: an unknown setting, a position outside the limits. Raise
-  `RuntimeError` when the microscope fails. The controller passes the error
-  on to the workflow unchanged, so the message should say what happened in
-  plain words.
-- **Report soft failures by raising `NotConfirmed`.** Use it only for an
-  outcome a workflow can safely carry on from. The answer is
-  `success: False`, and `content` is your error text.
+- **Return for success, raise for failure.** Raise `ValueError` when the
+  request is wrong: an unknown setting, a position outside the limits.
+  Raise `RuntimeError` when the microscope fails. Say what happened in
+  plain words; the workflow reads it as the content.
 - **Read back to confirm.** Microscope software often accepts a command
-  before it has happened. When a setting or an acquisition was sent but never
-  showed up, raise `NotConfirmed` saying so. A move is the exception:
-  `set_xyz` raises `RuntimeError`, because carrying on at an unknown
-  position is never safe.
-- **Reject what you do not understand.** An unknown setting name,
-  acquisition setting, motor name or procedure raises `ValueError`. A typo
-  that passes silently can cost someone an experiment.
-- **Keep secrets out of error messages.** The connection dictionary may hold
+  before it has happened. Read the position or the setting back, and raise
+  when it never showed up.
+- **Reject what you do not understand.** An unknown setting, acquisition
+  setting, motor name or procedure raises `ValueError`. A typo that passes
+  silently can cost someone an experiment.
+- **Keep secrets out of error messages.** The connection may hold
   passwords. Name the keys, never the values.
 - **Keep safety in the driver.** Travel limits, the origin and the
   calibration belong to the driver. The controller checks nothing on the
