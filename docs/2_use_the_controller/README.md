@@ -106,7 +106,7 @@ Two things to know about this short style:
 - **Call through the module each time**, as in `zmart_controller.set_xyz(...)`.
   A command saved in a variable keeps pointing at the old microscope after
   you plug in another one.
-- **It assumes one thread.** For several threads, give each its own session
+- **It assumes one thread.** For several threads, give each its own `ZmartController`
   (see [Several microscopes at once](#several-microscopes-at-once)).
 
 ## Every answer has the same shape
@@ -450,13 +450,14 @@ The controller passes every error from the driver to you unchanged.
 ## Several microscopes at once
 
 The module-level style drives one microscope at a time. To drive several,
-hold a session for each. A session has the same commands as the module.
+make a `ZmartController` for each. It has the same commands as the module,
+and making one connects.
 
 ```python
-from zmart_controller.session import set_instrument
+from zmart_controller import ZmartController
 
-left = set_instrument("mock", {"output_root": "left"})
-right = set_instrument("mock", {"output_root": "right"})
+left = ZmartController("mock", {"output_root": "left"})
+right = ZmartController("mock", {"output_root": "right"})
 
 left.set_xyz(0, 0, 0)
 right.set_xyz(200, 0, 0)
@@ -467,9 +468,9 @@ left.disconnect()
 right.disconnect()
 ```
 
-Sessions made this way are independent of each other. Plugging in one never
+Controllers made this way are independent of each other. Plugging in one never
 disconnects another. This is also the way to drive microscopes from several
-threads: one session per thread.
+threads: one controller per thread.
 
 ## What works on every microscope
 

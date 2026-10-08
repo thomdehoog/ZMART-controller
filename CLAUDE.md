@@ -22,7 +22,7 @@ Concretely:
   text; keep the precise term for internal code comments if it genuinely helps a
   maintainer, but still gloss it.
 - **Operator-facing surfaces get the most care**: the `zmart_controller`
-  `Session` methods, the mock microscope, the README and the docs in
+  `ZmartController` methods, the mock microscope, the README and the docs in
   `docs/`. These are the front door.
 - **Docstrings state contracts plainly**: what goes in, what comes back, what
   can go wrong — in a sentence or two a non-programmer can follow.
