@@ -43,162 +43,238 @@ mic.disconnect()
 
 ## 2) More information about the calls
 
-The answers below are real answers from the mock, trimmed where they are
-long. On another microscope the numbers differ; the keys shown are the same
-on every microscope, and anything else is an extra of that driver.
+The outputs are real answers from the mock, trimmed where they are long, shown as the `content` of the answer. On another microscope the values differ; the keys shown are the same on every microscope, and anything else is an extra of that driver.
 
 #### get_instruments
 
 ```python
 zmart_controller.get_instruments()
-# {'mock': {}, 'stellaris': {'microscope': 'stellaris5-room-42', 'host': ..., ...}}
 ```
 
-The drivers installed on this computer, each with how it connects, without
-its password. The mock is always there.
+**Input**
+
+- none
+
+**Output**
+
+```python
+{'mock': {}, 'stellaris': {'microscope': 'stellaris5-room-42', 'host': ..., ...}}
+```
+
+The drivers installed on this computer, each with how it connects, without its password. The mock is always there.
 
 #### ZmartController
 
 ```python
-mic = zmart_controller.ZmartController("mock")
-mic = zmart_controller.ZmartController("mock", {"output_root": "my_images"})
+mic = zmart_controller.ZmartController(driver, connection=None)
 ```
 
-Making the controller connects. The name comes from `get_instruments`. The
-optional dictionary is handed to the driver unchanged and replaces the
-connection from its `zmart_driver.json`; the mock takes `output_root`,
-`mock_timing` (`"instant"` for quick tests) and `token`.
+**Input**
+
+- `driver`: a name from `get_instruments`
+- `connection`: optional; a dictionary handed to the driver unchanged, replacing the one from its `zmart_driver.json`
+
+**Output**
+
+```python
+a connected controller; every command below is a method on it
+```
+
+Making the controller connects. The mock takes `output_root`, `mock_timing` (`"instant"` for quick tests) and `token`.
 
 #### get_info
 
 ```python
-mic.get_info()["content"]
-# {'output_root': '/tmp/zmart-mock-output',
-#  'description': 'A pretend widefield fluorescence microscope ...'}
+mic.get_info()
 ```
 
-`output_root` is where the driver saves images. `description` is the
-microscope in plain words: what each setting means, its unit and bounds,
-which objective sits in which slot, which way +z points. Read it once when
-you meet a new microscope.
+**Input**
+
+- none
+
+**Output**
+
+```python
+{'output_root': '/tmp/zmart-mock-output',
+ 'description': 'A pretend widefield fluorescence microscope ...'}
+```
+
+`output_root` is where the driver saves images. `description` is the microscope in plain words: what each setting means, its unit and bounds, which objective sits in which slot, which way +z points.
 
 #### get_actuators
 
 ```python
-mic.get_actuators()["content"]
-# {'x': ['motoric'], 'y': ['motoric'], 'z': ['motoric', 'piezo']}
+mic.get_actuators()
 ```
 
-The motors that can move each axis. Pick one per axis with
-`with_actuators={"z": "piezo"}` on `get_xyz` and `set_xyz`; an axis left
-out uses the first one.
+**Input**
+
+- none
+
+**Output**
+
+```python
+{'x': ['motoric'], 'y': ['motoric'], 'z': ['motoric', 'piezo']}
+```
+
+The motors that can move each axis. Pick one per axis with `with_actuators` on `get_xyz` and `set_xyz`; an axis left out uses the first one.
 
 #### get_xyz
 
 ```python
-mic.get_xyz()["content"]
-# {'x': {'value': 0.0, 'actuator': 'motoric', 'canvas': [-5032.0, 5032.0]},
-#  'y': {'value': 0.0, 'actuator': 'motoric', 'canvas': [-5032.0, 5032.0]},
-#  'z': {'value': 0.0, 'actuator': 'motoric', 'canvas': [-500.0, 500.0]}}
+mic.get_xyz(with_actuators=None)
 ```
 
-Positions are micrometres from the origin, a point saved once for this
-microscope, so a position means the same place on the sample every time.
-In a saved image, right is +x and down is +y. The canvas is everywhere a
-picture can show: the travel plus half a field of view. Plan positions
-inside it.
+**Input**
+
+- `with_actuators`: optional; the motor to read per axis, such as `{"z": "piezo"}`
+
+**Output**
+
+```python
+{'x': {'value': 0.0, 'actuator': 'motoric', 'canvas': [-5032.0, 5032.0]},
+ 'y': {'value': 0.0, 'actuator': 'motoric', 'canvas': [-5032.0, 5032.0]},
+ 'z': {'value': 0.0, 'actuator': 'motoric', 'canvas': [-500.0, 500.0]}}
+```
+
+Positions are micrometres from the origin, a point saved once for this microscope; in a saved image, right is +x and down is +y. The canvas is everywhere a picture can show: the travel plus half a field of view.
 
 #### set_xyz
 
 ```python
-mic.set_xyz(100, 50, 0)["content"]
-# {'position': {'x': 100, 'y': 50, 'z': 0},
-#  'actuators': {'x': 'motoric', 'y': 'motoric', 'z': 'motoric'}}
-
-mic.set_xyz(99999, 0, 0)
-# {'success': False, 'content': 'ValueError: move refused: x would go to ... outside the travel ...'}
+mic.set_xyz(x, y, z, with_actuators=None)
 ```
 
-Move to a position in micrometres from the origin. All three axes are
-always given. When the answer comes back, the stage has arrived; a move
-outside the travel, or one the driver could not confirm, is `success: False`.
+**Input**
+
+- `x`, `y`, `z`: the position to move to, in micrometres from the origin; all three always given
+- `with_actuators`: optional; the motor to use per axis
+
+**Output**
+
+```python
+{'position': {'x': 100, 'y': 50, 'z': 0},
+ 'actuators': {'x': 'motoric', 'y': 'motoric', 'z': 'motoric'}}
+```
+
+When the answer comes back, the stage has arrived. A move outside the travel, or one the driver could not confirm, is `success: False`.
 
 #### get_state
 
 ```python
-mic.get_state()["content"]
-# {'changeable': {'laser_power': 10.0, 'gain': 100.0, 'exposure_ms': 10.0, 'objective': 1},
-#  'observed': {'objective': '10x/0.30 Air', 'pixel_size': {'x': 1.0, 'y': 1.0, 'unit': 'um'}, ...}}
+mic.get_state()
 ```
 
-A snapshot of the settings. `changeable` is what `set_state` can apply;
-the `description` explains each one. `observed` is read only. A state is a
-plain dictionary: save it with `json` and apply it again another day.
+**Input**
+
+- none
+
+**Output**
+
+```python
+{'changeable': {'laser_power': 10.0, 'gain': 100.0, 'exposure_ms': 10.0, 'objective': 1},
+ 'observed': {'objective': '10x/0.30 Air', 'pixel_size': {'x': 1.0, 'y': 1.0, 'unit': 'um'}, ...}}
+```
+
+A snapshot of the settings. `changeable` is what `set_state` can apply; `observed` is read only. A state is a plain dictionary: save it with `json` and apply it again another day.
 
 #### set_state
 
 ```python
-mic.set_state({"changeable": {"gain": 200.0}})["content"]
-# {'applied': {'gain': 200.0}}
+mic.set_state(state)
 ```
 
-Apply some or all of the `changeable` settings; the rest stay as they are.
-An unknown name or a value outside the limits is `success: False`, so a
-typo never passes silently.
+**Input**
+
+- `state`: `{"changeable": {...}}` with some or all of the settings from `get_state`; the rest stay as they are
+
+**Output**
+
+```python
+{'applied': {'gain': 200.0}}
+```
+
+An unknown name or a value outside the limits is `success: False`, so a typo never passes silently.
 
 #### get_acquisition_settings
 
 ```python
-mic.get_acquisition_settings()["content"]
-# {'format':   {'options': ['ome-tiff', 'ome-zarr'], 'active': 'ome-tiff'},
-#  'z_planes': {'options': 'whole number from 1 up to the limit', 'active': 1},
-#  'z_step_um': {'options': 'number > 0', 'active': 1.0},
-#  ...}
+mic.get_acquisition_settings()
 ```
 
-The choices about how to capture and save, as opposed to the microscope's
-settings in the state. `options` says what a setting may be, `active` what
-is used when you say nothing.
+**Input**
+
+- none
+
+**Output**
+
+```python
+{'format':    {'options': ['ome-tiff', 'ome-zarr'], 'active': 'ome-tiff'},
+ 'z_planes':  {'options': 'whole number from 1 up to the limit', 'active': 1},
+ 'z_step_um': {'options': 'number > 0', 'active': 1.0},
+ ...}
+```
+
+The choices about how to capture and save. `options` says what a setting may be, `active` what is used when you say nothing.
 
 #### acquire
 
 ```python
-answer = mic.acquire(position_label="A1")
-answer["content"]
-# {'position_label': 'A1',
-#  'files': ['/tmp/zmart-mock-output/A1.ome.tif', '/tmp/zmart-mock-output/A1.commands.json'],
-#  'planes': [{'path': '/tmp/zmart-mock-output/A1.ome.tif', 'c': 0, 'z': 0, 't': 0,
-#              'x_um': 100.0, 'y_um': 50.0, 'z_um': 0.0}]}
-
-mic.acquire(position_label="cell 1", acquisition_settings={"z_planes": 3, "z_step_um": 2.0})
+mic.acquire(position_label, acquisition_settings=None)
 ```
 
-Capture at the current position with the current settings, and save.
-`files` lists every file saved, so use those paths rather than building your
-own. `planes` says for every image plane which file, channel, depth and
-moment it is, and where on the sample it was taken. A second acquisition
-with the same label never overwrites the first.
+**Input**
+
+- `position_label`: the name of this position, such as `"A1"`; the saved files are named after it
+- `acquisition_settings`: optional; choices from `get_acquisition_settings`, such as `{"z_planes": 3, "z_step_um": 2.0}`
+
+**Output**
+
+```python
+{'position_label': 'A1',
+ 'files': ['/tmp/zmart-mock-output/A1.ome.tif', '/tmp/zmart-mock-output/A1.commands.json'],
+ 'planes': [{'path': '/tmp/zmart-mock-output/A1.ome.tif', 'c': 0, 'z': 0, 't': 0,
+             'x_um': 100.0, 'y_um': 50.0, 'z_um': 0.0}]}
+```
+
+Captures at the current position with the current settings, and saves. `files` lists every file saved; use those paths. `planes` says for every image plane which file, channel, depth and moment it is, and where on the sample it was taken. A second acquisition with the same label never overwrites the first.
 
 #### get_procedures
 
 ```python
-mic.get_procedures()["content"]
-# {'autofocus': {'description': 'Take a short z-stack around the current height, find the sharpest plane, and move there. Optional: range_um (default 20), step_um (default 2).'},
-#  ...}
+mic.get_procedures()
 ```
 
-The routines this microscope offers, each with a description that says what
-it does and which options it takes.
+**Input**
+
+- none
+
+**Output**
+
+```python
+{'autofocus': {'description': 'Take a short z-stack around the current height, find the sharpest plane, and move there. Optional: range_um (default 20), step_um (default 2).'},
+ ...}
+```
+
+The routines this microscope offers, each with a description that says what it does and which options it takes.
 
 #### run_procedure
 
 ```python
-mic.run_procedure({"name": "autofocus", "range_um": 10, "step_um": 1})["content"]
-# {'ran': 'autofocus'}
+mic.run_procedure(procedure)
 ```
 
-Run one by name; the other keys are its options. An unknown name is
-`success: False`.
+**Input**
+
+- `procedure`: `{"name": ..., ...}`; the name picks the routine, the other keys are its options
+
+**Output**
+
+```python
+{'ran': 'autofocus'}
+```
+
+An unknown name is `success: False`.
 
 #### disconnect
 
@@ -206,7 +282,17 @@ Run one by name; the other keys are its options. An unknown name is
 mic.disconnect()
 ```
 
-Close the connection. To drive the microscope again, make a new controller.
+**Input**
+
+- none
+
+**Output**
+
+```python
+nothing
+```
+
+Closes the connection. To drive the microscope again, make a new controller.
 
 ---
 
