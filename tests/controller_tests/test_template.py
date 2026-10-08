@@ -78,7 +78,7 @@ class PretendDriver(ZmartDriver):
 
 def test_the_template_loads_and_offers_every_function():
     driver = zmart_controller.load_driver(TEMPLATE)
-    assert driver.NAME.startswith("<the driver's name")
+    assert driver.NAME.startswith("<the name you want")
     assert set(driver.CONNECTION) == {"microscope", "api_type", "host", "password", "config"}
     assert utils.driver_functions(driver).keys() == {*utils.OPS, "disconnect"}
 

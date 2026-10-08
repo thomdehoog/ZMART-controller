@@ -92,14 +92,14 @@ there; the shipped file looks the same, and you replace every value:
 
 ```json
 {
-  "name": "<the driver's name, as get_drivers() will list it>",
-  "driver": "<the file with the ZmartDriver class, from this folder>",
+  "name": "<the name you want the driver listed under, for example stellaris>",
+  "driver": "<the file that holds your ZmartDriver class; leave it unless you moved the file>",
   "connection": {
-    "microscope": "<which instrument this is>",
-    "api_type": "<how the vendor software is reached>",
-    "host": "<where it listens>",
-    "password": "<its password, or empty>",
-    "config": "<the vendor's configuration file>"
+    "microscope": "<a name for this particular instrument, for example stellaris5-room-42>",
+    "api_type": "<how the vendor software is reached, for example socket, grpc or dll>",
+    "host": "<if the vendor software listens on a network address, put it here>",
+    "password": "<if the vendor software requires a password or token, put it here>",
+    "config": "<if the vendor software has a configuration file, put its path here>"
   }
 }
 ```
