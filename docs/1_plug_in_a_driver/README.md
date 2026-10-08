@@ -104,18 +104,7 @@ there; the shipped file looks the same, and you replace every value:
 }
 ```
 
-`name` is the name the driver is listed under once it is installed.
-`driver` is the file that holds the `ZmartDriver` class, as a path from
-the folder of the JSON. `connection` is how to reach this microscope: which
-instrument this is, how its vendor software is reached, where it listens,
-the password, and the vendor's configuration file. The controller hands it
-to your class unchanged and reads nothing from it itself, so a driver may
-add keys, but every driver starts from these five. Leave a key empty when
-the microscope does not need it. Where images are saved is not part of
-it: that changes from experiment to experiment, and `get_info` reports
-the folder in use. `get_instruments()` shows the
-connection of every installed driver, with password, token and secret keys
-left out.
+`get_instruments()` shows this back for every installed driver, without the password.
 
 ### The class: zmart_driver.py
 
