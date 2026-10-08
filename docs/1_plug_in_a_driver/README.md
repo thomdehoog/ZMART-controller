@@ -8,10 +8,8 @@
 
 ## 1) What is a ZMART driver
 
-Every microscope's software speaks its own language, so a workflow written
-for one microscope does not run on another. The controller stands in
-between. It knows nothing about any particular microscope. It takes a short,
-fixed list of commands from your workflow and hands each one to a
+The controller stands in between your workflow and the driver. It knows nothing about any particular microscope. 
+It takes a short, fixed list of commands from your workflow and hands each one to a
 **driver**. The driver is the set of files that knows how to talk to one microscope's
 vendor software.
 
