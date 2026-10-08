@@ -42,8 +42,9 @@ zmart_controller.register_driver("C:/drivers/my-scope/zmart_driver.json")
 ```
 
 `register_driver` writes the driver into the registry, the file
-`drivers.json` in the folder `zmart_controller.registry.config_root()`
-names, `C:\ProgramData\zmart-microscopy` on Windows. From then on
+`C:\ProgramData\zmart-microscopy\zmart-controller\drivers.json` on Windows
+(`zmart_controller.registry.registry_file()` names it on any system). From
+then on
 `get_instruments` recognises the driver, and the controller can connect to
 it by name:
 
