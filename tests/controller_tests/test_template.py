@@ -54,6 +54,10 @@ class PretendDriver(ZmartDriver):
         return {"exposure_ms": self.exposure_ms}, {"objective": "10x"}
 
     def set_state(self, changeable):
+        if changeable.get("exposure_ms") == 999.0:  # a value this pretend camera silently ignores
+            raise zmart_controller.NotConfirmed(
+                "exposure_ms stayed 10.0", unconfirmed=["exposure_ms"]
+            )
         self.exposure_ms = changeable.get("exposure_ms", self.exposure_ms)
         return dict(changeable)
 
@@ -98,6 +102,24 @@ def test_a_filled_in_driver_passes_validation_and_acquires(tmp_path):
         answer = session.acquire(position_label="A1")
         assert zmart_controller.check_acquire_answer(answer) == []
         assert session.run_procedure({"name": "park"})["content"] == {"ran": "park"}
+    finally:
+        session.disconnect()
+
+
+def test_a_not_confirmed_outcome_answers_success_false(tmp_path):
+    PretendDriver.folder = tmp_path
+    session = zmart_controller.set_instrument(plugin.functions_for(PretendDriver, "pretend", {}))
+    try:
+        answer = session.set_state({"changeable": {"exposure_ms": 999.0}})
+        assert answer == {
+            "success": False,
+            "content": {
+                "confirmed": False,
+                "reason": "exposure_ms stayed 10.0",
+                "unconfirmed": ["exposure_ms"],
+            },
+        }
+        assert session.get_state()["content"]["changeable"] == {"exposure_ms": 10.0}
     finally:
         session.disconnect()
 
