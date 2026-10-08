@@ -32,12 +32,6 @@ vendor software.
 your workflow ──► zmart controller ──► driver ──► vendor software ──► microscope
 ```
 
-The controller ships with one driver, the **mock driver**. It is a simulated
-microscope that runs on any computer, so you can try everything at your
-desk. It is also a complete example of how a driver is built.
-[The anatomy of a ZMART driver](https://github.com/thomdehoog/ZMART-drivers/blob/main/docs/driver-anatomy.md)
-describes that structure, which the drivers at the ZMB share.
-
 ## Install a driver into the controller
 
 Installing a driver into the controller means telling it, once, where the
