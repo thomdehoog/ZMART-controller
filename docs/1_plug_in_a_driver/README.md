@@ -76,20 +76,25 @@ the mock driver with its folders for talking to the vendor software, handling
 errors and saving data, but this one file is its front door. It is the only
 file the controller needs to know about.
 
+You do not write it. The controller ships it, ready to copy, in the folder
+`zmart_controller/template` together with a `scope.py` to fill in. Copy the
+whole folder, rename it, and write the functions in `scope.py`. This is the
+plugin file as shipped:
+
 ```python
 # zmart_controller_plugin.py
 
-import scope                          # your own file, scope.py: the code that talks to the vendor software
+from . import scope  # scope.py, in this folder: the code that talks to the vendor software
 
-NAME = "my-scope"                     # the driver's name in the controller's list
+NAME = "my-scope"  # the driver's name in the controller's list
 
-CONNECTION = {                        # how to reach this microscope; get_instruments() shows it
-    "microscope": "my-scope-01",      # which instrument this is
-    "api_type": "socket",             # how the vendor software is reached
-    "host": "127.0.0.1",              # where it listens
-    "password": "",                   # never shown by get_instruments()
+CONNECTION = {  # how to reach this microscope; get_instruments() shows it
+    "microscope": "my-scope-01",  # which instrument this is
+    "api_type": "socket",  # how the vendor software is reached
+    "host": "127.0.0.1",  # where it listens
+    "password": "",  # never shown by get_instruments()
     "config": "C:/my-scope/config.ini",
-    "output_root": "D:/images",       # where images are saved
+    "output_root": "D:/images",  # where images are saved
 }
 
 
@@ -97,10 +102,10 @@ def connect(connection):
 
     handle = scope.connect(connection)
 
-    return handle                     # any object that holds the live connection
+    return handle  # any object that holds the live connection
 
 
-def disconnect(handle):               # optional
+def disconnect(handle):  # optional
 
     scope.disconnect(handle)
 
@@ -126,21 +131,27 @@ def get_xyz(handle, *, with_actuators=None):
     x, y, z, x_motor, y_motor, z_motor = scope.get_xyz(handle, with_actuators)
     x_min, x_max, y_min, y_max, z_min, z_max = scope.get_canvas(handle)
 
-    return {"success": True, "content": {
-        "x": {"value": x, "actuator": x_motor, "canvas": [x_min, x_max]},
-        "y": {"value": y, "actuator": y_motor, "canvas": [y_min, y_max]},
-        "z": {"value": z, "actuator": z_motor, "canvas": [z_min, z_max]},
-    }}
+    return {
+        "success": True,
+        "content": {
+            "x": {"value": x, "actuator": x_motor, "canvas": [x_min, x_max]},
+            "y": {"value": y, "actuator": y_motor, "canvas": [y_min, y_max]},
+            "z": {"value": z, "actuator": z_motor, "canvas": [z_min, z_max]},
+        },
+    }
 
 
 def set_xyz(handle, x, y, z, *, with_actuators=None):
 
     x_motor, y_motor, z_motor = scope.set_xyz(handle, x, y, z, with_actuators)
 
-    return {"success": True, "content": {
-        "position": {"x": x, "y": y, "z": z},
-        "actuators": {"x": x_motor, "y": y_motor, "z": z_motor},
-    }}
+    return {
+        "success": True,
+        "content": {
+            "position": {"x": x, "y": y, "z": z},
+            "actuators": {"x": x_motor, "y": y_motor, "z": z_motor},
+        },
+    }
 
 
 def get_state(handle):
@@ -159,7 +170,7 @@ def set_state(handle, state):
 
 def get_acquisition_settings(handle):
 
-    settings = scope.get_acquisition_settings(handle)   # {name: {"options": [...], "active": value}}
+    settings = scope.get_acquisition_settings(handle)  # {name: {"options": [...], "active": value}}
 
     return {"success": True, "content": settings}
 
@@ -168,16 +179,19 @@ def acquire(handle, *, position_label, acquisition_settings=None):
 
     files, planes = scope.acquire(handle, position_label, acquisition_settings)
 
-    return {"success": True, "content": {
-        "position_label": position_label,
-        "files": files,               # the path of every file saved
-        "planes": planes,             # [{"path", "c", "z", "t", "x_um", "y_um", "z_um"}, ...]
-    }}
+    return {
+        "success": True,
+        "content": {
+            "position_label": position_label,
+            "files": files,  # the path of every file saved
+            "planes": planes,  # [{"path", "c", "z", "t", "x_um", "y_um", "z_um"}, ...]
+        },
+    }
 
 
 def get_procedures(handle):
 
-    procedures = scope.get_procedures(handle)   # {name: {"description": ...}}
+    procedures = scope.get_procedures(handle)  # {name: {"description": ...}}
 
     return {"success": True, "content": procedures}
 
@@ -190,12 +204,14 @@ def run_procedure(handle, procedure):
 ```
 
 This file does not talk to the microscope itself. Each function calls the
-function of the same name in `scope.py`, a file of your own next to it, and
-wraps what comes back in the answer shape. `scope.py` is where you write the
-code that drives the vendor software; what each of its functions has to
-hand back is visible from the variables here. The `return` at the end of
-each function shows the least every answer must contain. The sections below say what each key means. A driver may add
-keys of its own to any answer.
+function of the same name in `scope.py`, the file next to it, and wraps
+what comes back in the answer shape. `scope.py` is where you write the code
+that drives the vendor software. Every function in it starts out raising
+`NotImplementedError`, with a docstring saying what it must hand back, so
+`validate_driver` tells you which one is still to write. The `return` at
+the end of each plugin function shows the least every answer must contain.
+The sections below say what each key means. A driver may add keys of its
+own to any answer.
 
 `NAME` is the name the driver is listed under once it is installed.
 `CONNECTION` is how to reach this microscope. The controller hands it to
