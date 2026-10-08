@@ -138,46 +138,92 @@ with the following.
 ## Writing the ZmartDriver
 
 `ZmartDriver` in `zmart_driver.py` is the code that drives the vendor
-software. Making one opens the connection; each method does one command.
-Every method starts out raising `NotImplementedError`, so `validate_driver`
-tells you which one is still to write. Each returns plain values; the
-controller wraps them.
+software. Making one opens the connection, and each method does one
+command. Every method starts out raising `NotImplementedError`, so
+`validate_driver` tells you which one is still to write. A method returns
+plain values; the controller wraps them into the answer.
+
+### Connect and disconnect
 
 ```python
-class ZmartDriver:
-    def __init__(self, connection): ...                             # open the vendor connection, keep what you need on self
-    def disconnect(self): ...                                       # close it
-
-    def get_info(self): ...                                         # returns output_root, description
-    def get_actuators(self): ...                                    # returns x_motors, y_motors, z_motors
-    def get_xyz(self, with_actuators): ...                          # returns x, y, z, x_motor, y_motor, z_motor
-    def get_canvas(self): ...                                       # returns x_min, x_max, y_min, y_max, z_min, z_max
-    def set_xyz(self, x, y, z, with_actuators): ...                 # moves, returns x_motor, y_motor, z_motor
-    def get_state(self): ...                                        # returns changeable, observed
-    def set_state(self, changeable): ...                            # applies them, returns applied
-    def get_acquisition_settings(self): ...                         # returns {name: {"options": [...], "active": value}}
-    def acquire(self, position_label, acquisition_settings): ...    # captures and saves, returns files, planes
-    def get_procedures(self): ...                                   # returns {name: {"description": ...}}
-    def run_procedure(self, procedure): ...                         # runs the one named procedure["name"]
+def __init__(self, connection): ...
+def disconnect(self): ...
 ```
 
-What the values mean:
+`connection` is the dictionary from `zmart_driver.json`. Open the vendor
+software with it and keep what you need on `self`. Load here, too, what was
+measured once for this microscope, the origin, the travel limits and the
+calibration, from the [configuration folder](#the-configuration-folder).
 
-| Value | Meaning |
-|---|---|
-| `connection` | the dictionary from `zmart_driver.json`. Also load here what was measured once for this microscope: origin, travel limits, calibration, from the [configuration folder](#the-configuration-folder) |
-| `output_root` | the folder where images are saved |
-| `description` | the microscope in plain words, for whoever drives it: what each changeable setting means, its unit and bounds, which objective is in which slot, which way +z points |
-| `x_motors`, `y_motors`, `z_motors` | the motor names that can move each axis, at least one each |
-| `with_actuators` | `{"z": "piezo"}` or `None`: the motor to use per axis. Left out, the first one. Unknown name: raise `ValueError` |
-| `x`, `y`, `z` | micrometres from the origin, the point saved once for this microscope. In a saved image, right is +x and down is +y |
-| `x_min` ... `z_max` | the canvas: the travel widened by half a field of view, everywhere a picture can show |
-| `changeable`, `observed` | two dictionaries: the settings `set_state` applies, and a read-only description such as the objective in place |
-| `applied` | the settings that were changed |
-| `options`, `active` | the values a setting may take, or a description such as `"number > 0"`, and the value used when left out |
-| `files` | the path of every file the acquisition saved. Never overwrite an earlier one |
-| `planes` | one entry per saved image plane: `{"path", "c", "z", "t", "x_um", "y_um", "z_um"}`, counts from 0, position in micrometres or `None` |
-| `procedure` | `{"name": ..., ...}`: the routine to run and its arguments. Unknown name: raise `ValueError` |
+### Describe the microscope
+
+```python
+def get_info(self): ...            # returns output_root, description
+```
+
+`output_root` is the folder where images are saved. `description` is the
+microscope in plain words, for whoever drives it: what each setting means,
+its unit and its bounds, which objective sits in which slot, and which way
++z points.
+
+### Position
+
+```python
+def get_actuators(self): ...                       # returns x_motors, y_motors, z_motors
+def get_xyz(self, with_actuators): ...             # returns x, y, z, x_motor, y_motor, z_motor
+def get_canvas(self): ...                          # returns x_min, x_max, y_min, y_max, z_min, z_max
+def set_xyz(self, x, y, z, with_actuators): ...    # moves, returns x_motor, y_motor, z_motor
+```
+
+Positions are micrometres from the origin, a point saved once for this
+microscope, so that a position means the same place on the sample every
+time. In a saved image, right is +x and down is +y, on every microscope.
+Turning the vendor's own numbers into this frame is the driver's job.
+
+Each axis has one or more motors; `get_actuators` names them.
+`with_actuators` picks one per axis, such as `{"z": "piezo"}`, or is `None`
+for the first one. The canvas is the travel widened by half a field of view:
+everywhere a picture can show. `set_xyz` checks the limits, moves, and reads
+back until the stage has arrived.
+
+### Settings
+
+```python
+def get_state(self): ...               # returns changeable, observed
+def set_state(self, changeable): ...   # applies them, returns applied
+```
+
+`changeable` holds the settings `set_state` can apply, such as exposure
+time. `observed` describes what can only be read, such as the objective in
+place. Both are dictionaries. `set_state` reads each setting back to
+confirm it took, and returns what it applied.
+
+### Acquire
+
+```python
+def get_acquisition_settings(self): ...                        # returns {name: {"options": [...], "active": value}}
+def acquire(self, position_label, acquisition_settings): ...   # captures and saves, returns files, planes
+```
+
+Acquisition settings are the choices for one picture, such as the file
+format. `options` lists what a setting may be, and `active` is what is used
+when it is left out. `acquire` captures at the current position, saves the
+files named after `position_label`, and returns `files`, the path of every
+file saved, and `planes`, one entry per image plane:
+`{"path", "c", "z", "t", "x_um", "y_um", "z_um"}`, with `c`, `z` and `t`
+counted from 0 and the stage position in micrometres. Never overwrite an
+earlier picture.
+
+### Procedures
+
+```python
+def get_procedures(self): ...             # returns {name: {"description": ...}}
+def run_procedure(self, procedure): ...   # runs the one named procedure["name"]
+```
+
+Procedures are the routines the microscope offers, such as autofocus.
+`procedure` holds the name and the arguments. A name that is not listed
+raises `ValueError`.
 
 ## Rules for every driver
 
