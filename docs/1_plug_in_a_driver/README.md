@@ -72,41 +72,9 @@ The zmart_driver.json is formatted in the following way:
 
 ## 3) Writing a driver
 
-Writing a ZMART driver means expanding the `ZmartDriver` class in
-`zmart_driver.py` until it is compatible with the following schema. This is
-what the controller offers to a workflow; every command on it becomes a
-call to the method of the same name on your class.
-
-```python
-import zmart_controller
-
-# 1) See which drivers are installed and how each connects, then connect to one
-zmart_controller.get_instruments()
-mic = zmart_controller.ZmartController("my-scope")
-
-# 2) Learn about the connected setup: where images go, and the microscope in plain words
-mic.get_info()
-
-# 3) Discover the motors, then read the position and where pictures can show, or move (micrometres)
-mic.get_actuators()
-mic.get_xyz()
-mic.set_xyz(x, y, z, with_actuators=Dict)
-
-# 4) Capture the instrument settings, and apply them again later
-mic.get_state()
-mic.set_state(Dict)
-
-# 5) Capture and save an image with the current settings and position
-mic.get_acquisition_settings()
-mic.acquire(position_label=String, acquisition_settings=Dict)
-
-# 6) Run a routine the microscope offers (for example autofocus)
-mic.get_procedures()
-mic.run_procedure(Dict)
-
-# 7) Close the connection
-mic.disconnect()
-```
+Writing a ZMART driver means filling in the methods of the `ZmartDriver`
+class in `zmart_driver.py`. Every command a workflow gives the controller
+becomes a call to the method of the same name on your class.
 
 Every command answers in the same shape, built from what your method
 hands back.
@@ -126,6 +94,8 @@ empty list means the driver fits:
 ```python
 zmart_controller.validate_driver("C:/drivers/my-scope/zmart_driver.json")
 ```
+
+The following methods need to be filled in.
 
 ### Connect and disconnect
 
