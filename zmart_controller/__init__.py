@@ -46,6 +46,7 @@ __author__ = "Thom de Hoog"
 __email__ = "thom.dehoog@zmb.uzh.ch, thomdehoog@gmail.com"
 __affiliation__ = "Center for Microscopy and Image Analysis (ZMB), University of Zurich"
 
+from .plugin import NotConfirmed
 from .plugin import load as load_driver
 from .session import Session, ZmartController
 from .session import set_instrument as _set_instrument
@@ -62,6 +63,7 @@ __all__ = [
     "Session",
     "get_instruments",
     "load_driver",
+    "NotConfirmed",
     "register_driver",
     "remove_driver",
     "check_acquire_answer",

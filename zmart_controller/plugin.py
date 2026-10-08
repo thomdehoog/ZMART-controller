@@ -11,8 +11,10 @@ expects it: one function per command, found by name. ``connect`` makes one
 ``ZmartDriver`` from the connection and returns it as the handle. Every other
 function below calls the method of the same name on the handle and wraps
 what comes back in the shape every command shares,
-``{"success": ..., "content": ...}``. ``docs/1_plug_in_a_driver/README.md``
-explains every key in the answers.
+``{"success": True, "content": ...}``. A method that raises
+:class:`NotConfirmed` answers ``success: False`` instead, with the reason;
+any other exception is passed on to the workflow unchanged.
+``docs/1_plug_in_a_driver/README.md`` explains every key in the answers.
 
 Author: Thom de Hoog, Center for Microscopy and Image Analysis (ZMB),
 University of Zurich (thom.dehoog@zmb.uzh.ch, thomdehoog@gmail.com).
@@ -24,6 +26,37 @@ import json
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
+
+
+class NotConfirmed(Exception):
+    """Raise this from a ``ZmartDriver`` method for a soft outcome: the command was
+    sent, but what it asked for never showed up, and it is safe to carry on.
+
+    The controller answers ``{"success": False, "content": {"confirmed": False,
+    "reason": ...}}``, plus any extra keys given here, such as which settings
+    stayed unconfirmed. Never raise it from ``set_xyz``: carrying on at an
+    unknown position is not safe, so a move that cannot be confirmed raises
+    ``RuntimeError``.
+    """
+
+    def __init__(self, reason: str, **content: Any) -> None:
+        super().__init__(reason)
+        self.content = {"confirmed": False, "reason": reason, **content}
+
+
+def _soft_outcomes(function):
+    """Let a plugin function answer ``success: False`` when the method raises NotConfirmed."""
+
+    def answering(handle, *args, **kwargs):
+        try:
+            return function(handle, *args, **kwargs)
+        except NotConfirmed as outcome:
+            return {"success": False, "content": outcome.content}
+
+    answering.__name__ = function.__name__
+    answering.__doc__ = function.__doc__
+    return answering
+
 
 #: The settings file a driver is installed from, and the class file it names by default.
 SETTINGS_FILE = "zmart_driver.json"
@@ -99,6 +132,7 @@ def disconnect(handle):  # optional
     return None
 
 
+@_soft_outcomes
 def get_info(handle):
 
     output_root, description = handle.get_info()
@@ -106,6 +140,7 @@ def get_info(handle):
     return {"success": True, "content": {"output_root": output_root, "description": description}}
 
 
+@_soft_outcomes
 def get_actuators(handle):
 
     x_motors, y_motors, z_motors = handle.get_actuators()
@@ -113,6 +148,7 @@ def get_actuators(handle):
     return {"success": True, "content": {"x": x_motors, "y": y_motors, "z": z_motors}}
 
 
+@_soft_outcomes
 def get_xyz(handle, *, with_actuators=None):
 
     x, y, z, x_motor, y_motor, z_motor = handle.get_xyz(with_actuators)
@@ -128,6 +164,7 @@ def get_xyz(handle, *, with_actuators=None):
     }
 
 
+@_soft_outcomes
 def set_xyz(handle, x, y, z, *, with_actuators=None):
 
     x_motor, y_motor, z_motor = handle.set_xyz(x, y, z, with_actuators)
@@ -141,6 +178,7 @@ def set_xyz(handle, x, y, z, *, with_actuators=None):
     }
 
 
+@_soft_outcomes
 def get_state(handle):
 
     changeable, observed = handle.get_state()
@@ -148,6 +186,7 @@ def get_state(handle):
     return {"success": True, "content": {"changeable": changeable, "observed": observed}}
 
 
+@_soft_outcomes
 def set_state(handle, state):
 
     applied = handle.set_state(state["changeable"])
@@ -155,6 +194,7 @@ def set_state(handle, state):
     return {"success": True, "content": {"applied": applied}}
 
 
+@_soft_outcomes
 def get_acquisition_settings(handle):
 
     settings = handle.get_acquisition_settings()  # {name: {"options": [...], "active": value}}
@@ -162,6 +202,7 @@ def get_acquisition_settings(handle):
     return {"success": True, "content": settings}
 
 
+@_soft_outcomes
 def acquire(handle, *, position_label, acquisition_settings=None):
 
     files, planes = handle.acquire(position_label, acquisition_settings)
@@ -176,6 +217,7 @@ def acquire(handle, *, position_label, acquisition_settings=None):
     }
 
 
+@_soft_outcomes
 def get_procedures(handle):
 
     procedures = handle.get_procedures()  # {name: {"description": ...}}
@@ -183,6 +225,7 @@ def get_procedures(handle):
     return {"success": True, "content": procedures}
 
 
+@_soft_outcomes
 def run_procedure(handle, procedure):
 
     handle.run_procedure(procedure)

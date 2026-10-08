@@ -127,6 +127,21 @@ values. The controller wraps them in the shape every command answers
 with, `{"success": True, "content": {...}}`, where `content` holds what
 the method returned under fixed keys. The sections below say which.
 
+A method has two ways to answer: it returns, or it raises.
+
+- **Success: return.** The answer is `success: True`, with what you returned
+  in `content`.
+- **Failure: raise.** Which exception you raise decides what the workflow
+  sees. `NotConfirmed(reason)` is the soft failure, for when the command
+  was sent but what it asked for never showed up and it is safe to carry
+  on: the answer is `success: False`, with `confirmed: False` and your
+  reason in `content`. `ValueError` for a wrong request and `RuntimeError`
+  for a microscope that fails are the hard failures: they go to the
+  workflow as errors, unchanged, because carrying on is not safe.
+
+The `@_soft_outcomes` line above each controller function below is what
+turns `NotConfirmed` into the soft answer.
+
 A driver can also be written without the class, as a module with twelve
 functions that build those answers themselves; the drivers at the ZMB are
 built that way, and the list of function names is kept in
@@ -192,6 +207,7 @@ On the controller's side, this is what receives it:
 ```python
 # zmart_controller/plugin.py
 
+@_soft_outcomes
 def get_info(handle):
 
     output_root, description = handle.get_info()
@@ -225,6 +241,7 @@ On the controller's side, this is what receives it:
 ```python
 # zmart_controller/plugin.py
 
+@_soft_outcomes
 def get_actuators(handle):
 
     x_motors, y_motors, z_motors = handle.get_actuators()
@@ -232,6 +249,7 @@ def get_actuators(handle):
     return {"success": True, "content": {"x": x_motors, "y": y_motors, "z": z_motors}}
 
 
+@_soft_outcomes
 def get_xyz(handle, *, with_actuators=None):
 
     x, y, z, x_motor, y_motor, z_motor = handle.get_xyz(with_actuators)
@@ -247,6 +265,7 @@ def get_xyz(handle, *, with_actuators=None):
     }
 
 
+@_soft_outcomes
 def set_xyz(handle, x, y, z, *, with_actuators=None):
 
     x_motor, y_motor, z_motor = handle.set_xyz(x, y, z, with_actuators)
@@ -310,6 +329,7 @@ On the controller's side, this is what receives it:
 ```python
 # zmart_controller/plugin.py
 
+@_soft_outcomes
 def get_state(handle):
 
     changeable, observed = handle.get_state()
@@ -317,6 +337,7 @@ def get_state(handle):
     return {"success": True, "content": {"changeable": changeable, "observed": observed}}
 
 
+@_soft_outcomes
 def set_state(handle, state):
 
     applied = handle.set_state(state["changeable"])
@@ -349,6 +370,7 @@ On the controller's side, this is what receives it:
 ```python
 # zmart_controller/plugin.py
 
+@_soft_outcomes
 def get_acquisition_settings(handle):
 
     settings = handle.get_acquisition_settings()  # {name: {"options": [...], "active": value}}
@@ -356,6 +378,7 @@ def get_acquisition_settings(handle):
     return {"success": True, "content": settings}
 
 
+@_soft_outcomes
 def acquire(handle, *, position_label, acquisition_settings=None):
 
     files, planes = handle.acquire(position_label, acquisition_settings)
@@ -418,6 +441,7 @@ On the controller's side, this is what receives it:
 ```python
 # zmart_controller/plugin.py
 
+@_soft_outcomes
 def get_procedures(handle):
 
     procedures = handle.get_procedures()  # {name: {"description": ...}}
@@ -425,6 +449,7 @@ def get_procedures(handle):
     return {"success": True, "content": procedures}
 
 
+@_soft_outcomes
 def run_procedure(handle, procedure):
 
     handle.run_procedure(procedure)
@@ -444,13 +469,16 @@ raises `ValueError`. The controller reports `ran`, the name of the procedure.
   `RuntimeError` when the microscope fails. The controller passes the error
   on to the workflow unchanged, so the message should say what happened in
   plain words.
-- **Report soft outcomes with `success: False`.** Use it only for an outcome
-  a workflow can safely carry on from, and say what happened in `content`.
+- **Report soft outcomes by raising `NotConfirmed`.** Use it only for an
+  outcome a workflow can safely carry on from. The answer is
+  `success: False` with `"confirmed": False` and your reason in `content`;
+  extra keyword arguments, such as `unconfirmed=[...]`, go into `content`
+  too.
 - **Read back to confirm.** Microscope software often accepts a command
   before it has happened. When a setting or an acquisition was sent but never
-  showed up, answer `success: False` with `"confirmed": False` and the
-  reason. A move is the exception: `set_xyz` raises `RuntimeError`, because
-  carrying on at an unknown position is never safe.
+  showed up, raise `NotConfirmed` with the reason. A move is the exception:
+  `set_xyz` raises `RuntimeError`, because carrying on at an unknown
+  position is never safe.
 - **Reject what you do not understand.** An unknown setting name,
   acquisition setting, motor name or procedure raises `ValueError`. A typo
   that passes silently can cost someone an experiment.
