@@ -96,7 +96,7 @@ edit them without touching Python:
     "api_type": "socket",
     "host": "127.0.0.1",
     "password": "",
-    "config": "C:/my-scope/config.ini",
+    "config": "C:/VendorSoftware/config.ini",
     "output_root": "D:/images"
   }
 }
