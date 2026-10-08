@@ -48,12 +48,15 @@ class TestSetInstrument:
 
 class TestPosition:
     def test_set_get_roundtrip(self, mic):
+        """set_xyz answers exactly what get_xyz answers, read back after the move."""
         rec = mic.set_xyz(10, 20, 5)
         assert rec["success"] is True
-        assert rec["content"]["position"] == {"x": 10, "y": 20, "z": 5}
-        assert rec["content"]["actuators"]["z"] == "motoric"
-        pos = mic.get_xyz()["content"]
-        assert (pos["x"]["value"], pos["y"]["value"], pos["z"]["value"]) == (10, 20, 5)
+        pos = rec["content"]
+        assert (pos["x"]["position"], pos["y"]["position"], pos["z"]["position"]) == (10, 20, 5)
+        assert pos == mic.get_xyz()["content"]
+        for axis in ("x", "y", "z"):
+            assert list(pos[axis]) == ["position", "unit", "actuators", "canvas"]
+            assert pos[axis]["unit"] == "micrometer"
 
     def test_origin_is_driver_configuration(self):
         # The origin is saved by the driver's own setup step and loaded at
@@ -66,7 +69,7 @@ class TestPosition:
         try:
             assert not hasattr(session, "set_origin")
             session.set_xyz(10, 0, 0)
-            assert session.get_xyz()["content"]["x"]["value"] == 10
+            assert session.get_xyz()["content"]["x"]["position"] == 10
             stage = session._handle.scope.send("GetStagePosition")["result"]
             assert stage["x"] == 50_110.0  # raw stage position = saved origin + user position
         finally:
@@ -75,10 +78,16 @@ class TestPosition:
     def test_get_actuators_lists_options(self, mic):
         assert mic.get_actuators()["content"]["z"] == ["motoric", "piezo"]
 
-    def test_actuator_selector_reported_back(self, mic):
+    def test_every_motor_reports_its_raw_reading(self, mic):
+        """``actuators`` lists each motor of the axis with the reading the stage itself reports."""
         pos = mic.get_xyz(with_actuators={"z": "piezo"})["content"]
-        assert pos["z"]["actuator"] == "piezo"
-        assert pos["x"]["actuator"] == "motoric"  # axes left out use the first motor in the list
+        stage = mic._handle.scope.send("GetStagePosition")["result"]
+        focus = mic._handle.scope.send("GetFocus")["result"]
+        assert pos["x"]["actuators"] == {"motoric": stage["x"]}
+        assert pos["y"]["actuators"] == {"motoric": stage["y"]}
+        assert pos["z"]["actuators"] == {"motoric": focus["focus"], "piezo": focus["piezo"]}
+        # Raw readings are the stage's own numbers, not the position from the origin.
+        assert pos["x"]["actuators"]["motoric"] != pos["x"]["position"]
 
     def test_unknown_actuator_raises(self, mic):
         failed = mic.set_xyz(0, 0, 0, with_actuators={"z": "hovercraft"})
@@ -201,8 +210,11 @@ class TestDisconnect:
         """A motor chosen for one call applies to that call only.
 
         The next call is back to the default, the first motor in the list."""
-        mic.set_xyz(0, 0, 0, with_actuators={"z": "piezo"})
-        assert mic.get_xyz()["content"]["z"]["actuator"] == "motoric"
+        with_piezo = mic.set_xyz(0, 0, 30, with_actuators={"z": "piezo"})["content"]["z"]
+        assert with_piezo["actuators"]["piezo"] == 30.0
+        by_default = mic.set_xyz(0, 0, 40)["content"]["z"]
+        assert by_default["actuators"]["piezo"] == 30.0  # the piezo stayed; the coarse drive moved
+        assert by_default["actuators"]["motoric"] == with_piezo["actuators"]["motoric"] + 10.0
 
     def test_invalid_acquire_option_rejected(self, mic):
         failed = mic.acquire(position_label="A1", acquisition_settings={"fromat": "x"})
@@ -219,7 +231,7 @@ class TestModuleStyle:
 
         mic.connect(mock)
         mic.set_xyz(10, 20, 5)
-        assert mic.get_xyz()["content"]["x"]["value"] == 10
+        assert mic.get_xyz()["content"]["x"]["position"] == 10
         mic.disconnect()
 
     def test_mic_before_connecting_says_so(self):
@@ -270,7 +282,7 @@ class TestCanvas:
         assert failed["success"] is False and re.search(
             "outside the travel range", failed["content"]
         )
-        assert mic.get_xyz()["content"]["x"]["value"] == 10  # did not move
+        assert mic.get_xyz()["content"]["x"]["position"] == 10  # did not move
 
 
 def _driver_folder(tmp_path, name="bench", connection=None, package=False):

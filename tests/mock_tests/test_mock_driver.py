@@ -92,7 +92,7 @@ class TestFaultsThroughTheDriver:
     def test_busy_is_sent_again_and_confirmed(self, mic):
         mic._handle.scope.faults.add("MoveStage", "busy", times=2)
         mic.set_xyz(10, 0, 0)
-        assert mic.get_xyz()["content"]["x"]["value"] == 10
+        assert mic.get_xyz()["content"]["x"]["position"] == 10
         assert [e["code"] for e in _sent(mic, "MoveStage")][-3:] == [100, 100, None]
 
     def test_busy_too_often_becomes_a_runtime_error(self, mic):
@@ -106,7 +106,7 @@ class TestFaultsThroughTheDriver:
         before = len(_sent(mic, "MoveStage"))
         mic.set_xyz(10, 0, 0)
         assert len(_sent(mic, "MoveStage")) == before + 1
-        assert mic.get_xyz()["content"]["x"]["value"] == 10
+        assert mic.get_xyz()["content"]["x"]["position"] == 10
 
     def test_ignored_setting_is_sent_again(self, mic):
         mic._handle.scope.faults.add("SetSetting", "ignore")
@@ -131,7 +131,7 @@ class TestFaultsThroughTheDriver:
         mic.get_xyz()  # gives the stale fault an old answer to repeat
         mic._handle.scope.faults.add("GetStagePosition", "stale")
         mic.set_xyz(25, 0, 0)
-        assert mic.get_xyz()["content"]["x"]["value"] == 25
+        assert mic.get_xyz()["content"]["x"]["position"] == 25
 
     @pytest.mark.parametrize("fault", ["hardware_fault", "unknown_error"])
     def test_permanent_problems_are_raised_at_once(self, mic, fault):
@@ -219,7 +219,7 @@ class TestActuators:
         mic.set_xyz(0, 0, 30, with_actuators={"z": "piezo"})
         focus = mic._handle.scope.send("GetFocus")["result"]
         assert focus == {"focus": 5000.0, "piezo": 30.0}
-        assert mic.get_xyz()["content"]["z"]["value"] == 30
+        assert mic.get_xyz()["content"]["z"]["position"] == 30
 
     def test_beyond_the_piezo_reach(self, mic):
         failed = mic.set_xyz(0, 0, 300, with_actuators={"z": "piezo"})
@@ -235,7 +235,7 @@ class TestProcedures:
         mic.set_xyz(0, 0, 6)
         answer = mic.run_procedure({"name": "autofocus", "range_um": 20, "step_um": 2})
         assert abs(answer["content"]["z_um"]) <= 2
-        assert abs(mic.get_xyz()["content"]["z"]["value"]) <= 2
+        assert abs(mic.get_xyz()["content"]["z"]["position"]) <= 2
 
     def test_unknown_entries_are_refused(self, mic):
         failed = mic.run_procedure({"name": "zero_piezo", "speed": "fast"})
@@ -259,7 +259,7 @@ class TestProcedures:
             # A fresh pretend microscope starts at the slide's centre, which is
             # now (-100, 50) from the recorded origin.
             position = again.get_xyz()["content"]
-            assert (position["x"]["value"], position["y"]["value"]) == (-100.0, 50.0)
+            assert (position["x"]["position"], position["y"]["position"]) == (-100.0, 50.0)
         finally:
             again.disconnect()
 
@@ -430,7 +430,7 @@ class TestProblemsFoundInReview:
         mic.set_xyz(-4980, -5000, 0)  # 20 µm from the x limit, right at the y limit
         answer = mic.acquire(position_label="edge")
         assert answer["success"] is True
-        assert mic.get_xyz()["content"]["x"]["value"] == -4980
+        assert mic.get_xyz()["content"]["x"]["position"] == -4980
 
     def test_lost_stage_reply_still_moves_the_focus_at_once(self, mic):
         import time
@@ -440,7 +440,7 @@ class TestProblemsFoundInReview:
         mic.set_xyz(10, 10, 20)
         assert time.monotonic() - started < 0.5
         position = mic.get_xyz()["content"]
-        assert [position[a]["value"] for a in ("x", "y", "z")] == [10, 10, 20]
+        assert [position[a]["position"] for a in ("x", "y", "z")] == [10, 10, 20]
 
 
 @pytest.mark.parametrize(
@@ -555,7 +555,7 @@ class TestConfiguration:
 class TestRealisticTiming:
     def test_moves_are_confirmed_after_they_settle(self, slow_mic):
         slow_mic.set_xyz(1000, 500, 0)
-        assert slow_mic.get_xyz()["content"]["x"]["value"] == 1000
+        assert slow_mic.get_xyz()["content"]["x"]["position"] == 1000
         reads = _sent(slow_mic, "GetStagePosition")
         assert len(reads) > 1  # it had to read back more than once
 

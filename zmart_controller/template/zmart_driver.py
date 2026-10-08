@@ -46,28 +46,36 @@ class ZmartDriver:
         )
 
     def get_xyz(self, with_actuators):
-        """Return ``True, (x, y, z, x_motor, y_motor, z_motor, canvas)``.
+        """Return ``True, (x, y, z, actuators, canvas)``, everything in micrometres.
 
-        ``x``, ``y`` and ``z`` are micrometres from the origin, read with the
-        motors named. ``with_actuators`` picks a motor per axis, such as
-        ``{"z": "piezo"}``, or is None for the first one; raise
-        ``ValueError`` for a name that is not listed. ``canvas`` is
+        ``x``, ``y`` and ``z`` are the position from the origin, in the
+        sample's coordinate system. ``actuators`` is
+        ``{"x": {...}, "y": {...}, "z": {...}}``: for each axis, every motor
+        ``get_actuators`` lists with its own raw reading, exactly as the
+        microscope reports it and without any origin subtracted, for example
+        ``{"z": {"motoric": 48211.5, "piezo": 37.0}}``. ``canvas`` is
         ``(x_min, x_max, y_min, y_max, z_min, z_max)``: the travel widened
         by half a field of view, everywhere a picture can show.
+        ``with_actuators`` picks a motor per axis, such as ``{"z": "piezo"}``,
+        or is None for the first one; raise ``ValueError`` for a name that
+        is not listed.
         """
         raise NotImplementedError(
-            "ZmartDriver.get_xyz: return True, (x, y, z, x_motor, y_motor, z_motor, canvas)"
+            "ZmartDriver.get_xyz: return True, (x, y, z, actuators, canvas)"
         )
 
     def set_xyz(self, x, y, z, with_actuators):
-        """Move the stage and return ``True, (x_motor, y_motor, z_motor)``, or ``False, message``.
+        """Move the stage, then return what ``get_xyz`` returns, or ``False, message``.
 
         Raise ``ValueError`` for a position outside the travel. Read the
-        position back until the stage has arrived; when it never does, return
-        ``False`` and say where it is, so the workflow can stop.
+        position back until the stage has arrived, then hand back the same
+        ``True, (x, y, z, actuators, canvas)`` as ``get_xyz``, read from the
+        microscope, so the workflow sees where the stage really is. When the
+        stage never arrives, return ``False`` and say where it is, so the
+        workflow can stop.
         """
         raise NotImplementedError(
-            "ZmartDriver.set_xyz: move, then return True, (x_motor, y_motor, z_motor)"
+            "ZmartDriver.set_xyz: move, then return what get_xyz returns"
         )
 
     def get_state(self):

@@ -59,6 +59,7 @@ from zmart_controller.mock.get_actions import GetDispatcher
 from zmart_controller.mock.procedures import PROCEDURES
 from zmart_controller.mock.set_actions import Gate, SetDispatcher
 from zmart_controller.mock.vendor_interface import NAME_LIMIT, MockScopeConnection
+from zmart_controller.zmart_controller import UNIT
 
 logger = logging.getLogger("zmart_controller.mock")
 
@@ -258,19 +259,32 @@ def _actuators(with_actuators: dict | None) -> dict[str, str]:
 
 
 def get_xyz(handle: MockHandle, *, with_actuators: dict | None = None) -> dict:
-    """The position in micrometres from the origin, and the canvas: everywhere a
-    picture can show along each axis."""
+    """Where the stage is, per axis: ``position``, ``unit``, ``actuators`` and ``canvas``.
+
+    ``position`` is micrometres from the origin. ``actuators`` holds every
+    motor of the axis with its own raw reading, in the stage's own
+    coordinates: for z, the coarse drive and the piezo, whose sum is the
+    focus height. ``canvas`` is everywhere a picture can show along the axis.
+    ``with_actuators`` only checks that the motors named exist; the answer
+    always reports all of them.
+    """
     _require_open(handle)
-    chosen = _actuators(with_actuators)
+    _actuators(with_actuators)
     raw = get.raw_position(handle).value_or_raise("the position")
     user = get.user_position(handle).value_or_raise("the position")
     ranges = user_range(handle.config, raw["objective"])
     canvas = _canvas(handle, ranges)
+    readings = {
+        "x": {"motoric": raw["x"]},
+        "y": {"motoric": raw["y"]},
+        "z": {"motoric": raw["focus"], "piezo": raw["piezo"]},
+    }
     return _answer(
         {
             axis: {
-                "value": user[axis],
-                "actuator": chosen[axis],
+                "position": user[axis],
+                "unit": UNIT,
+                "actuators": readings[axis],
                 "canvas": canvas[axis],
             }
             for axis in ("x", "y", "z")
@@ -299,19 +313,21 @@ def _canvas(handle: MockHandle, ranges: dict[str, list[float]]) -> dict[str, lis
 def set_xyz(
     handle: MockHandle, x: float, y: float, z: float, *, with_actuators: dict | None = None
 ) -> dict:
-    """Move to a position in micrometres from the origin, and confirm it.
+    """Move to a position in micrometres from the origin, then answer like ``get_xyz``.
 
-    Raises ``ValueError`` for a position outside the limits or an unknown
-    motor, and ``RuntimeError`` when the move cannot be confirmed: carrying
-    on at an unknown position is never safe.
+    Once the stage has arrived, the position is read back from the
+    microscope, so the answer shows where the stage really is rather than
+    the numbers that were asked for. Raises ``ValueError`` for a position
+    outside the limits or an unknown motor, and ``RuntimeError`` when the
+    move cannot be confirmed: carrying on at an unknown position is never
+    safe.
     """
     _require_open(handle)
     chosen = _actuators(with_actuators)
     outcome, _raw = setter.move_to_user(handle, x=x, y=y, z=z, z_actuator=chosen["z"])
     if not outcome.confirmed:
         raise RuntimeError(f"the move to ({x}, {y}, {z}) could not be confirmed: {outcome.reason}")
-    reached = get.user_position(handle).value_or_raise("the position")
-    return _answer({"position": {"x": x, "y": y, "z": z}, "readback": reached, "actuators": chosen})
+    return get_xyz(handle, with_actuators=with_actuators)
 
 
 # --- state --------------------------------------------------------------------

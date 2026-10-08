@@ -147,28 +147,43 @@ when a command does not pick one.
 ```python
 def get_xyz(self, with_actuators):
     # with_actuators: {"z": "piezo"} or None for the first motor of each axis
-    return True, (x, y, z, x_motor, y_motor, z_motor, canvas)
-    # x, y, z: micrometres from the saved origin; in a saved image, right is +x and down is +y
-    # canvas: (x_min, x_max, y_min, y_max, z_min, z_max): the travel plus half a field of view
+    return True, (x, y, z, actuators, canvas)
+    # x, y, z:   micrometres from the saved origin; in a saved image, right is +x and down is +y
+    # actuators: {"x": {"motoric": 50000.0}, "y": {...}, "z": {"motoric": 5000.0, "piezo": 0.0}}:
+    #            every motor of each axis with its own raw reading, as the microscope reports it
+    # canvas:    (x_min, x_max, y_min, y_max, z_min, z_max): the travel plus half a field of view
 ```
 
 Read the stage and answer in the sample's coordinate system: micrometres
 from the saved origin, with right as +x and down as +y in a saved image.
-The canvas is everywhere a picture can show, so a viewer can lay out the
-whole specimen before the first picture.
+Under `actuators`, give every motor that `get_actuators` lists for the
+axis, each with the number the microscope itself reports for it, in
+micrometres and with nothing subtracted or converted. These raw readings
+show how the motors share the position, for example how far along its
+range a piezo stands. The canvas is everywhere a picture can show, so a
+viewer can lay out the whole specimen before the first picture.
+
+The controller turns this into the answer the workflow sees, one entry per
+axis with `position`, `unit`, `actuators` and `canvas`:
+
+```python
+{"x": {"position": 0.0, "unit": "micrometer", "actuators": {"motoric": 50000.0}, "canvas": [-5032.0, 5032.0]}, "y": {...}, "z": {...}}
+```
 
 #### set_xyz
 
 ```python
 def set_xyz(self, x, y, z, with_actuators):
     # move, then read back until the stage has arrived
-    return True, (x_motor, y_motor, z_motor)
+    return self.get_xyz(with_actuators)            # the same True, (x, y, z, actuators, canvas) as get_xyz
     return False, "<error message>"                # e.g. outside the travel, or the stage never arrived
 ```
 
 Move in the sample's coordinate system. Check the travel limits before
-moving, then read the position back until the stage has arrived; a move
-that never arrives is a failure, so the workflow stops.
+moving, then read the position back until the stage has arrived. Once it
+has, answer exactly as `get_xyz` does, read from the microscope: the
+workflow then sees where the stage really is, not the numbers it asked for.
+A move that never arrives is a failure, so the workflow stops.
 
 #### get_state
 

@@ -56,20 +56,29 @@ def test_problems_are_named(monkeypatch):
     assert not any(p.startswith("get_state") for p in problems)
 
 
-def _xyz_with(**canvas_per_axis):
-    """A get_xyz with the canvas given per axis.
+def _xyz_with(**per_axis):
+    """A get_xyz whose reading for one or more axes is changed.
 
-    An axis left out of ``canvas_per_axis`` reports a canvas of [-150, 150].
-    The value ``"absent"`` leaves the key out altogether.
+    Each keyword names an axis and gives a dict of keys to change in that
+    axis's reading; the value ``"absent"`` leaves a key out altogether. An
+    axis left out reports position 0.0 in micrometres, one motor and a
+    canvas of [-150, 150].
     """
 
     def get_xyz(handle, **kw):
         content = {}
         for axis in ("x", "y", "z"):
-            reading = {"value": 0.0, "actuator": "motoric"}
-            canvas = canvas_per_axis.get(axis, [-150.0, 150.0])
-            if canvas != "absent":
-                reading["canvas"] = canvas
+            reading = {
+                "position": 0.0,
+                "unit": "micrometer",
+                "actuators": {"motoric": 48_000.0},
+                "canvas": [-150.0, 150.0],
+            }
+            for key, value in per_axis.get(axis, {}).items():
+                if value == "absent":
+                    del reading[key]
+                else:
+                    reading[key] = value
             content[axis] = reading
         return {"success": True, "content": content}
 
@@ -77,15 +86,40 @@ def _xyz_with(**canvas_per_axis):
 
 
 def test_a_driver_without_canvas_is_told_so(monkeypatch):
-    _break(monkeypatch, "get_xyz", _xyz_with(z="absent"))
+    _break(monkeypatch, "get_xyz", _xyz_with(z={"canvas": "absent"}))
     assert validate_driver(mock) == ["get_xyz: axis 'z' is missing 'canvas'"]
+
+
+def test_a_position_that_is_not_a_number_is_reported(monkeypatch):
+    _break(monkeypatch, "get_xyz", _xyz_with(y={"position": "10"}))
+    assert validate_driver(mock) == ["get_xyz: axis 'y' position must be a number, in micrometres"]
+
+
+@pytest.mark.parametrize("unit", ["um", "mm", "absent"])
+def test_the_unit_must_be_micrometer(monkeypatch, unit):
+    _break(monkeypatch, "get_xyz", _xyz_with(x={"unit": unit}))
+    expected = (
+        "get_xyz: axis 'x' is missing 'unit'"
+        if unit == "absent"
+        else "get_xyz: axis 'x' unit must be 'micrometer'"
+    )
+    assert validate_driver(mock) == [expected]
+
+
+@pytest.mark.parametrize("actuators", [{}, ["motoric"], {"motoric": "48000"}, {"": 48000.0}])
+def test_actuators_must_name_each_motor_with_a_number(monkeypatch, actuators):
+    _break(monkeypatch, "get_xyz", _xyz_with(z={"actuators": actuators}))
+    assert validate_driver(mock) == [
+        "get_xyz: axis 'z' actuators must name every motor of the axis with its raw reading "
+        "as a number, in micrometres"
+    ]
 
 
 @pytest.mark.parametrize(
     "canvas", [[-150.0], "far", [-150.0, "far"], [True, 150.0], [150.0, -150.0]]
 )
 def test_a_canvas_that_is_not_min_then_max_is_reported(monkeypatch, canvas):
-    _break(monkeypatch, "get_xyz", _xyz_with(x=canvas))
+    _break(monkeypatch, "get_xyz", _xyz_with(x={"canvas": canvas}))
     assert validate_driver(mock) == [
         "get_xyz: axis 'x' canvas must be [min, max] in micrometres, with min no larger than max"
     ]

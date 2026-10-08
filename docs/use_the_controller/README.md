@@ -38,6 +38,8 @@ mic.disconnect()                                          # close the connection
 
 The outputs are real answers from the mock, trimmed where they are long, shown as the `content` of the answer. On another microscope the values differ; the keys shown are the same on every microscope, and anything else is an extra of that driver.
 
+Every call waits for the microscope. It returns only when the driver has finished: a move has arrived, a setting has been applied, an image has been saved. The line after a call can therefore trust that the call is done.
+
 ### mic.get_instruments()
 
 ```python
@@ -105,12 +107,16 @@ mic.get_xyz(with_actuators=None)
 - **Output**
 
   ```python
-  {'x': {'value': 0.0, 'actuator': 'motoric', 'canvas': [-5032.0, 5032.0]},
-   'y': {'value': 0.0, 'actuator': 'motoric', 'canvas': [-5032.0, 5032.0]},
-   'z': {'value': 0.0, 'actuator': 'motoric', 'canvas': [-500.0, 500.0]}}
+  {'x': {'position': 0.0, 'unit': 'micrometer', 'actuators': {'motoric': 50000.0},               'canvas': [-5032.0, 5032.0]},
+   'y': {'position': 0.0, 'unit': 'micrometer', 'actuators': {'motoric': 37500.0},               'canvas': [-5032.0, 5032.0]},
+   'z': {'position': 0.0, 'unit': 'micrometer', 'actuators': {'motoric': 5000.0, 'piezo': 0.0},  'canvas': [-500.0, 500.0]}}
   ```
 
-- **Note:** Positions are micrometres from the origin, a point saved once for this microscope; in a saved image, right is +x and down is +y. The canvas is everywhere a picture can show: the travel plus half a field of view.
+- **Note:** One dictionary with the keys `x`, `y` and `z`. Each axis has the same four entries, and every number in them is in micrometres:
+  - `position`: where the axis is, measured from the origin, a point saved once for this microscope. In a saved image, right is +x and down is +y.
+  - `unit`: always `'micrometer'`.
+  - `actuators`: every motor of this axis, each with its own raw reading, exactly as the microscope reports it. These are the stage's own numbers, not measured from the origin, so they show how the motors share the position; on the mock, z is the coarse drive plus the piezo.
+  - `canvas`: `[min, max]`, everywhere a picture can show along this axis: the travel plus half a field of view.
 
 ### mic.set_xyz()
 
@@ -124,11 +130,12 @@ mic.set_xyz(x, y, z, with_actuators=None)
 - **Output**
 
   ```python
-  {'position': {'x': 100, 'y': 50, 'z': 0},
-   'actuators': {'x': 'motoric', 'y': 'motoric', 'z': 'motoric'}}
+  {'x': {'position': 100.0, 'unit': 'micrometer', 'actuators': {'motoric': 50100.0},               'canvas': [-5032.0, 5032.0]},
+   'y': {'position': 50.0,  'unit': 'micrometer', 'actuators': {'motoric': 37550.0},               'canvas': [-5032.0, 5032.0]},
+   'z': {'position': 0.0,   'unit': 'micrometer', 'actuators': {'motoric': 5000.0, 'piezo': 0.0},  'canvas': [-500.0, 500.0]}}
   ```
 
-- **Note:** When the answer comes back, the stage has arrived. A move outside the travel, or one the driver could not confirm, is `success: False`.
+- **Note:** The answer is exactly what `get_xyz` answers, read from the microscope after the stage has arrived. It shows where the stage really is, not the numbers that were asked for, so there is no need to call `get_xyz` after a move. A move outside the travel, or one the driver could not confirm, is `success: False`.
 
 ### mic.get_state()
 
