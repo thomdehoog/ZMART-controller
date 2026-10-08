@@ -10,35 +10,30 @@ that comes with the controller, open the [tutorial notebook](tutorial.ipynb).
 
 ## 1) Overview of the calls
 
+Connecting gives you a controller, and every call is a method on it:
+
 ```python
 import zmart_controller
 
-# 1) See which drivers are installed and how each connects, then connect to one
-zmart_controller.get_instruments()
-mic = zmart_controller.ZmartController("mock")
+get_instruments()                                                  # the drivers installed here, and how each connects
+mic = ZmartController("mock")                                      # connect; every call below is mic.<call>
 
-# 2) Learn about the connected setup: where images go, and the microscope in plain words
-mic.get_info()
+get_info()                                                         # where images go, and the microscope in plain words
 
-# 3) Discover the motors, then read the position and where pictures can show, or move (micrometres)
-mic.get_actuators()
-mic.get_xyz()
-mic.set_xyz(x, y, z, with_actuators=Dict)
+get_actuators()                                                    # the motors of each axis
+get_xyz(with_actuators=None)                                       # where the stage is, and where pictures can show
+set_xyz(x, y, z, with_actuators=None)                              # move, in micrometres from the origin
 
-# 4) Capture the instrument settings, and apply them again later
-mic.get_state()
-mic.set_state(Dict)
+get_state()                                                        # the instrument settings
+set_state(state)                                                   # apply them again
 
-# 5) Capture and save an image with the current settings and position
-mic.get_acquisition_settings()
-mic.acquire(position_label=String, acquisition_settings=Dict)
+get_acquisition_settings()                                         # the choices for capturing and saving
+acquire(position_label, acquisition_settings=None)                 # capture and save an image here
 
-# 6) Run a routine the microscope offers (for example autofocus)
-mic.get_procedures()
-mic.run_procedure(Dict)
+get_procedures()                                                   # the routines on offer, such as autofocus
+run_procedure(procedure)                                           # run one
 
-# 7) Close the connection
-mic.disconnect()
+disconnect()                                                       # close the connection
 ```
 
 ## 2) More information about the calls
@@ -48,7 +43,7 @@ The outputs are real answers from the mock, trimmed where they are long, shown a
 ### get_instruments
 
 ```python
-zmart_controller.get_instruments()
+get_instruments()
 ```
 
 - **Input:** none
@@ -61,7 +56,7 @@ zmart_controller.get_instruments()
 ### ZmartController
 
 ```python
-mic = zmart_controller.ZmartController(driver, connection=None)
+ZmartController(driver, connection=None)
 ```
 
 - **Input**
@@ -76,7 +71,7 @@ mic = zmart_controller.ZmartController(driver, connection=None)
 ### get_info
 
 ```python
-mic.get_info()
+get_info()
 ```
 
 - **Input:** none
@@ -92,7 +87,7 @@ mic.get_info()
 ### get_actuators
 
 ```python
-mic.get_actuators()
+get_actuators()
 ```
 
 - **Input:** none
@@ -105,7 +100,7 @@ mic.get_actuators()
 ### get_xyz
 
 ```python
-mic.get_xyz(with_actuators=None)
+get_xyz(with_actuators=None)
 ```
 
 - **Input**
@@ -123,7 +118,7 @@ mic.get_xyz(with_actuators=None)
 ### set_xyz
 
 ```python
-mic.set_xyz(x, y, z, with_actuators=None)
+set_xyz(x, y, z, with_actuators=None)
 ```
 
 - **Input**
@@ -141,7 +136,7 @@ mic.set_xyz(x, y, z, with_actuators=None)
 ### get_state
 
 ```python
-mic.get_state()
+get_state()
 ```
 
 - **Input:** none
@@ -157,7 +152,7 @@ mic.get_state()
 ### set_state
 
 ```python
-mic.set_state(state)
+set_state(state)
 ```
 
 - **Input**
@@ -171,7 +166,7 @@ mic.set_state(state)
 ### get_acquisition_settings
 
 ```python
-mic.get_acquisition_settings()
+get_acquisition_settings()
 ```
 
 - **Input:** none
@@ -189,7 +184,7 @@ mic.get_acquisition_settings()
 ### acquire
 
 ```python
-mic.acquire(position_label, acquisition_settings=None)
+acquire(position_label, acquisition_settings=None)
 ```
 
 - **Input**
@@ -209,7 +204,7 @@ mic.acquire(position_label, acquisition_settings=None)
 ### get_procedures
 
 ```python
-mic.get_procedures()
+get_procedures()
 ```
 
 - **Input:** none
@@ -223,7 +218,7 @@ mic.get_procedures()
 ### run_procedure
 
 ```python
-mic.run_procedure(procedure)
+run_procedure(procedure)
 ```
 
 - **Input**
@@ -237,7 +232,7 @@ mic.run_procedure(procedure)
 ### disconnect
 
 ```python
-mic.disconnect()
+disconnect()
 ```
 
 - **Input:** none
