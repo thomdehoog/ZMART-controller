@@ -62,7 +62,7 @@ The drivers for the microscopes at the ZMB are in
 
 ### The two files
 
-A driver is a folder with two files, and both are yours:
+A driver is a folder with at least two files, and both are yours:
 
 - `zmart_driver.json` holds the driver's name, where its class file is,
   and how to reach the microscope. It is what you point at to install the
