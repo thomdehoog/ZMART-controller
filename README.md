@@ -58,7 +58,7 @@ from zmart_controller import mic
 
 # 1) See which drivers are installed and how each connects, then connect to one
 mic.get_instruments()
-mic(String)
+mic.connect(String)
 
 # 2) Learn about the connected setup: the microscope in plain words
 mic.get_info()

@@ -4,7 +4,7 @@ Connect to a microscope, and drive it::
 
     from zmart_controller import mic
 
-    mic("mock")                               # the simulated microscope
+    mic.connect("mock")                       # the simulated microscope
     mic.set_xyz(10, 20, 5)
     mic.acquire(position_label="A1")
     mic.disconnect()
@@ -28,10 +28,7 @@ __affiliation__ = "Center for Microscopy and Image Analysis (ZMB), University of
 
 from .registry import get_instruments, load_driver, register_driver, remove_driver
 from .validate import check_acquire_answer, validate_driver
-from .zmart_controller import ZmartController
-
-#: The short name of :class:`ZmartController`: ``mic("mock")`` connects, then ``mic.get_xyz()``.
-mic = ZmartController
+from .zmart_controller import ZmartController, mic
 
 __all__ = [
     "ZmartController",

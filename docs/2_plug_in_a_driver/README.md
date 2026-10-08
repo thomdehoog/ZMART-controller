@@ -47,7 +47,7 @@ it by name:
 
 ```python
 mic.get_instruments()                        # {'mock': {}, 'my-scope': {'microscope': ..., 'host': ..., ...}}
-mic("my-scope")
+mic.connect("my-scope")
 ```
 
 `get_instruments` lists every installed driver with how it connects,

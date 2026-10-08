@@ -14,7 +14,7 @@ that comes with the controller, open the [tutorial notebook](tutorial.ipynb).
 from zmart_controller import mic
 
 mic.get_instruments()                                     # the drivers installed here, and how each connects
-mic("mock")                                               # connect
+mic.connect("mock")                                       # connect
 
 mic.get_info()                                            # the microscope in plain words
 
@@ -51,10 +51,10 @@ mic.get_instruments()
   {'mock': {}, 'stellaris': {'microscope': 'stellaris5-room-42', 'host': ..., ...}}
   ```
 
-### mic(...)
+### mic.connect()
 
 ```python
-mic(driver, connection=None)
+mic.connect(driver, connection=None)
 ```
 
 - **Input**

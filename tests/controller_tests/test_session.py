@@ -209,18 +209,26 @@ class TestDisconnect:
 
 
 class TestModuleStyle:
-    def test_commands_on_the_class_go_to_the_last_connected(self):
+    def test_mic_connects_and_forwards_the_commands(self):
         from zmart_controller import mic
 
-        mic(mock)
+        mic.connect(mock)
         mic.set_xyz(10, 20, 5)
         assert mic.get_xyz()["content"]["x"]["value"] == 10
         mic.disconnect()
 
-    def test_a_command_on_the_class_before_connecting_says_so(self, monkeypatch):
-        monkeypatch.setattr(ZmartController, "_last", None)
-        with pytest.raises(RuntimeError, match="no microscope connected"):
-            ZmartController.get_xyz()
+    def test_mic_before_connecting_says_so(self):
+        from zmart_controller import mic
+
+        mic.disconnect()
+        with pytest.raises(RuntimeError, match="call mic.connect"):
+            mic.get_xyz()
+
+    def test_mic_itself_cannot_be_called(self):
+        from zmart_controller import mic
+
+        with pytest.raises(TypeError):
+            mic("mock")
 
     def test_unknown_attribute_raises(self):
         import zmart_controller as m
