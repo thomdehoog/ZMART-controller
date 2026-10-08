@@ -25,11 +25,49 @@ vendor software.
 your workflow ──► zmart controller ──► driver ──► vendor software ──► microscope
 ```
 
-In short: a driver is two files, a small JSON with its name and how to
-reach the microscope, and a `ZmartDriver` class with one method per
-command. The controller does the plugging in.
+In short: a driver is a `ZmartDriver` class, which plugs into the
+controller with one method per command, a small JSON with its name and how
+to reach the microscope, and whatever other code the class needs to talk
+to the microscope.
 
 ## 2) Installing a driver
+
+Installing a driver means pointing the controller, once, at the driver's
+`zmart_driver.json`. Check first that the driver fits: one call tells you
+which methods still hand back the wrong thing, one plain sentence each,
+and an empty list means it fits.
+
+```python
+import zmart_controller
+
+zmart_controller.validate_driver("C:/drivers/my-scope/zmart_driver.json")
+zmart_controller.register_driver("C:/drivers/my-scope/zmart_driver.json")
+```
+
+`register_driver` loads the driver and checks that its name and its
+`ZmartDriver` class are there before it writes anything down. A driver
+that cannot be imported, or that misses something, is refused with a
+message that says what is wrong:
+
+```
+ValueError: driver my_driver is missing functions: ['set_xyz']
+```
+
+From then on the driver is on the list, and can be connected to by name:
+
+```python
+zmart_controller.get_instruments()           # {'mock': {}, 'my-scope': {'microscope': ..., 'host': ..., ...}}
+mic = zmart_controller.ZmartController("my-scope")
+```
+
+`get_instruments` lists every installed driver with how it connects,
+without its password.
+
+The mock driver is always on the list, and the name `"mock"` is taken.
+The drivers for the microscopes at the ZMB are in
+[ZMART drivers](https://github.com/thomdehoog/ZMART-drivers).
+
+### The two files
 
 A driver is a folder with two files, and both are yours:
 
@@ -66,47 +104,6 @@ there; the shipped file looks the same, and you replace every value:
 ```
 
 `get_instruments()` shows this back for every installed driver.
-
-Before installing, check that the driver fits. One call tells you which
-methods still hand back the wrong thing, one plain sentence each, and an
-empty list means it fits:
-
-```python
-import zmart_controller
-
-zmart_controller.validate_driver("C:/drivers/my-scope/zmart_driver.json")
-```
-
-Installing a driver into the controller means telling it, once, where the
-driver is on this computer, by pointing it at the driver's
-`zmart_driver.json`:
-
-```python
-zmart_controller.register_driver("C:/drivers/my-scope/zmart_driver.json")
-```
-
-`register_driver` loads the driver and checks that its name and its
-`ZmartDriver` class are there before it writes anything down. A driver
-that cannot be imported, or that misses something, is refused with a
-message that says what is wrong:
-
-```
-ValueError: driver my_driver is missing functions: ['set_xyz']
-```
-
-From then on the driver is on the list, and can be connected to by name:
-
-```python
-zmart_controller.get_instruments()           # {'mock': {}, 'my-scope': {'microscope': ..., 'host': ..., ...}}
-mic = zmart_controller.ZmartController("my-scope")
-```
-
-`get_instruments` lists every installed driver with how it connects,
-without its password.
-
-The mock driver is always on the list, and the name `"mock"` is taken.
-The drivers for the microscopes at the ZMB are in
-[ZMART drivers](https://github.com/thomdehoog/ZMART-drivers).
 
 ## 3) Writing a driver
 
