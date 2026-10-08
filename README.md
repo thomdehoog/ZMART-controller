@@ -23,13 +23,9 @@ It is part of [**ZMART**](https://github.com/thomdehoog/ZMART-microscopy) (ZMB's
 
 When you want to implement an automated workflow on a microscope, you run into two problems:
 
-1. **You need time on the microscope.** You can only build and test the workflow at the microscope itself,
-   and microscope time is often limited.
+1. **You need time on the microscope.** 
 
-2. **You want to share the workflow, but it only runs on your specific microscope.** Once it works, you want
-   to report it and share it, so that others can review it and use it. But every microscope setup is different,
-   with its own programming interface, so a workflow written for yours does not run on theirs. That makes your
-   findings very hard to reproduce.
+2. **You want to share the workflow, but it only runs on your specific microscope.** 
 
 
 ## The Solution
