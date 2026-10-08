@@ -273,11 +273,10 @@ class Mic:
     def __init__(self) -> None:
         self._connected: ZmartController | None = None
 
-    def connect(self, driver: Any, connection: dict[str, Any] | None = None) -> ZmartController:
+    def connect(self, driver: Any, connection: dict[str, Any] | None = None) -> None:
         """Connect to a microscope; the previous one, if any, is disconnected first."""
         self.disconnect()
         self._connected = ZmartController(driver, connection)
-        return self._connected
 
     def disconnect(self) -> None:
         """Close the connection. With nothing connected this does nothing."""
