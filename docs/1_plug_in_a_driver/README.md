@@ -92,7 +92,7 @@ there; the shipped file looks the same, and you replace every value:
 
 ```json
 {
-  "name": "<the name you want the driver listed under, for example stellaris>",
+  "name": "<the name you want the driver listed under by get_instruments(), for example stellaris>",
   "driver": "<the file that holds your ZmartDriver class; leave it unless you moved the file>",
   "connection": {
     "microscope": "<a name for this particular instrument, for example stellaris5-room-42>",
