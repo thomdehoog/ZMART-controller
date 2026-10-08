@@ -1,4 +1,4 @@
-# 1. Using the ZMART-controller
+# Using the ZMART-controller
 
 ## Contents
 
