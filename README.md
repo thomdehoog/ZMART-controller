@@ -59,7 +59,8 @@ mic.connect(String)
 # 2) Learn about the connected setup: the microscope in plain words
 mic.get_info()
 
-# 3) Discover the motors, then read the position and where pictures can show, or move (micrometres)
+# 3) Discover the motors, then read the position or move; get_xyz and set_xyz answer the same:
+#    per axis its position in micrometres from the origin, the raw reading of every motor, and the canvas
 mic.get_actuators()
 mic.get_xyz()
 mic.set_xyz(x, y, z, with_actuators=Dict)
