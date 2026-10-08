@@ -13,7 +13,8 @@ taking a picture.
 
 :func:`register_driver` adds a driver's ``zmart_controller_plugin.py`` to this
 computer's list once, under the ``NAME`` it gives. :func:`get_drivers`
-lists the registered names, and ``set_instrument`` accepts any of them. The
+lists the registered names, :func:`get_instruments` adds the connection each
+one will use, and ``set_instrument`` accepts any of the names. The
 list is a small file in :func:`config_root`, or in your home folder when that
 folder cannot be written.
 
@@ -135,6 +136,37 @@ def get_drivers() -> list[str]:
     Pass any of them to ``set_instrument``.
     """
     return [MOCK, *sorted(name for name in _registered() if name != MOCK)]
+
+
+#: A connection key whose name holds one of these words is a secret, and is
+#: never shown by :func:`get_instruments`.
+SECRET_WORDS = ("password", "token", "secret")
+
+
+def get_instruments() -> dict[str, dict[str, Any]]:
+    """Every installed driver, by name, with the connection it will use.
+
+    The connection is the dictionary ``set_instrument`` hands to the driver's
+    ``connect`` when none is given: the one saved at ``register_driver``, or
+    else the driver's own ``CONNECTION``. Secrets are left out: any key whose
+    name contains ``password``, ``token`` or ``secret``. The mock has no
+    connection and shows an empty one. A driver whose file can no longer be
+    imported shows ``{"error": ...}`` instead, so one broken driver never
+    hides the others.
+    """
+    instruments: dict[str, dict[str, Any]] = {}
+    for name in get_drivers():
+        try:
+            _, connection = find_driver(name)
+        except Exception as exc:
+            instruments[name] = {"error": f"{type(exc).__name__}: {exc}"}
+            continue
+        instruments[name] = {
+            key: value
+            for key, value in connection.items()
+            if not any(word in key.lower() for word in SECRET_WORDS)
+        }
+    return instruments
 
 
 #: The file in a driver that plugs into the controller.

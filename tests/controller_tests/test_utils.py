@@ -314,3 +314,48 @@ def test_the_label_must_come_back():
 def test_an_acquisition_without_the_envelope_is_reported():
     problems = check_acquire_answer({"files": []})
     assert problems == ['acquire must return {"success": ..., "content": ...}, got dict']
+
+
+# ---- the drivers installed on this computer
+
+
+PLUGIN = """
+from zmart_controller.mock import *  # noqa: F401,F403  the functions; this file's NAME and CONNECTION go last
+
+NAME = "pretend"
+CONNECTION = {
+    "microscope": "pretend-01",
+    "api_type": "socket",
+    "host": "127.0.0.1",
+    "password": "hunter2",
+    "config": "C:/pretend/config.ini",
+}
+"""
+
+
+def test_get_instruments_shows_each_connection_without_its_secrets(tmp_path):
+    plugin = tmp_path / "pretend_scope.py"
+    plugin.write_text(PLUGIN)
+    utils.register_driver(plugin)
+    try:
+        assert utils.get_instruments() == {
+            "mock": {},
+            "pretend": {
+                "microscope": "pretend-01",
+                "api_type": "socket",
+                "host": "127.0.0.1",
+                "config": "C:/pretend/config.ini",
+            },
+        }
+    finally:
+        utils.remove_driver("pretend")
+
+
+def test_get_instruments_prefers_the_connection_saved_at_registering(tmp_path):
+    plugin = tmp_path / "pretend_scope.py"
+    plugin.write_text(PLUGIN)
+    utils.register_driver(plugin, {"microscope": "pretend-02", "token": "x"})
+    try:
+        assert utils.get_instruments()["pretend"] == {"microscope": "pretend-02"}
+    finally:
+        utils.remove_driver("pretend")

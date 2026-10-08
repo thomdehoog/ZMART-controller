@@ -57,9 +57,10 @@ zmart_controller.get_drivers()
 ['mock']
 ```
 
-`get_drivers()` lists the drivers registered on this computer. The mock
-driver is always there. Part 1 explains how to register the driver of a real
-microscope.
+`get_drivers()` lists the drivers installed on this computer. The mock
+driver is always there. `get_instruments()` lists the same drivers with how
+each one connects to its microscope, such as the host, without passwords.
+Part 1 explains how to install the driver of a real microscope.
 
 ```python
 zmart_controller.set_instrument("mock")

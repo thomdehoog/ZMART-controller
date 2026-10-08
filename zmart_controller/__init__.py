@@ -4,7 +4,8 @@ Plug in a driver, then drive the microscope through the module itself::
 
     import zmart_controller
 
-    zmart_controller.get_drivers()            # ["mock", ...]: the drivers registered here
+    zmart_controller.get_drivers()            # ["mock", ...]: the drivers installed here
+    zmart_controller.get_instruments()        # the same, with how each one connects
     zmart_controller.set_instrument("mock")   # the simulated microscope
     zmart_controller.set_xyz(10, 20, 5)
     zmart_controller.acquire(position_label="A1")
@@ -46,6 +47,7 @@ from .session import set_instrument as _set_instrument
 from .utils import (
     check_acquire_answer,
     get_drivers,
+    get_instruments,
     register_driver,
     remove_driver,
     validate_driver,
@@ -54,6 +56,7 @@ from .utils import (
 __all__ = [
     "Session",
     "get_drivers",
+    "get_instruments",
     "register_driver",
     "remove_driver",
     "check_acquire_answer",
