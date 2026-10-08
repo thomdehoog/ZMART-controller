@@ -13,7 +13,7 @@ small driver and plugs it in, open the [tutorial notebook](tutorial.ipynb).
 3. [The two files of a driver](#the-two-files-of-a-driver)
 4. [Writing the ZmartDriver](#writing-the-zmartdriver)
 
-## What a driver is
+## 1) What a driver is
 
 Every microscope's software speaks its own language, so a workflow written
 for one microscope does not run on another. The controller stands in
@@ -30,7 +30,7 @@ In short: a driver is two files, a small JSON with its name and how to
 reach the microscope, and a `ZmartDriver` class with one method per
 command. The controller does the plugging in.
 
-## Install a driver into the controller
+## 2) Install a driver into the controller
 
 Before installing, check that the driver fits. One call tells you which
 methods still hand back the wrong thing, one plain sentence each, and an
