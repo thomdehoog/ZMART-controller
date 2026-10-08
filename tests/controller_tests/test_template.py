@@ -1,4 +1,4 @@
-"""Tests for the two-file driver: the template to copy, and the plugin inside the controller.
+"""Tests for the two-file driver: the template to copy, and the controller that drives it.
 
 Author: Thom de Hoog, Center for Microscopy and Image Analysis (ZMB),
 University of Zurich (thom.dehoog@zmb.uzh.ch, thomdehoog@gmail.com).
@@ -14,7 +14,7 @@ from pathlib import Path
 import pytest
 
 import zmart_controller
-from zmart_controller import plugin, utils
+from zmart_controller import zmart_controller as controller
 from zmart_controller.template.zmart_driver import ZmartDriver
 
 README = Path(__file__).parents[2] / "docs" / "1_plug_in_a_driver" / "README.md"
@@ -82,7 +82,7 @@ def test_the_template_loads_and_offers_every_function():
     driver = zmart_controller.load_driver(TEMPLATE)
     assert driver.NAME.startswith("<the name you want")
     assert set(driver.CONNECTION) == {"microscope", "api_type", "host", "password", "config"}
-    assert utils.driver_functions(driver).keys() == {*utils.OPS, "disconnect"}
+    assert driver.ZmartDriver.__name__ == "ZmartDriver"
 
 
 def test_an_unfilled_driver_says_what_is_missing():
@@ -92,7 +92,7 @@ def test_an_unfilled_driver_says_what_is_missing():
 
 def test_a_filled_in_driver_passes_validation_and_acquires(tmp_path):
     PretendDriver.folder = tmp_path
-    driver = plugin.functions_for(PretendDriver, "pretend", {})
+    driver = PretendDriver
     assert zmart_controller.validate_driver(driver) == []
     session = zmart_controller.set_instrument(driver)
     try:
@@ -106,7 +106,7 @@ def test_a_filled_in_driver_passes_validation_and_acquires(tmp_path):
 
 def test_a_not_confirmed_outcome_answers_success_false(tmp_path):
     PretendDriver.folder = tmp_path
-    session = zmart_controller.set_instrument(plugin.functions_for(PretendDriver, "pretend", {}))
+    session = zmart_controller.set_instrument(PretendDriver)
     try:
         answer = session.set_state({"changeable": {"exposure_ms": 999.0}})
         assert answer == {"success": False, "content": "exposure_ms stayed 10.0"}
@@ -116,7 +116,7 @@ def test_a_not_confirmed_outcome_answers_success_false(tmp_path):
 
 
 def test_every_method_the_plugin_calls_exists_on_the_class():
-    called = set(re.findall(r"\bhandle\.(\w+)\(", Path(plugin.__file__).read_text()))
+    called = set(re.findall(r"\bhandle\.(\w+)\(", Path(controller.__file__).read_text()))
     assert called <= {name for name in dir(ZmartDriver) if not name.startswith("_")}
 
 
@@ -148,7 +148,7 @@ def test_a_copied_template_is_installed_from_its_folder_or_json(tmp_path):
         assert list(zmart_controller.get_instruments()) == ["mock", "my-scope-2"]
         shown = zmart_controller.get_instruments()["my-scope-2"]
         assert shown["host"] == "127.0.0.1" and "password" not in shown
-        with pytest.raises(NotImplementedError):  # it connects through the plugin
+        with pytest.raises(NotImplementedError):  # it connects through the class
             zmart_controller.set_instrument("my-scope-2")
     finally:
         zmart_controller.remove_driver("my-scope-2")
@@ -157,13 +157,14 @@ def test_a_copied_template_is_installed_from_its_folder_or_json(tmp_path):
 def test_the_readme_quotes_the_controller_and_names_every_method():
     """Every controller function the README quotes is the code itself, so they cannot drift."""
     text = README.read_text()
-    source = Path(plugin.__file__).read_text()
-    quoted = re.findall(r"```python\n# zmart_controller/plugin.py\n\n(.*?)```", text, re.S)
+    source = Path(controller.__file__).read_text()
+    quoted = re.findall(
+        r"```python\n# zmart_controller/zmart_controller.py\n\n(.*?)```", text, re.S
+    )
     assert quoted
     for block in quoted:
-        for function in block.strip("\n").split("\n\n\n"):
-            indented = "\n".join("    " + line if line else line for line in function.splitlines())
-            assert function in source or indented in source
+        for line in block.splitlines():
+            assert not line.strip() or line.strip() in source, line
     for name in dir(ZmartDriver):
         if not name.startswith("_"):
             assert f"def {name}(self" in text

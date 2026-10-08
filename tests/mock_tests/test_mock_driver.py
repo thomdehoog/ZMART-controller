@@ -27,7 +27,7 @@ from zmart_controller.mock.get_actions import DEFAULT_GET_TUNING
 from zmart_controller.mock.set_actions import DEFAULT_SET_TUNING, Gate
 from zmart_controller.mock.testing.mock_api import read_mraw
 from zmart_controller.mock.vendor_interface import VendorError
-from zmart_controller.session import set_instrument
+from zmart_controller.zmart_controller import set_instrument
 
 PACKAGE = Path(zmart_controller.mock.__file__).resolve().parent
 

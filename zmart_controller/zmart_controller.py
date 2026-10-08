@@ -1,25 +1,25 @@
-"""Utilities for drivers: what a driver must hold, and whether it fits.
+"""The ZmartController: one microscope, driven through one method per command.
 
-A driver is the whole set of files that talks to one microscope. Towards the
-controller it offers one function per command, found by name on a module (or
-any object, or a dict). :func:`driver_functions` collects them and names any
-that are missing. Everything else is the driver's job.
+Make one with a driver, and it connects. The driver is a ``ZmartDriver``
+class, two files made from the template, or an installed name::
 
-:func:`validate_driver` is for whoever writes a driver: it calls the
-driver's ``get_*`` commands and checks the answers against the contract in
-``docs/1_plug_in_a_driver``. :func:`check_acquire_answer` does the same for
-one acquisition, which the driver's own tests take, since checking it means
-taking a picture.
+    mic = ZmartController("my-scope")
+    mic.set_xyz(100, 50, 0)
 
-:func:`register_driver` adds a driver's ``zmart_controller_plugin.py`` to this
-computer's list once, under the ``NAME`` it gives. :func:`get_instruments`
-lists the installed drivers with the connection each one will use, and
-``set_instrument`` accepts any of their names. The
-list is a small file in :func:`config_root`, or in your home folder when that
-folder cannot be written.
+Each command calls the driver and answers ``{"success": bool, "content": ...}``.
+``success`` says whether the driver did what was asked. ``content`` is what
+the driver has to say about it. A ``ZmartDriver`` method returns plain
+values for success; the functions at the end of this file turn them into
+that answer. A method that raises :class:`NotConfirmed` is a soft failure,
+answered as ``success: False`` with the text. Anything else it raises is
+passed to the workflow unchanged: ``ValueError`` for a mistake in the
+request, ``RuntimeError`` for a failure on the microscope.
 
-:func:`config_root` is also the folder where drivers keep what they measure
-once per microscope: the origin, the travel limits and the calibration.
+The controller does no microscope work and checks nothing on the
+microscope's behalf. Every check belongs to the driver, including whether
+the connection is still open. Every call is synchronous: it returns when
+the driver has finished. :func:`validate_driver` and
+:func:`check_acquire_answer` check a driver's answers against this contract.
 
 Author: Thom de Hoog, Center for Microscopy and Image Analysis (ZMB),
 University of Zurich (thom.dehoog@zmb.uzh.ch, thomdehoog@gmail.com).
@@ -27,18 +27,9 @@ University of Zurich (thom.dehoog@zmb.uzh.ch, thomdehoog@gmail.com).
 
 from __future__ import annotations
 
-import importlib
-import importlib.util
-import json
-import logging
 import math
-import os
-import platform
-import sys
 from pathlib import Path
 from typing import Any
-
-logger = logging.getLogger(__name__)
 
 # Every driver must provide a function for each of these. disconnect is optional.
 OPS: tuple[str, ...] = (
@@ -56,247 +47,175 @@ OPS: tuple[str, ...] = (
 )
 
 
-def driver_functions(driver: Any) -> dict[str, Any]:
-    """The driver's functions, one per command, found by name.
+class NotConfirmed(Exception):
+    """Raise this from a ``ZmartDriver`` method for a soft failure: the command was
+    sent, but what it asked for never showed up, and it is safe to carry on.
 
-    ``driver`` is a module such as ``zmart_controller.mock``, any object with
-    the functions as attributes, or a dict from command name to function.
-    ``disconnect`` is optional. Raises ``ValueError`` naming every missing
-    function, so a half-finished driver is refused before it connects.
+    The controller answers ``{"success": False, "content": error_text}``,
+    where ``error_text`` is the message given here. Never raise it from
+    ``set_xyz``: carrying on at an unknown position is not safe, so a move
+    that cannot be confirmed raises ``RuntimeError``.
     """
-    find = driver.get if isinstance(driver, dict) else lambda name: getattr(driver, name, None)
-    ops = {name: find(name) for name in (*OPS, "disconnect")}
-    missing = [name for name in OPS if not callable(ops[name])]
-    if missing:
-        raise ValueError(f"driver {driver_name(driver)} is missing functions: {missing}")
-    return {name: func for name, func in ops.items() if func is not None}
 
 
-def driver_name(driver: Any) -> str:
-    """A short name for ``driver``, to show in messages: its module name if it has one."""
-    return getattr(driver, "__name__", None) or type(driver).__name__
+class ZmartController:
+    """One connected microscope, driven through one method per command.
 
+    Make one with a driver, and it connects::
 
-def config_root() -> Path:
-    """The machine-wide folder where ZMART keeps its configuration.
+        mic = ZmartController("my-scope")
+        mic.set_xyz(100, 50, 0)
 
-    ``ZMART_MICROSCOPY_ROOT`` overrides it. Otherwise it is
-    ``C:\\ProgramData\\zmart-microscopy`` on Windows,
-    ``/Library/Application Support/zmart-microscopy`` on macOS and
-    ``/etc/zmart-microscopy`` on Linux. The drivers keep their origin, limits
-    and calibration under the same root.
+    ``driver`` is the name of an installed driver, from ``get_instruments()``,
+    a ``ZmartDriver`` class, what ``load_driver`` returns, or a module with
+    one function per command such as ``zmart_controller.mock``. ``connection`` is handed to the driver's
+    ``connect`` unchanged; left out, the driver's own connection is used.
+    Raises ``ValueError`` naming any function the driver is missing.
+
+    Each method calls the matching driver function and returns its answer.
+    The controller keeps no state and refuses nothing. Its one public
+    attribute, ``context``, names the driver: ``{"driver": ...}``.
     """
-    override = os.environ.get("ZMART_MICROSCOPY_ROOT")
-    if override:
-        return Path(override)
-    system = platform.system()
-    if system == "Windows":
-        return Path(os.environ.get("PROGRAMDATA", r"C:\ProgramData")) / "zmart-microscopy"
-    if system == "Darwin":
-        return Path("/Library/Application Support/zmart-microscopy")
-    return Path("/etc/zmart-microscopy")
 
+    def __init__(self, driver: Any, connection: dict[str, Any] | None = None) -> None:
+        from .registry import driver_functions, driver_name, find_driver
 
-# ---- the drivers registered on this computer
+        name = None
+        if isinstance(driver, str):
+            name = driver
+            driver, saved = find_driver(name)
+            connection = saved if connection is None else connection
+        elif connection is None:
+            connection = getattr(driver, "CONNECTION", None)
+        connection = dict(connection or {})
+        driver_class = driver if isinstance(driver, type) else getattr(driver, "ZmartDriver", None)
+        if driver_class is not None:
+            # A ZmartDriver class: making one connects, and the functions below
+            # turn each of its methods into a command's answer.
+            self._handle = driver_class(connection)
+            self._ops = {function.__name__: function for function in _CLASS_FUNCTIONS}
+        else:
+            # A module with one function per command, such as the mock.
+            self._ops = driver_functions(driver)
+            self._handle = self._ops["connect"](connection)
 
-#: The name the mock driver is always listed under.
-MOCK = "mock"
-#: The file that lists the registered drivers, kept in the configuration folder.
-REGISTRY_FILE = "drivers.json"
+        self.context = {"driver": name or driver_name(driver)}
 
-
-def user_root() -> Path:
-    """The folder in your home folder used when :func:`config_root` cannot be written."""
-    return Path.home() / ".zmart-microscopy"
-
-
-def _registry_files() -> list[Path]:
-    """The two places the list of drivers can live: the computer's, then your own."""
-    return [config_root() / REGISTRY_FILE, user_root() / REGISTRY_FILE]
-
-
-def _read(path: Path) -> dict[str, Any]:
-    try:
-        return json.loads(path.read_text())
-    except FileNotFoundError:
-        return {}
-
-
-def _registered() -> dict[str, dict[str, Any]]:
-    """Every registered driver, by name. An entry in your own list wins over the computer's."""
-    entries: dict[str, dict[str, Any]] = {}
-    for path in _registry_files():
-        entries.update(_read(path))
-    return entries
-
-
-def _names() -> list[str]:
-    """The names of the installed drivers, the mock first."""
-    return [MOCK, *sorted(name for name in _registered() if name != MOCK)]
-
-
-#: A connection key whose name holds one of these words is a secret, and is
-#: never shown by :func:`get_instruments`.
-SECRET_WORDS = ("password", "token", "secret")
-
-
-def get_instruments() -> dict[str, dict[str, Any]]:
-    """Every installed driver, by name, with the connection it will use.
-
-    Pass any of the names to ``set_instrument``. The mock is always first.
-    The connection is the dictionary ``set_instrument`` hands to the driver's
-    ``connect`` when none is given: the one saved at ``register_driver``, or
-    else the driver's own ``CONNECTION``. Secrets are left out: any key whose
-    name contains ``password``, ``token`` or ``secret``. The mock has no
-    connection and shows an empty one. A driver whose file can no longer be
-    imported shows ``{"error": ...}`` instead, so one broken driver never
-    hides the others.
-    """
-    instruments: dict[str, dict[str, Any]] = {}
-    for name in _names():
+    def _call(self, command: str, *args: Any, **kwargs: Any) -> dict:
+        """Hand one command to the driver. A NotConfirmed from it is the soft answer."""
         try:
-            _, connection = find_driver(name)
-        except Exception as exc:
-            instruments[name] = {"error": f"{type(exc).__name__}: {exc}"}
-            continue
-        instruments[name] = {
-            key: value
-            for key, value in connection.items()
-            if not any(word in key.lower() for word in SECRET_WORDS)
-        }
-    return instruments
+            return self._ops[command](self._handle, *args, **kwargs)
+        except NotConfirmed as failure:
+            return {"success": False, "content": str(failure)}
+
+    # --- state and procedures ------------------------------------------------
+
+    def get_state(self) -> dict:
+        """Capture the instrument's settings so they can be applied again later.
+
+        The ``content`` has two parts. ``"changeable"`` holds the settings that
+        :meth:`set_state` applies. ``"observed"`` is a read-only description of
+        the instrument. The controller does not look inside either.
+        """
+        return self._call("get_state")
+
+    def set_state(self, state: dict) -> dict:
+        """Apply a state captured with :meth:`get_state` (pass its ``content``).
+
+        The driver applies the ``"changeable"`` part only. ``"observed"`` is
+        never an instruction.
+        """
+        return self._call("set_state", state)
+
+    def get_procedures(self) -> dict:
+        """The routines this microscope offers, such as autofocus."""
+        return self._call("get_procedures")
+
+    def run_procedure(self, procedure: dict) -> dict:
+        """Run one routine from :meth:`get_procedures`, chosen by ``{"name": ...}``."""
+        return self._call("run_procedure", procedure)
+
+    # --- movement -----------------------------------------------------------
+
+    def get_actuators(self) -> dict:
+        """The motors that can move each axis, e.g. ``{"z": ["motoric", "piezo"]}``.
+
+        Pick one per axis with ``with_actuators`` on :meth:`get_xyz` and
+        :meth:`set_xyz`.
+        """
+        return self._call("get_actuators")
+
+    def get_xyz(self, with_actuators: dict | None = None) -> dict:
+        """Read each axis: its position, and how far it can travel.
+
+        Both in micrometres from the origin. ``with_actuators`` names a motor
+        per axis, e.g. ``{"z": "piezo"}``. The names come from
+        :meth:`get_actuators`; the driver checks them.
+        """
+        return self._call("get_xyz", with_actuators=with_actuators)
+
+    def set_xyz(self, x: float, y: float, z: float, with_actuators: dict | None = None) -> dict:
+        """Move to a position, in micrometres from the origin.
+
+        ``with_actuators`` names the motor to use per axis. Left out, the
+        driver uses its default. Any calibration is the driver's job.
+        """
+        return self._call("set_xyz", x, y, z, with_actuators=with_actuators)
+
+    # --- acquire ---------------------------------------------------------------
+
+    def get_acquisition_settings(self) -> dict:
+        """The choices for capturing and saving, with allowed values and the active one.
+
+        Asked of the driver afresh on every call.
+        """
+        return self._call("get_acquisition_settings")
+
+    def acquire(self, position_label: str, acquisition_settings: dict | None = None) -> dict:
+        """Capture an image here and save it, in one step.
+
+        ``position_label`` names this position in the saved files, e.g.
+        ``"A1"``. ``acquisition_settings`` holds choices from :meth:`get_acquisition_settings`;
+        any left out keep their active value. The content lists every saved file
+        under ``files``, so a workflow finds its pictures the same way on every
+        microscope.
+        """
+        return self._call(
+            "acquire", position_label=position_label, acquisition_settings=acquisition_settings
+        )
+
+    # --- information and lifecycle --------------------------------------------
+
+    def get_info(self) -> dict:
+        """Describe the connected setup.
+
+        Every driver reports ``output_root``, the folder where images are
+        saved. Anything else is an extra of that driver, and a workflow meant
+        for any microscope should not rely on it.
+        """
+        return self._call("get_info")
+
+    def disconnect(self) -> None:
+        """Close the connection, if the driver has a way to close it."""
+        disconnect = self._ops.get("disconnect")
+        if disconnect is not None:
+            disconnect(self._handle)
 
 
-#: The file in a driver that plugs into the controller.
-PLUGIN_FILE = "zmart_controller_plugin.py"
+#: The old name of :class:`ZmartController`, kept so existing code keeps working.
+Session = ZmartController
 
 
-def register_driver(plugin: str | Path, connection: dict[str, Any] | None = None) -> str:
-    """Add a driver to this computer's list of drivers, once.
+def set_instrument(driver: Any, connection: dict[str, Any] | None = None) -> ZmartController:
+    """Plug in a driver, connect to its microscope, and return the :class:`ZmartController`.
 
-    ``plugin`` is the driver's folder, or its ``zmart_driver.json``: a driver
-    made from the template is two files, ``zmart_driver.json`` with its name
-    and connection and ``zmart_driver.py`` with its ``ZmartDriver`` class.
-    A driver that brings its own ``zmart_controller_plugin.py`` is given by
-    that file, or by the folder holding it; the plugin then gives the name,
-    and may give the connection::
-
-        NAME = "stellaris"
-        CONNECTION = {"output_root": "D:/images"}   # optional
-
-    The driver is loaded and checked first, so one that cannot be imported,
-    or is missing a function or its name, is refused with a clear message
-    and nothing is written. The connection is read each time the driver is
-    plugged in; a ``connection`` given here is saved instead. Registering a
-    driver again replaces its entry. Returns its name.
+    The same as ``ZmartController(driver, connection)``.
     """
-    from .plugin import SETTINGS_FILE, load
-
-    file = Path(plugin).resolve()
-    if file.is_dir():
-        file = file / (SETTINGS_FILE if (file / SETTINGS_FILE).is_file() else PLUGIN_FILE)
-    if file.name == SETTINGS_FILE:
-        loaded = load(file)
-        entry: dict[str, Any] = {"settings": str(file)}
-    else:
-        module, root = _module_of(file)
-        loaded = _import(module, root)
-        entry = {"file": str(file), "module": module, "root": root}
-    driver_functions(loaded)
-    name = getattr(loaded, "NAME", None)
-    if not isinstance(name, str) or not name.strip():
-        raise ValueError(f'{file} must give the driver\'s NAME, such as NAME = "stellaris"')
-    if name == MOCK:
-        raise ValueError(f"{MOCK!r} is the mock driver's name; choose another NAME in {file}")
-    if connection is not None:
-        entry["connection"] = dict(connection)
-    for path in _registry_files():
-        try:
-            path.parent.mkdir(parents=True, exist_ok=True)
-            entries = _read(path)
-            entries[name] = entry
-            path.write_text(json.dumps(entries, indent=2) + "\n")
-            return name
-        except OSError:
-            logger.info("cannot write %s, trying the next place", path)
-    raise PermissionError(f"could not write the list of drivers in {_registry_files()}")
-
-
-def _module_of(file: Path) -> tuple[str, str]:
-    """The import name of a driver's functions file, and the folder to import it from.
-
-    A file inside a package is imported under its full package name, so the
-    driver's own imports, relative ones included, work as usual. A file in a
-    plain folder gets a name made from its full path, so two drivers that
-    both call their file ``zmart_controller_plugin.py`` never get mixed up.
-    """
-    if not file.is_file():
-        raise ValueError(f"the functions file {file} does not exist")
-    parts, folder = [file.stem], file.parent
-    while (folder / "__init__.py").is_file():
-        parts.insert(0, folder.name)
-        folder = folder.parent
-    if len(parts) == 1:
-        return f"{_FILE_PREFIX}{file}", str(folder)
-    return ".".join(parts), str(folder)
-
-
-# A module name starting with this is a driver file in a plain folder; the rest is its path.
-_FILE_PREFIX = "file:"
-
-
-def _import(module: str, root: str):
-    # Add the driver's folder to the import path for this session, so the
-    # driver's own imports work. A driver installed with pip needs none of this.
-    if root not in sys.path:
-        sys.path.insert(0, root)
-    if not module.startswith(_FILE_PREFIX):
-        return importlib.import_module(module)
-    path = module[len(_FILE_PREFIX) :]
-    name = "zmart_driver_" + "".join(c if c.isalnum() else "_" for c in path)
-    if name not in sys.modules:
-        spec = importlib.util.spec_from_file_location(name, path)
-        loaded = importlib.util.module_from_spec(spec)
-        sys.modules[name] = loaded
-        try:
-            spec.loader.exec_module(loaded)
-        except BaseException:
-            del sys.modules[name]  # so a fixed file is read again next time
-            raise
-    return sys.modules[name]
-
-
-def remove_driver(name: str) -> bool:
-    """Take ``name`` off the list of registered drivers. Returns False if it was not there."""
-    removed = False
-    for path in _registry_files():
-        entries = _read(path)
-        if name in entries:
-            del entries[name]
-            path.write_text(json.dumps(entries, indent=2) + "\n")
-            removed = True
-    return removed
-
-
-def find_driver(name: str) -> tuple[Any, dict[str, Any]]:
-    """The driver registered as ``name``, imported, and the connection saved with it."""
-    if name == MOCK:
-        return importlib.import_module("zmart_controller.mock"), {}
-    entry = _registered().get(name)
-    if entry is None:
-        raise ValueError(f"no driver installed as {name!r}; installed: {_names()}")
-    if "settings" in entry:
-        from .plugin import load
-
-        module = load(entry["settings"])
-    else:
-        module = _import(entry["module"], entry["root"])
-    if "connection" in entry:
-        return module, dict(entry["connection"])
-    return module, dict(getattr(module, "CONNECTION", None) or {})
+    return ZmartController(driver, connection)
 
 
 # ---- validating a driver against the contract
+
 
 #: The three axes every driver reports.
 AXES = ("x", "y", "z")
@@ -305,17 +224,14 @@ AXES = ("x", "y", "z")
 def validate_driver(driver: Any, connection: dict[str, Any] | None = None) -> list[str]:
     """Connect to ``driver`` and check every ``get_*`` answer against the contract.
 
-    ``driver`` and ``connection`` are what you would pass to ``set_instrument``.
+    ``driver`` and ``connection`` are what you would pass to ``ZmartController``.
     It moves nothing and acquires nothing.
 
     Returns the problems found, one sentence each. Empty means the driver fits.
     Raises whatever the driver raises on connect.
     """
-    # Imported here: the session collects the driver's functions with this module.
-    from .session import set_instrument
-
     problems: list[str] = []
-    session = set_instrument(driver, connection)
+    session = ZmartController(driver, connection)
     try:
         checks = {
             "get_info": _check_info,
@@ -561,3 +477,120 @@ def _plane_problems(succeeded: bool, content: dict, files: list[str]) -> list[st
                 )
             seen.add(slot)
     return problems
+
+
+# ---- how a ZmartDriver's methods become a command's answer
+
+
+def disconnect(handle):
+
+    handle.disconnect()
+
+    return None
+
+
+def get_info(handle):
+
+    output_root, description = handle.get_info()
+
+    return {"success": True, "content": {"output_root": output_root, "description": description}}
+
+
+def get_actuators(handle):
+
+    x_motors, y_motors, z_motors = handle.get_actuators()
+
+    return {"success": True, "content": {"x": x_motors, "y": y_motors, "z": z_motors}}
+
+
+def get_xyz(handle, *, with_actuators=None):
+
+    x, y, z, x_motor, y_motor, z_motor = handle.get_xyz(with_actuators)
+    x_min, x_max, y_min, y_max, z_min, z_max = handle.get_canvas()
+
+    return {
+        "success": True,
+        "content": {
+            "x": {"value": x, "actuator": x_motor, "canvas": [x_min, x_max]},
+            "y": {"value": y, "actuator": y_motor, "canvas": [y_min, y_max]},
+            "z": {"value": z, "actuator": z_motor, "canvas": [z_min, z_max]},
+        },
+    }
+
+
+def set_xyz(handle, x, y, z, *, with_actuators=None):
+
+    x_motor, y_motor, z_motor = handle.set_xyz(x, y, z, with_actuators)
+
+    return {
+        "success": True,
+        "content": {
+            "position": {"x": x, "y": y, "z": z},
+            "actuators": {"x": x_motor, "y": y_motor, "z": z_motor},
+        },
+    }
+
+
+def get_state(handle):
+
+    changeable, observed = handle.get_state()
+
+    return {"success": True, "content": {"changeable": changeable, "observed": observed}}
+
+
+def set_state(handle, state):
+
+    applied = handle.set_state(state["changeable"])
+
+    return {"success": True, "content": {"applied": applied}}
+
+
+def get_acquisition_settings(handle):
+
+    settings = handle.get_acquisition_settings()  # {name: {"options": [...], "active": value}}
+
+    return {"success": True, "content": settings}
+
+
+def acquire(handle, *, position_label, acquisition_settings=None):
+
+    files, planes = handle.acquire(position_label, acquisition_settings)
+
+    return {
+        "success": True,
+        "content": {
+            "position_label": position_label,
+            "files": files,  # the path of every file saved
+            "planes": planes,  # [{"path", "c", "z", "t", "x_um", "y_um", "z_um"}, ...]
+        },
+    }
+
+
+def get_procedures(handle):
+
+    procedures = handle.get_procedures()  # {name: {"description": ...}}
+
+    return {"success": True, "content": procedures}
+
+
+def run_procedure(handle, procedure):
+
+    handle.run_procedure(procedure)
+
+    return {"success": True, "content": {"ran": procedure["name"]}}
+
+
+#: The functions above, one per command. Each takes the ZmartDriver as the handle.
+_CLASS_FUNCTIONS = (
+    disconnect,
+    get_info,
+    get_actuators,
+    get_xyz,
+    set_xyz,
+    get_state,
+    set_state,
+    get_acquisition_settings,
+    acquire,
+    get_procedures,
+    run_procedure,
+)

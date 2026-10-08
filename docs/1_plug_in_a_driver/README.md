@@ -142,7 +142,7 @@ A method has two ways to answer: it returns, or it raises.
 A driver can also be written without the class, as a module with twelve
 functions that build those answers themselves; the drivers at the ZMB are
 built that way, and the list of function names is kept in
-`zmart_controller.utils.OPS`. The class is the shorter road.
+`zmart_controller.zmart_controller.OPS`. The class is the shorter road.
 
 So what is left for you is to write a `ZmartDriver` class that complies
 with the following.
@@ -169,19 +169,19 @@ def __init__(self, connection): ...    # open the vendor connection, keep what y
 def disconnect(self): ...              # close it; afterwards every other call should raise RuntimeError
 ```
 
-On the controller's side, `connect` makes the `ZmartDriver` and keeps it as
-the handle, and `disconnect` closes it:
+On the controller's side, making the `ZmartDriver` is the connection, and
+the object is kept as the handle that every command receives:
 
 ```python
-# zmart_controller/plugin.py
+# zmart_controller/zmart_controller.py
 
-def connect(connection):
-    handle = driver_class(connection)
+self._handle = driver_class(connection)
+```
 
-    return handle  # the connected driver; every other function receives it back
+```python
+# zmart_controller/zmart_controller.py
 
-
-def disconnect(handle):  # optional
+def disconnect(handle):
 
     handle.disconnect()
 
@@ -202,7 +202,7 @@ def get_info(self): ...                # returns output_root, description
 On the controller's side, this is what receives it:
 
 ```python
-# zmart_controller/plugin.py
+# zmart_controller/zmart_controller.py
 
 def get_info(handle):
 
@@ -235,7 +235,7 @@ def set_xyz(self, x, y, z, with_actuators): ...   # moves, then returns x_motor,
 On the controller's side, this is what receives it:
 
 ```python
-# zmart_controller/plugin.py
+# zmart_controller/zmart_controller.py
 
 def get_actuators(handle):
 
@@ -320,7 +320,7 @@ def set_state(self, changeable): ...   # applies them, returns applied
 On the controller's side, this is what receives it:
 
 ```python
-# zmart_controller/plugin.py
+# zmart_controller/zmart_controller.py
 
 def get_state(handle):
 
@@ -359,7 +359,7 @@ def acquire(self, position_label, acquisition_settings): ... # captures and save
 On the controller's side, this is what receives it:
 
 ```python
-# zmart_controller/plugin.py
+# zmart_controller/zmart_controller.py
 
 def get_acquisition_settings(handle):
 
@@ -428,7 +428,7 @@ def run_procedure(self, procedure): ...   # runs the one named procedure["name"]
 On the controller's side, this is what receives it:
 
 ```python
-# zmart_controller/plugin.py
+# zmart_controller/zmart_controller.py
 
 def get_procedures(handle):
 
@@ -478,7 +478,7 @@ raises `ValueError`. The controller reports `ran`, the name of the procedure.
 What a driver measures once per microscope, such as the origin, the travel
 limits and the calibration, belongs on the microscope computer, where every
 user and every Python session finds it. The controller names one folder for
-this, the **configuration folder**, and `zmart_controller.utils.config_root()`
+this, the **configuration folder**, and `zmart_controller.registry.config_root()`
 returns it:
 
 | System | Folder |
