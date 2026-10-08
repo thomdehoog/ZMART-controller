@@ -120,10 +120,34 @@ files through the registry, makes one `ZmartDriver` from the connection,
 and every command becomes a call to the method of the same name on it.
 
 ```python
-from zmart_controller import ZmartController
+import zmart_controller
 
-mic = ZmartController("my-scope")
-mic.set_xyz(100, 50, 0)
+# 1) See which drivers are installed and how each connects, then connect to one
+zmart_controller.get_instruments()
+mic = zmart_controller.ZmartController("my-scope")
+
+# 2) Learn about the connected setup: where images go, and the microscope in plain words
+mic.get_info()
+
+# 3) Discover the motors, then read the position and where pictures can show, or move (micrometres)
+mic.get_actuators()
+mic.get_xyz()
+mic.set_xyz(x, y, z, with_actuators=Dict)
+
+# 4) Capture the instrument settings, and apply them again later
+mic.get_state()
+mic.set_state(Dict)
+
+# 5) Capture and save an image with the current settings and position
+mic.get_acquisition_settings()
+mic.acquire(position_label=String, acquisition_settings=Dict)
+
+# 6) Run a routine the microscope offers (for example autofocus)
+mic.get_procedures()
+mic.run_procedure(Dict)
+
+# 7) Close the connection
+mic.disconnect()
 ```
 
 **Out:** one answer shape for every command, built from what your method
