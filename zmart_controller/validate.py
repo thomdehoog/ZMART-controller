@@ -18,7 +18,7 @@ import math
 from pathlib import Path
 from typing import Any
 
-from .zmart_controller import ZmartController
+from .zmart_controller import UNIT, ZmartController
 
 #: The three axes every driver reports.
 AXES = ("x", "y", "z")
@@ -96,6 +96,13 @@ def _check_actuators(content, problems):
 
 
 def _check_xyz(content, problems):
+    """Check a ``get_xyz`` answer; ``set_xyz`` answers the same, so it fits the same check.
+
+    Each axis must carry ``position``, a number, micrometres from the
+    origin; ``unit``, which must be ``"micrometer"``; ``actuators``, every
+    motor of the axis with its own raw reading, as a number; and ``canvas``,
+    everywhere a picture can show, as [min, max].
+    """
     if not isinstance(content, dict):
         problems.append("get_xyz: the content must map each axis to its reading")
         return
@@ -104,12 +111,32 @@ def _check_xyz(content, problems):
         if not isinstance(reading, dict):
             problems.append(f"get_xyz: axis {axis!r} is missing")
             continue
-        for key in ("value", "actuator", "canvas"):
+        for key in ("position", "unit", "actuators", "canvas"):
             if key not in reading:
                 problems.append(f"get_xyz: axis {axis!r} is missing {key!r}")
+        if "position" in reading and not _is_number(reading["position"]):
+            problems.append(f"get_xyz: axis {axis!r} position must be a number, in micrometres")
+        if "unit" in reading and reading["unit"] != UNIT:
+            problems.append(f"get_xyz: axis {axis!r} unit must be {UNIT!r}")
+        if "actuators" in reading:
+            _check_readings(axis, reading["actuators"], problems)
         canvas = reading.get("canvas")
         if canvas is not None:
             _check_canvas(axis, canvas, problems)
+
+
+def _check_readings(axis, readings, problems):
+    """Check one axis's ``actuators``: each motor by name, with its raw reading as a number."""
+    if not (
+        isinstance(readings, dict)
+        and readings
+        and all(isinstance(name, str) and name for name in readings)
+        and all(_is_number(value) for value in readings.values())
+    ):
+        problems.append(
+            f"get_xyz: axis {axis!r} actuators must name every motor of the axis "
+            f"with its raw reading as a number, in micrometres"
+        )
 
 
 def _is_number(value) -> bool:

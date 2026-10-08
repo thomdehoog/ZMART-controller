@@ -35,6 +35,9 @@ from __future__ import annotations
 from functools import partial
 from typing import Any
 
+#: The unit of every position, reading and canvas in a ``get_xyz`` or ``set_xyz`` answer.
+UNIT = "micrometer"
+
 
 class ZmartController:
     """One connected microscope. ``context`` names the driver: ``{"driver": ...}``."""
@@ -102,7 +105,13 @@ class ZmartController:
         return {"success": True, "content": {"x": x_motors, "y": y_motors, "z": z_motors}}
 
     def get_xyz(self, with_actuators: dict | None = None) -> dict:
-        """Each axis: its position in micrometres from the origin, the motor read, and the canvas."""
+        """Where the stage is. Each axis: ``position``, ``unit``, ``actuators`` and ``canvas``.
+
+        ``position`` is measured from the origin. ``unit`` says that every
+        number here is in micrometres. ``actuators`` gives each motor of that
+        axis with its own raw reading, as the microscope reports it.
+        ``canvas`` is everywhere a picture can show.
+        """
         try:
             ok, result = self._handle.get_xyz(with_actuators)
 
@@ -112,20 +121,15 @@ class ZmartController:
         if not ok:
             return {"success": False, "content": result}
 
-        x, y, z, x_motor, y_motor, z_motor, canvas = result
-        x_min, x_max, y_min, y_max, z_min, z_max = canvas
-
-        return {
-            "success": True,
-            "content": {
-                "x": {"value": x, "actuator": x_motor, "canvas": [x_min, x_max]},
-                "y": {"value": y, "actuator": y_motor, "canvas": [y_min, y_max]},
-                "z": {"value": z, "actuator": z_motor, "canvas": [z_min, z_max]},
-            },
-        }
+        return {"success": True, "content": _xyz_content(result)}
 
     def set_xyz(self, x: float, y: float, z: float, with_actuators: dict | None = None) -> dict:
-        """Move to a position in micrometres from the origin; ``with_actuators`` picks the motor per axis."""
+        """Move to a position in micrometres from the origin, and answer like ``get_xyz``.
+
+        ``with_actuators`` picks the motor per axis, such as ``{"z": "piezo"}``.
+        The answer is read from the microscope after the stage has arrived, so
+        it shows where the stage really is, not the numbers that were asked for.
+        """
         try:
             ok, result = self._handle.set_xyz(x, y, z, with_actuators)
 
@@ -135,15 +139,7 @@ class ZmartController:
         if not ok:
             return {"success": False, "content": result}
 
-        x_motor, y_motor, z_motor = result
-
-        return {
-            "success": True,
-            "content": {
-                "position": {"x": x, "y": y, "z": z},
-                "actuators": {"x": x_motor, "y": y_motor, "z": z_motor},
-            },
-        }
+        return {"success": True, "content": _xyz_content(result)}
 
     def get_state(self) -> dict:
         """The settings: ``changeable``, which ``set_state`` applies, and ``observed``, read-only."""
@@ -237,6 +233,28 @@ class ZmartController:
         ran = result
 
         return {"success": True, "content": {"ran": ran}}
+
+
+def _xyz_content(result) -> dict:
+    """Build the answer of ``get_xyz`` and ``set_xyz`` from what the driver hands back.
+
+    The driver returns ``(x, y, z, actuators, canvas)``: the position in
+    micrometres from the origin, the raw reading of every motor per axis
+    (``{"x": {...}, "y": {...}, "z": {...}}``), and the canvas
+    ``(x_min, x_max, y_min, y_max, z_min, z_max)``. Every number is in
+    micrometres, and each axis says so under ``unit``.
+    """
+    x, y, z, actuators, canvas = result
+    x_min, x_max, y_min, y_max, z_min, z_max = canvas
+    axes = {
+        "x": (x, actuators["x"], [x_min, x_max]),
+        "y": (y, actuators["y"], [y_min, y_max]),
+        "z": (z, actuators["z"], [z_min, z_max]),
+    }
+    return {
+        axis: {"position": position, "unit": UNIT, "actuators": dict(motors), "canvas": canvas}
+        for axis, (position, motors, canvas) in axes.items()
+    }
 
 
 def _answering(function):
