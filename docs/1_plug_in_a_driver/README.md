@@ -70,6 +70,10 @@ A driver is a folder with at least two files, and both are yours:
 - `zmart_driver.py` holds the `ZmartDriver` class, which integrates the
   code that drives the microscope, one method per command. What each
   method hands back must comply with what the controller needs.
+- Other tooling you need for interacting with the microscope: the code
+  that talks to the vendor software, the saved origin, limits and
+  calibration, and whatever else your class calls on. The controller never
+  looks at it.
 
 The controller ships both, ready to copy, in the folder
 `zmart_controller/template`. Copy that folder, rename it, and adapt the
