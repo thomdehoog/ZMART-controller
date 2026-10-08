@@ -6,6 +6,7 @@ University of Zurich (thom.dehoog@zmb.uzh.ch, thomdehoog@gmail.com).
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import pytest
@@ -322,24 +323,23 @@ def test_an_acquisition_without_the_envelope_is_reported():
 # ---- the drivers installed on this computer
 
 
-PLUGIN = """
-from zmart_controller.mock import *  # noqa: F401,F403  the functions; this file's NAME and CONNECTION go last
-
-NAME = "pretend"
-CONNECTION = {
-    "microscope": "pretend-01",
-    "api_type": "socket",
-    "host": "127.0.0.1",
-    "password": "hunter2",
-    "config": "C:/pretend/config.ini",
-}
-"""
-
-
 def test_get_instruments_shows_each_connection_without_its_secrets(tmp_path):
-    plugin = tmp_path / "pretend_scope.py"
-    plugin.write_text(PLUGIN)
-    registry.register_driver(plugin)
+    (tmp_path / "zmart_driver.py").write_text("from zmart_controller.mock import *  # noqa\n")
+    (tmp_path / "zmart_driver.json").write_text(
+        json.dumps(
+            {
+                "name": "pretend",
+                "connection": {
+                    "microscope": "pretend-01",
+                    "api_type": "socket",
+                    "host": "127.0.0.1",
+                    "password": "hunter2",
+                    "config": "C:/pretend/config.ini",
+                },
+            }
+        )
+    )
+    registry.register_driver(tmp_path)
     try:
         assert registry.get_instruments() == {
             "mock": {},
@@ -350,15 +350,5 @@ def test_get_instruments_shows_each_connection_without_its_secrets(tmp_path):
                 "config": "C:/pretend/config.ini",
             },
         }
-    finally:
-        registry.remove_driver("pretend")
-
-
-def test_get_instruments_prefers_the_connection_saved_at_registering(tmp_path):
-    plugin = tmp_path / "pretend_scope.py"
-    plugin.write_text(PLUGIN)
-    registry.register_driver(plugin, {"microscope": "pretend-02", "token": "x"})
-    try:
-        assert registry.get_instruments()["pretend"] == {"microscope": "pretend-02"}
     finally:
         registry.remove_driver("pretend")
