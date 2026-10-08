@@ -12,9 +12,7 @@ small driver and plugs it in, open the [tutorial notebook](tutorial.ipynb).
 2. [Install a driver into the controller](#install-a-driver-into-the-controller)
 3. [The two files of a driver](#the-two-files-of-a-driver)
 4. [Writing the ZmartDriver](#writing-the-zmartdriver)
-5. [Rules for every driver](#rules-for-every-driver)
-6. [The configuration folder](#the-configuration-folder)
-7. [Check a driver](#check-a-driver)
+5. [Check a driver](#check-a-driver)
 
 ## What a driver is
 
@@ -153,7 +151,9 @@ def disconnect(self): ...
 `connection` is the dictionary from `zmart_driver.json`. Open the vendor
 software with it and keep what you need on `self`. Load here, too, what was
 measured once for this microscope, the origin, the travel limits and the
-calibration, from the [configuration folder](#the-configuration-folder).
+calibration. Keep those in the folder `zmart_controller.registry.config_root()`
+names, `C:\ProgramData\zmart-microscopy` on Windows, so every user finds
+them.
 
 ### Describe the microscope
 
@@ -225,43 +225,10 @@ Procedures are the routines the microscope offers, such as autofocus.
 `procedure` holds the name and the arguments. A name that is not listed
 raises `ValueError`.
 
-## Rules for every driver
-
-- **`True` and the values, or `False` and a message.** Raise `ValueError`
-  when the request is wrong: an unknown setting, a position outside the
-  limits. Say what happened in plain words; the workflow reads it.
-- **Read back to confirm.** Microscope software often accepts a command
-  before it has happened. Read the position or the setting back, and hand
-  back `False` when it never showed up.
-- **Reject what you do not understand.** An unknown setting, acquisition
-  setting, motor name or procedure raises `ValueError`. A typo that passes
-  silently can cost someone an experiment.
-- **Keep secrets out of error messages.** The connection may hold
-  passwords. Name the keys, never the values.
-- **Keep safety in the driver.** Travel limits, the origin and the
-  calibration belong to the driver. The controller checks nothing on the
-  microscope's behalf.
-
-## The configuration folder
-
-What a driver measures once per microscope, such as the origin, the travel
-limits and the calibration, belongs on the microscope computer, where every
-user and every Python session finds it. The controller names one folder for
-this, the **configuration folder**, and `zmart_controller.registry.config_root()`
-returns it:
-
-| System | Folder |
-|---|---|
-| Windows | `C:\ProgramData\zmart-microscopy` |
-| macOS | `/Library/Application Support/zmart-microscopy` |
-| Linux | `/etc/zmart-microscopy` |
-
-Setting the environment variable `ZMART_MICROSCOPY_ROOT` points it somewhere
-else, for example on a shared test computer. A driver's own setup step
-writes its files under this folder, and its `connect` loads them. The
-controller also keeps its list of installed drivers there, in `drivers.json`.
-When this folder cannot be written, the list goes to `.zmart-microscopy` in
-your home folder instead.
+In every method, raise `ValueError` for a request that is wrong, such as
+an unknown setting or a position outside the travel, and hand back `False`
+with a message when the microscope did not do what was asked. Never put a
+password in a message.
 
 ## Check a driver
 
