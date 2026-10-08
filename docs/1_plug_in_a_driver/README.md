@@ -57,8 +57,11 @@ From then on the driver is on the list, and can be connected to by name:
 
 ```python
 zmart_controller.get_drivers()               # ['mock', 'my-scope']
+zmart_controller.get_instruments()           # {'mock': {}, 'my-scope': {'microscope': ..., 'host': ..., ...}}
 zmart_controller.set_instrument("my-scope")
 ```
+
+`get_instruments` shows how each driver connects, without its password.
 
 The mock driver is always on the list, and the name `"mock"` is taken. 
 The drivers for the microscopes at the ZMB are in
@@ -76,29 +79,93 @@ file the controller needs to know about.
 ```python
 # zmart_controller_plugin.py
 
-NAME = "my-scope"                                                # the driver's name
-CONNECTION = {"host": "localhost", "output_root": "D:/images"}   # optional
+NAME = "my-scope"                     # the driver's name in the controller's list
 
-def connect(connection): ...
-def disconnect(handle): ...                                      # optional
-def get_info(handle): ...
-def get_actuators(handle): ...
-def get_xyz(handle, *, with_actuators=None): ...
-def set_xyz(handle, x, y, z, *, with_actuators=None): ...
-def get_state(handle): ...
-def set_state(handle, state): ...
-def get_acquisition_settings(handle): ...
-def acquire(handle, *, position_label, acquisition_settings=None): ...
-def get_procedures(handle): ...
-def run_procedure(handle, procedure): ...
+CONNECTION = {                        # how to reach this microscope; get_instruments() shows it
+    "microscope": "my-scope-01",      # which instrument this is
+    "api_type": "socket",             # how the vendor software is reached
+    "host": "127.0.0.1",              # where it listens
+    "password": "",                   # never shown by get_instruments()
+    "config": "C:/my-scope/config.ini",
+    "output_root": "D:/images",       # where images are saved
+}
+
+
+def connect(connection):
+    return handle                     # any object that holds the live connection
+
+
+def disconnect(handle):               # optional
+    return None
+
+
+def get_info(handle):
+    return {"success": True, "content": {"output_root": "D:/images", "description": "..."}}
+
+
+def get_actuators(handle):
+    return {"success": True, "content": {"x": ["motor"], "y": ["motor"], "z": ["motor", "piezo"]}}
+
+
+def get_xyz(handle, *, with_actuators=None):
+    return {"success": True, "content": {
+        "x": {"value": 0.0, "actuator": "motor", "canvas": [-5000.0, 5000.0]},
+        "y": {"value": 0.0, "actuator": "motor", "canvas": [-5000.0, 5000.0]},
+        "z": {"value": 0.0, "actuator": "motor", "canvas": [-500.0, 500.0]},
+    }}
+
+
+def set_xyz(handle, x, y, z, *, with_actuators=None):
+    return {"success": True, "content": {
+        "position": {"x": x, "y": y, "z": z},
+        "actuators": {"x": "motor", "y": "motor", "z": "motor"},
+    }}
+
+
+def get_state(handle):
+    return {"success": True, "content": {"changeable": {"exposure_ms": 10.0}, "observed": {"objective": "10x"}}}
+
+
+def set_state(handle, state):
+    return {"success": True, "content": {"applied": {"exposure_ms": 10.0}}}
+
+
+def get_acquisition_settings(handle):
+    return {"success": True, "content": {"format": {"options": ["ome-tiff", "ome-zarr"], "active": "ome-tiff"}}}
+
+
+def acquire(handle, *, position_label, acquisition_settings=None):
+    return {"success": True, "content": {
+        "position_label": position_label,
+        "files": ["D:/images/A1.ome.tif"],
+        "planes": [{"path": "D:/images/A1.ome.tif", "c": 0, "z": 0, "t": 0,
+                    "x_um": 0.0, "y_um": 0.0, "z_um": 0.0}],
+    }}
+
+
+def get_procedures(handle):
+    return {"success": True, "content": {"autofocus": {"description": "..."}}}
+
+
+def run_procedure(handle, procedure):
+    return {"success": True, "content": {"ran": procedure["name"]}}
 ```
 
-`NAME` is the name the driver is listed under once it is registered.
-`CONNECTION` holds what the driver needs to connect, such as a host name or
-the folder where images go; the controller hands it to `connect` unchanged.
-What may go in it is up to the driver, and the driver's README should say.
-Both are only read for a registered driver. While you write a driver and
-hand the module to `set_instrument` yourself, neither is needed.
+Each `return` above shows the least every answer must contain; the values
+are examples. The sections below say what each key means. A driver may add
+keys of its own to any answer.
+
+`NAME` is the name the driver is listed under once it is installed.
+`CONNECTION` is how to reach this microscope. The controller hands it to
+`connect` unchanged and reads nothing from it itself, so a driver may use
+other keys, but every driver should start from the five above: which
+instrument this is, how its vendor software is reached, where it listens,
+the password, and the vendor's configuration file. Leave a key empty when
+the microscope does not need it. `get_instruments()` shows the connection
+of every installed driver, with password, token and secret keys left out,
+so anyone at the computer can see how each microscope is reached. Both are
+only read for an installed driver. While you write a driver and hand the
+module to `set_instrument` yourself, neither is needed.
 
 While a driver is small it can be this single file. Once it grows, make it
 a package: a folder with an `__init__.py` that imports the functions from
