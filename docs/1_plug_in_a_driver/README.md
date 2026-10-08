@@ -35,14 +35,7 @@ your workflow ──► zmart controller ──► driver ──► vendor softw
 ## Install a driver into the controller
 
 Installing a driver into the controller means telling it, once, where the
-driver's functions are on this computer. The controller calls this
-**registering** the driver, and `register_driver` does it. After that,
-anyone who uses this computer can connect to the microscope by the driver's
-name, in any Python session. Connecting, and everything that follows, is
-Part 2, [Use the controller](../2_use_the_controller/README.md).
-
-Install a driver on the microscope computer by pointing the controller at
-its `zmart_controller_plugin.py`, or at the folder that holds it:
+driver's functions are on this computer by point it at the `zmart_controller_plugin.py`
 
 ```python
 import zmart_controller
