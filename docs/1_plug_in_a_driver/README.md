@@ -9,9 +9,7 @@
 ## 1) What is a ZMART driver
 
 The controller stands in between your workflow and the driver. It knows nothing about any particular workflow or microscope. 
-It takes a short, fixed list of commands from your workflow and hands each one to a
-**driver**. The driver is the set of files that knows how to talk to one microscope's
-vendor software.
+It takes input from your workflow through a short, fixed list of commands and hands these to the driver. The driver is the set of files that knows how to talk to one microscope's vendor software.
 
 ```
 your workflow ──► ZMART controller ──► driver ──► vendor software ──► microscope
