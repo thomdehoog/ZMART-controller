@@ -32,12 +32,6 @@ vendor software.
 your workflow ──► zmart controller ──► driver ──► vendor software ──► microscope
 ```
 
-Towards the controller, a driver offers one Python function per command:
-`connect`, `get_xyz`, `set_xyz`, `acquire`, and so on. The controller calls
-those functions by name and passes their answers back to your workflow
-unchanged. Everything that is specific to the microscope, from coordinate
-arithmetic to safety checks, lives in the driver.
-
 The controller ships with one driver, the **mock driver**. It is a simulated
 microscope that runs on any computer, so you can try everything at your
 desk. It is also a complete example of how a driver is built.
