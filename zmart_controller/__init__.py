@@ -1,10 +1,10 @@
 """ZMART Controller: one small, universal way to drive any microscope.
 
-Make a ``ZmartController`` with a driver, and drive the microscope through it::
+Connect to a microscope, and drive it::
 
-    from zmart_controller import ZmartController
+    from zmart_controller import mic
 
-    mic = ZmartController("mock")             # the simulated microscope
+    mic("mock")                               # the simulated microscope
     mic.set_xyz(10, 20, 5)
     mic.acquire(position_label="A1")
     mic.disconnect()
@@ -30,8 +30,12 @@ from .registry import get_instruments, load_driver, register_driver, remove_driv
 from .validate import check_acquire_answer, validate_driver
 from .zmart_controller import ZmartController
 
+#: The short name of :class:`ZmartController`: ``mic("mock")`` connects, then ``mic.get_xyz()``.
+mic = ZmartController
+
 __all__ = [
     "ZmartController",
+    "mic",
     "get_instruments",
     "load_driver",
     "validate_driver",
