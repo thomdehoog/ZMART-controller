@@ -11,9 +11,9 @@ that comes with the controller, open the [tutorial notebook](tutorial.ipynb).
 ## 1) Overview of the calls
 
 ```python
-from zmart_controller import get_instruments, mic
+from zmart_controller import mic
 
-get_instruments()                                                  # the drivers installed here, and how each connects
+mic.get_instruments()                                              # the drivers installed here, and how each connects
 mic("mock")                                                        # connect; every call below is mic.<call>
 
 get_info()                                                         # where images go, and the microscope in plain words
@@ -41,7 +41,7 @@ The outputs are real answers from the mock, trimmed where they are long, shown a
 ### get_instruments
 
 ```python
-get_instruments()
+mic.get_instruments()
 ```
 
 - **Input:** none
