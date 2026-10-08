@@ -115,9 +115,10 @@ there; the shipped file looks the same, and you replace every value:
 
 The controller consists of one class, `ZmartController`, in `zmart_controller/zmart_controller.py`.
 
-**In:** the name of an installed driver. The controller finds its two
-files through the registry, makes one `ZmartDriver` from the connection,
-and every command becomes a call to the method of the same name on it.
+You make it with the name of an installed driver. The controller finds the
+driver's two files through the registry, makes one `ZmartDriver` from the
+connection, and every command becomes a call to the method of the same
+name on it.
 
 ```python
 import zmart_controller
@@ -150,7 +151,7 @@ mic.run_procedure(Dict)
 mic.disconnect()
 ```
 
-**Out:** one answer shape for every command, built from what your method
+Every command answers in the same shape, built from what your method
 hands back.
 
 | Your method | The answer |
