@@ -14,24 +14,24 @@ that comes with the controller, open the [tutorial notebook](tutorial.ipynb).
 from zmart_controller import mic
 
 mic.get_instruments()                                              # the drivers installed here, and how each connects
-mic("mock")                                                        # connect; every call below is mic.<call>
+mic("mock")                                                        # connect
 
-get_info()                                                         # where images go, and the microscope in plain words
+mic.get_info()                                                         # where images go, and the microscope in plain words
 
-get_actuators()                                                    # the motors of each axis
-get_xyz(with_actuators=None)                                       # where the stage is, and where pictures can show
-set_xyz(x, y, z, with_actuators=None)                              # move, in micrometres from the origin
+mic.get_actuators()                                                    # the motors of each axis
+mic.get_xyz(with_actuators=None)                                       # where the stage is, and where pictures can show
+mic.set_xyz(x, y, z, with_actuators=None)                              # move, in micrometres from the origin
 
-get_state()                                                        # the instrument settings
-set_state(state)                                                   # apply them again
+mic.get_state()                                                        # the instrument settings
+mic.set_state(state)                                                   # apply them again
 
-get_acquisition_settings()                                         # the choices for capturing and saving
-acquire(position_label, acquisition_settings=None)                 # capture and save an image here
+mic.get_acquisition_settings()                                         # the choices for capturing and saving
+mic.acquire(position_label, acquisition_settings=None)                 # capture and save an image here
 
-get_procedures()                                                   # the routines on offer, such as autofocus
-run_procedure(procedure)                                           # run one
+mic.get_procedures()                                                   # the routines on offer, such as autofocus
+mic.run_procedure(procedure)                                           # run one
 
-disconnect()                                                       # close the connection
+mic.disconnect()                                                       # close the connection
 ```
 
 ## 2) More information about the calls
@@ -69,7 +69,7 @@ mic(driver, connection=None)
 ### get_info
 
 ```python
-get_info()
+mic.get_info()
 ```
 
 - **Input:** none
@@ -85,7 +85,7 @@ get_info()
 ### get_actuators
 
 ```python
-get_actuators()
+mic.get_actuators()
 ```
 
 - **Input:** none
@@ -98,7 +98,7 @@ get_actuators()
 ### get_xyz
 
 ```python
-get_xyz(with_actuators=None)
+mic.get_xyz(with_actuators=None)
 ```
 
 - **Input**
@@ -116,7 +116,7 @@ get_xyz(with_actuators=None)
 ### set_xyz
 
 ```python
-set_xyz(x, y, z, with_actuators=None)
+mic.set_xyz(x, y, z, with_actuators=None)
 ```
 
 - **Input**
@@ -134,7 +134,7 @@ set_xyz(x, y, z, with_actuators=None)
 ### get_state
 
 ```python
-get_state()
+mic.get_state()
 ```
 
 - **Input:** none
@@ -150,7 +150,7 @@ get_state()
 ### set_state
 
 ```python
-set_state(state)
+mic.set_state(state)
 ```
 
 - **Input**
@@ -164,7 +164,7 @@ set_state(state)
 ### get_acquisition_settings
 
 ```python
-get_acquisition_settings()
+mic.get_acquisition_settings()
 ```
 
 - **Input:** none
@@ -182,7 +182,7 @@ get_acquisition_settings()
 ### acquire
 
 ```python
-acquire(position_label, acquisition_settings=None)
+mic.acquire(position_label, acquisition_settings=None)
 ```
 
 - **Input**
@@ -202,7 +202,7 @@ acquire(position_label, acquisition_settings=None)
 ### get_procedures
 
 ```python
-get_procedures()
+mic.get_procedures()
 ```
 
 - **Input:** none
@@ -216,7 +216,7 @@ get_procedures()
 ### run_procedure
 
 ```python
-run_procedure(procedure)
+mic.run_procedure(procedure)
 ```
 
 - **Input**
@@ -230,7 +230,7 @@ run_procedure(procedure)
 ### disconnect
 
 ```python
-disconnect()
+mic.disconnect()
 ```
 
 - **Input:** none
