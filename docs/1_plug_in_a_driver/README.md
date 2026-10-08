@@ -1,18 +1,14 @@
-# 1. Plug in a driver
+# 1. How do I plug in a ZMART-driver
 
-How the ZMART Controller connects to a microscope, and what a driver must
+How the ZMART Controller connects to a microscope, and what a ZMART driver must
 provide to make that work.
-
-This page is the reference. For a step-by-step walk-through that builds a
-small driver and plugs it in, open the [tutorial notebook](tutorial.ipynb).
-
 ## Contents
 
-1. [What is a driver](#1-what-is-a-driver)
+1. [What is a ZMART driver](#1-what-is-a-driver)
 2. [Installing a driver](#2-installing-a-driver)
 3. [Writing a driver](#3-writing-a-driver)
 
-## 1) What is a driver
+## 1) What is a ZMART driver
 
 Every microscope's software speaks its own language, so a workflow written
 for one microscope does not run on another. The controller stands in
@@ -22,15 +18,22 @@ fixed list of commands from your workflow and hands each one to a
 vendor software.
 
 ```
-your workflow ──► zmart controller ──► driver ──► vendor software ──► microscope
+your workflow ──► ZMART controller ──► driver ──► vendor software ──► microscope
 ```
 
-In short: a driver is a `ZmartDriver` class, which plugs into the
-controller with one method per command, a small JSON with its name and how
-to reach the microscope, and whatever other code the class needs to talk
-to the microscope.
+A ZMART driver is a folder with at least two files:
 
-## 2) Installing a driver
+- `zmart_driver.json` holds the driver's name, where its ZMART-driver class file is,
+  and how to reach the microscope. 
+- `zmart_driver.py` holds the `ZmartDriver` class, which integrates the
+  code that drives the microscope, one method per command that must comply
+  with what the controller needs.
+- Optional other tooling for interacting with the microscope
+
+The drivers for the microscopes at the ZMB are in
+[ZMART drivers](https://github.com/thomdehoog/ZMART-drivers).
+
+## 2) Installing a ZMART driver
 
 Installing a driver means pointing the controller, once, at the driver's
 `zmart_driver.json`:
@@ -56,35 +59,7 @@ mic = zmart_controller.ZmartController("my-scope")
 `get_instruments` lists every installed driver with how it connects,
 without its password.
 
-The mock driver is always on the list, and the name `"mock"` is taken.
-The drivers for the microscopes at the ZMB are in
-[ZMART drivers](https://github.com/thomdehoog/ZMART-drivers).
-
-### The two files
-
-A driver is a folder with at least two files, and both are yours:
-
-- `zmart_driver.json` holds the driver's name, where its class file is,
-  and how to reach the microscope. It is what you point at to install the
-  driver.
-- `zmart_driver.py` holds the `ZmartDriver` class, which integrates the
-  code that drives the microscope, one method per command. What each
-  method hands back must comply with what the controller needs.
-- Other tooling you need for interacting with the microscope: the code
-  that talks to the vendor software, the saved origin, limits and
-  calibration, and whatever else your class calls on. The controller never
-  looks at it.
-
-The controller ships both, ready to copy, in the folder
-`zmart_controller/template`. Copy that folder, rename it, and adapt the
-two files.
-
-### The settings: zmart_driver.json
-
-The driver's name and the connection are not in the code. They are in
-`zmart_driver.json`, so that whoever sets up the microscope computer can
-edit them without touching Python. Each value below says what to put
-there; the shipped file looks the same, and you replace every value:
+The zmart_driver.json is formatted in the following way: 
 
 ```json
 {
@@ -102,9 +77,10 @@ there; the shipped file looks the same, and you replace every value:
 
 `get_instruments()` shows this back for every installed driver.
 
+
 ## 3) Writing a driver
 
-Writing a driver means expanding the `ZmartDriver` class in
+Writing a ZMART driver means expanding the `ZmartDriver` class in
 `zmart_driver.py` until it is compatible with the following schema. This is
 what the controller offers to a workflow; every command on it becomes a
 call to the method of the same name on your class.
@@ -112,6 +88,7 @@ call to the method of the same name on your class.
 ```python
 import zmart_controller
 
+The mock driver is always on the list, and the name `"mock"` is taken.
 # 1) See which drivers are installed and how each connects, then connect to one
 zmart_controller.get_instruments()
 mic = zmart_controller.ZmartController("my-scope")
