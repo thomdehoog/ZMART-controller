@@ -272,33 +272,26 @@ your home folder instead.
 
 ## Check a driver
 
-The controller can check a driver's answers against the requirements on this
-page, so you do not have to compare them by hand.
+The template brings `checks.py`, so the driver can check itself against
+this page. It is part of your driver, not of the controller.
 
 ```python
-my_driver = zmart_controller.load_driver("C:/drivers/my-scope/zmart_driver.json")
-zmart_controller.validate_driver(my_driver)
+from my_scope.checks import validate_driver, check_acquire_answer
+from my_scope.zmart_driver import ZmartDriver
+
+validate_driver(ZmartDriver, connection)
 ```
 
-`load_driver` reads a driver's folder without installing it, which is how
-you work while writing one; `set_instrument` takes what it returns too.
-`validate_driver` takes a driver, as an installed name or as loaded here,
-and a connection dictionary when the one in the JSON is not the one to use. It connects, calls every `get_*` function, checks each answer against
-this page, and disconnects again. It moves nothing and acquires nothing.
-It returns the problems it found, one plain sentence each, naming the
-function and what is missing. An empty list means every answer fits.
-
-Because it never takes a picture, one acquisition is checked separately:
+`validate_driver` connects, calls every `get_*` method, and returns the
+problems it found, one plain sentence each. An empty list means every
+answer fits. It moves nothing and acquires nothing, so one acquisition is
+checked separately, in the driver's own tests, on a simulator or a test
+bench:
 
 ```python
-answer = zmart_controller.acquire(position_label="A2")
-zmart_controller.check_acquire_answer(answer)
+answer = mic.acquire(position_label="A2")
+check_acquire_answer(answer)
 ```
-
-`check_acquire_answer` checks that `files` and `planes` are as described
-[above](#acquire-get_acquisition_settings-acquire), including that every listed file
-exists. A driver's own tests call it after an acquisition, on a simulator or
-a test bench.
 
 The loop to work in while you write a driver is this: write a method,
 validate, read the problems, repeat.
