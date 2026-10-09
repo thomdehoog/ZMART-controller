@@ -57,7 +57,7 @@ mic.get_instruments()
 ```
 
 - **Input:** none
-- **Output**
+- **Output (example)**
 
   ```python
   {'mock': {},
@@ -91,7 +91,7 @@ mic.get_info()
 ```
 
 - **Input:** none
-- **Output**
+- **Output (example)**
 
   ```python
   {'description': 'An inverted widefield microscope in room 12. The stage moves x and y, '
@@ -111,7 +111,7 @@ mic.get_actuators()
 ```
 
 - **Input:** none
-- **Output**
+- **Output (example)**
 
   ```python
   {'x': ['motoric'], 'y': ['motoric'], 'z': ['motoric', 'piezo']}
@@ -125,7 +125,7 @@ mic.get_xyz(with_actuators=None)
 
 - **Input**
   - `with_actuators`: optional; the motor to read per axis, such as `{"z": "piezo"}`; an axis left out uses the first motor from `get_actuators`
-- **Output**
+- **Output (example)**
 
   ```python
   {'x': {'position': 0.0, 'unit': 'micrometer', 'actuators': {'motoric': 50000.0},               'canvas': [-5032.0, 5032.0]},
@@ -148,7 +148,7 @@ mic.set_xyz(x, y, z, with_actuators=None)
 - **Input**
   - `x`, `y`, `z`: the position to move to, in micrometres from the origin; all three always given
   - `with_actuators`: optional; the motor to use per axis; an axis left out uses the first motor from `get_actuators`
-- **Output**
+- **Output (example)**
 
   ```python
   {'x': {'position': 100.0, 'unit': 'micrometer', 'actuators': {'motoric': 50100.0},               'canvas': [-5032.0, 5032.0]},
@@ -165,7 +165,7 @@ mic.get_state()
 ```
 
 - **Input:** none
-- **Output**
+- **Output (example)**
 
   ```python
   {'changeable': {'laser_power': 10.0, 'gain': 100.0, 'exposure_ms': 10.0, 'objective': 1},
@@ -182,7 +182,7 @@ mic.set_state(state)
 
 - **Input**
   - `state`: `{"changeable": {...}}` with some or all of the settings from `get_state`; the rest stay as they are
-- **Output**
+- **Output (example)**
 
   ```python
   {'applied': {'gain': 200.0}}
@@ -195,7 +195,7 @@ mic.get_acquisition_settings()
 ```
 
 - **Input:** none
-- **Output**
+- **Output (example)**
 
   ```python
   {'format':    {'options': ['ome-tiff', 'ome-zarr'], 'active': 'ome-tiff'},
@@ -215,7 +215,7 @@ mic.acquire(position_label, acquisition_settings=None)
 - **Input**
   - `position_label`: the name of this position, such as `"A1"`; the saved files are named after it
   - `acquisition_settings`: optional; choices from `get_acquisition_settings`, such as `{"z_planes": 3, "z_step_um": 2.0}`
-- **Output**
+- **Output (example)**
 
   ```python
   {'position_label': 'A1',
@@ -233,7 +233,7 @@ mic.get_procedures()
 ```
 
 - **Input:** none
-- **Output**
+- **Output (example)**
 
   ```python
   {'autofocus': {'description': 'Take a short z-stack around the current height, find the sharpest plane, and move there. Optional: range_um (default 20), step_um (default 2).'},
@@ -248,7 +248,7 @@ mic.run_procedure(procedure)
 
 - **Input**
   - `procedure`: `{"name": ..., ...}`; the name picks the routine, the other keys are its options
-- **Output**
+- **Output (example)**
 
   ```python
   {'ran': 'autofocus'}
