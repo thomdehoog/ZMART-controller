@@ -106,10 +106,10 @@ def __init__(self, connection):
     # load what was measured once for this microscope: origin, travel limits, calibration
 ```
 
-Making the driver is the connection. Open the vendor software with what is
-in `connection`, and load what was measured once for this microscope, the
-origin, the travel limits and the calibration, so that every later command
-works in the sample's coordinate system.
+This runs when the controller connects. Open the vendor software with the
+details in `connection`. Then load what was measured once for this
+microscope: the origin, the travel limits and the calibration. Every later
+command uses them to work in the sample's coordinate system.
 
 #### disconnect
 
@@ -118,7 +118,7 @@ def disconnect(self):
     # close the vendor connection
 ```
 
-Close the vendor connection cleanly, so the next driver can open it.
+Close the connection to the vendor software, so that it can be opened again later.
 
 #### get_info
 
@@ -128,10 +128,10 @@ def get_info(self):
     # the microscope in plain words: each setting, its unit and bounds, the objectives, which way +z points
 ```
 
-The description is read by whoever drives the microscope, a person or a
-program, so say what the other commands cannot: what each setting means,
-its unit and its bounds, which objective sits in which slot, which way +z
-points.
+The description is read by the person or the program that drives the
+microscope. Write what the other commands cannot tell: what each setting
+means, its unit and its limits, which objective is in which slot, and which
+way +z points.
 
 #### get_actuators
 
@@ -141,8 +141,8 @@ def get_actuators(self):
     # the motor names per axis, at least one each, e.g. ["motoric", "piezo"]
 ```
 
-Name every motor that can move an axis. The first one is the default
-when a command does not pick one.
+List every motor that can move each axis. The first motor in the list is
+the default when a command does not choose one.
 
 #### get_xyz
 
@@ -156,17 +156,15 @@ def get_xyz(self, with_actuators):
     # canvas:    (x_min, x_max, y_min, y_max, z_min, z_max): the travel plus half a field of view
 ```
 
-Read the stage and answer in the sample's coordinate system: micrometres
-from the saved origin, with right as +x and down as +y in a saved image.
-Under `actuators`, give every motor that `get_actuators` lists for the
-axis, each with the number the microscope itself reports for it, in
-micrometres and with nothing subtracted or converted. These raw readings
-show how the motors share the position, for example how far along its
-range a piezo stands. The canvas is everywhere a picture can show, so a
-viewer can lay out the whole specimen before the first picture.
+Read the stage position and return it in the sample's coordinate system.
+That is micrometres from the saved origin, where right is +x and down is +y
+in a saved image. Under `actuators`, return every motor of each axis with
+its raw reading, exactly as the microscope reports it. Do not subtract the
+origin and do not convert. The `canvas` is the range where an image can be
+taken: the stage travel plus half a field of view.
 
-The controller turns this into the answer the workflow sees, one entry per
-axis with `position`, `unit`, `actuators` and `canvas`:
+The controller turns this into the answer the workflow sees. There is one
+entry per axis with `position`, `unit`, `actuators` and `canvas`:
 
 ```python
 {"x": {"position": 0.0, "unit": "micrometer", "actuators": {"motoric": 50000.0}, "canvas": [-5032.0, 5032.0]}, "y": {...}, "z": {...}}
@@ -181,11 +179,12 @@ def set_xyz(self, x, y, z, with_actuators):
     return False, "<error message>"                # e.g. outside the travel, or the stage never arrived
 ```
 
-Move in the sample's coordinate system. Check the travel limits before
-moving, then read the position back until the stage has arrived. Once it
-has, answer exactly as `get_xyz` does, read from the microscope: the
-workflow then sees where the stage really is, not the numbers it asked for.
-A move that never arrives is a failure, so the workflow stops.
+Move to a position in the sample's coordinate system. Check the travel
+limits first. Then move, and read the position back until the stage has
+arrived. Return the same answer as `get_xyz`, read from the microscope. The
+workflow then sees the real position, not the one it asked for. If the
+stage never arrives, return `False` with a message, so that the workflow
+stops.
 
 #### get_state
 
@@ -196,9 +195,10 @@ def get_state(self):
     # observed:   {"objective": "10x", ...}: what can only be read
 ```
 
-Capture the settings so they can be applied again later. Only
-`changeable` is ever sent back; `observed` describes and is never an
-instruction.
+Return the current settings in two parts. `changeable` holds the settings
+that `set_state` can change. `observed` holds facts that can only be read,
+such as the objective in use. Only `changeable` is ever sent back to
+`set_state`.
 
 #### set_state
 
@@ -218,8 +218,9 @@ def get_acquisition_settings(self):
     # active: the value used when the setting is left out of acquire
 ```
 
-List the choices for one picture, such as the file format or the planes of
-a z-stack, with the values each may take and the one in use.
+List the settings for taking one image, such as the file format or the
+number of planes in a z-stack. For each setting, give the values it can take
+and the value in use.
 
 #### acquire
 
@@ -231,11 +232,12 @@ def acquire(self, position_label, acquisition_settings):
     # planes: [{"path": ..., "c": 0, "z": 0, "t": 0, "x_um": ..., "y_um": ..., "z_um": ...}, ...]
 ```
 
-Capture at the current position with the current settings, and save so
-that a workflow finds the files the same way on every microscope: every
-file in `files`, and every image plane in `planes`, with its stage position
-in the sample's coordinate system. Save a second picture with the same
-label under a new name.
+Take an image at the current position with the current settings, and save
+it. Return every saved file in `files`. Return every image plane in
+`planes`, with its stage position in the sample's coordinate system. This
+way a workflow finds its images in the same way on every microscope. Never
+overwrite an earlier image: save a second image with the same label under
+a new name.
 
 #### get_procedures
 
@@ -245,8 +247,9 @@ def get_procedures(self):
     # the routines the microscope offers, such as autofocus
 ```
 
-List the routines this microscope offers, with a description a person can
-pick from.
+List the routines this microscope offers, such as autofocus. Give each one
+a description that says what it does, which options it takes, and their
+defaults.
 
 #### run_procedure
 
@@ -257,8 +260,8 @@ def run_procedure(self, procedure):
     return False, "<error message>"                # e.g. a name that get_procedures does not list
 ```
 
-Run the routine named in `procedure`; the other keys are its arguments. A
-name that is not listed is a failure.
+Run the routine named in `procedure`. The other keys are its options. A
+name that `get_procedures` does not list is a failure.
 
 ```python
 mic.validate_driver("C:/drivers/my-scope/zmart_driver.json")   # [] when every method fits
