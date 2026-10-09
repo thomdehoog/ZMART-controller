@@ -46,7 +46,19 @@ mic.disconnect()
 
 ## 2) More information about the calls
 
-Below is more information about the input and output of each call. The outputs shown are the `content` part of the answer. The values are examples. On your microscope they will be different.
+Below is more information about the input and output of each call.
+
+Every call answers with the same two keys. `success` is `True` or `False`. `content` is the answer itself when it worked, or a message that says what went wrong. Check `success` first, then use `content`:
+
+```python
+answer = mic.get_xyz()
+if answer["success"]:
+    position = answer["content"]
+else:
+    print(answer["content"])
+```
+
+The values in the examples below are from the mock. On your microscope they will be different.
 
 Every call waits for the microscope. It returns when the driver is done.
 
@@ -60,11 +72,12 @@ mic.get_instruments()
 - **Output (example)**
 
   ```python
-  {'mock': {},
-   'my-scope': {'microscope': 'my-scope-room-12',
-                'api_type': 'socket',
-                'host': '192.168.1.20',
-                'config': 'C:/vendor/settings.cfg'}}
+  {'success': True,
+   'content': {'mock': {},
+               'my-scope': {'microscope': 'my-scope-room-12',
+                            'api_type': 'socket',
+                            'host': '192.168.1.20',
+                            'config': 'C:/vendor/settings.cfg'}}}
   ```
 
 - **Note:** One entry per installed driver. The key is the name you use in `connect`. The value is the connection from the driver's `zmart_driver.json`, without the password. The mock needs no connection, so its entry is empty.
@@ -78,11 +91,7 @@ mic.connect(driver, connection=None)
 - **Input**
   - `driver`: a name from `get_instruments`
   - `connection`: optional; a dictionary that is passed to the driver as it is. Default: the `connection` from the driver's `zmart_driver.json`.
-- **Output**
-
-  ```python
-  a connected controller; every command below is a method on it
-  ```
+- **Output:** nothing. After this call, every command below goes to that microscope.
 
 ### mic.get_info()
 
@@ -94,12 +103,13 @@ mic.get_info()
 - **Output (example)**
 
   ```python
-  {'description': 'An inverted widefield microscope in room 12. The stage moves x and y, '
-                  'the focus drive moves z; all three are in micrometres from the origin, '
-                  'and +z moves the objective towards the sample. Objectives: slot 1 is '
-                  '10x/0.30 air, slot 2 is 20x/0.75 air, slot 3 is 63x/1.40 oil. Channels: '
-                  'DAPI, GFP and TxRed, each with its own exposure in milliseconds and '
-                  'LED power in percent.'}
+  {'success': True,
+   'content': {'description': 'An inverted widefield microscope in room 12. The stage moves x and y, '
+                              'the focus drive moves z; all three are in micrometres from the origin, '
+                              'and +z moves the objective towards the sample. Objectives: slot 1 is '
+                              '10x/0.30 air, slot 2 is 20x/0.75 air, slot 3 is 63x/1.40 oil. Channels: '
+                              'DAPI, GFP and TxRed, each with its own exposure in milliseconds and '
+                              'LED power in percent.'}}
   ```
 
 - **Note:** A description of the microscope, written by the driver's author. It explains the settings and the axes. Read it once when you start on a new microscope.
@@ -114,7 +124,8 @@ mic.get_actuators()
 - **Output (example)**
 
   ```python
-  {'x': ['motoric'], 'y': ['motoric'], 'z': ['motoric', 'piezo']}
+  {'success': True,
+   'content': {'x': ['motoric'], 'y': ['motoric'], 'z': ['motoric', 'piezo']}}
   ```
 
 ### mic.get_xyz()
@@ -128,9 +139,10 @@ mic.get_xyz(with_actuators=None)
 - **Output (example)**
 
   ```python
-  {'x': {'position': 0.0, 'unit': 'micrometer', 'actuators': {'motoric': 50000.0},               'canvas': [-5032.0, 5032.0]},
-   'y': {'position': 0.0, 'unit': 'micrometer', 'actuators': {'motoric': 37500.0},               'canvas': [-5032.0, 5032.0]},
-   'z': {'position': 0.0, 'unit': 'micrometer', 'actuators': {'motoric': 5000.0, 'piezo': 0.0},  'canvas': [-500.0, 500.0]}}
+  {'success': True,
+   'content': {'x': {'position': 0.0, 'unit': 'micrometer', 'actuators': {'motoric': 50000.0},               'canvas': [-5032.0, 5032.0]},
+               'y': {'position': 0.0, 'unit': 'micrometer', 'actuators': {'motoric': 37500.0},               'canvas': [-5032.0, 5032.0]},
+               'z': {'position': 0.0, 'unit': 'micrometer', 'actuators': {'motoric': 5000.0, 'piezo': 0.0},  'canvas': [-500.0, 500.0]}}}
   ```
 
 - **Note:** One dictionary with the keys `x`, `y` and `z`. Each axis has the same four entries. All numbers are in micrometres.
@@ -151,9 +163,10 @@ mic.set_xyz(x, y, z, with_actuators=None)
 - **Output (example)**
 
   ```python
-  {'x': {'position': 100.0, 'unit': 'micrometer', 'actuators': {'motoric': 50100.0},               'canvas': [-5032.0, 5032.0]},
-   'y': {'position': 50.0,  'unit': 'micrometer', 'actuators': {'motoric': 37550.0},               'canvas': [-5032.0, 5032.0]},
-   'z': {'position': 0.0,   'unit': 'micrometer', 'actuators': {'motoric': 5000.0, 'piezo': 0.0},  'canvas': [-500.0, 500.0]}}
+  {'success': True,
+   'content': {'x': {'position': 100.0, 'unit': 'micrometer', 'actuators': {'motoric': 50100.0},               'canvas': [-5032.0, 5032.0]},
+               'y': {'position': 50.0,  'unit': 'micrometer', 'actuators': {'motoric': 37550.0},               'canvas': [-5032.0, 5032.0]},
+               'z': {'position': 0.0,   'unit': 'micrometer', 'actuators': {'motoric': 5000.0, 'piezo': 0.0},  'canvas': [-500.0, 500.0]}}}
   ```
 
 - **Note:** The call returns when the stage has arrived. The answer is the same as `get_xyz`, read from the microscope. So it shows the real position, not the one you asked for. A move outside the travel returns `success: False`. So does a move the driver could not confirm.
@@ -168,8 +181,9 @@ mic.get_state()
 - **Output (example)**
 
   ```python
-  {'changeable': {'laser_power': 10.0, 'gain': 100.0, 'exposure_ms': 10.0, 'objective': 1},
-   'observed': {'objective': '10x/0.30 Air', 'pixel_size': {'x': 1.0, 'y': 1.0, 'unit': 'um'}, ...}}
+  {'success': True,
+   'content': {'changeable': {'laser_power': 10.0, 'gain': 100.0, 'exposure_ms': 10.0, 'objective': 1},
+               'observed': {'objective': '10x/0.30 Air', 'pixel_size': {'x': 1.0, 'y': 1.0, 'unit': 'um'}, ...}}}
   ```
 
 - **Note:** A snapshot of the settings, in two parts. `changeable` holds the settings that `set_state` can change. `observed` holds facts you can only read, such as the objective in use and the pixel size. The keys are not standardised. They differ between microscopes, and `get_info` explains them for yours. A state is a plain dictionary. You can save it as JSON and apply it again later.
@@ -185,7 +199,8 @@ mic.set_state(state)
 - **Output (example)**
 
   ```python
-  {'applied': {'gain': 200.0}}
+  {'success': True,
+   'content': {'applied': {'gain': 200.0}}}
   ```
 
 - **Note:** Only the settings you give are applied. All other settings keep their value. The answer lists what was applied, read back from the microscope.
@@ -200,10 +215,11 @@ mic.get_acquisition_settings()
 - **Output (example)**
 
   ```python
-  {'format':    {'options': ['ome-tiff', 'ome-zarr'], 'active': 'ome-tiff'},
-   'z_planes':  {'options': 'whole number from 1 up to the limit', 'active': 1},
-   'z_step_um': {'options': 'number > 0', 'active': 1.0},
-   ...}
+  {'success': True,
+   'content': {'format':    {'options': ['ome-tiff', 'ome-zarr'], 'active': 'ome-tiff'},
+               'z_planes':  {'options': 'whole number from 1 up to the limit', 'active': 1},
+               'z_step_um': {'options': 'number > 0', 'active': 1.0},
+               ...}}
   ```
 
 - **Note:** The choices for capturing and saving. `options` says which values a setting may have. `active` is the value used when you give none.
@@ -220,10 +236,11 @@ mic.acquire(position_label, acquisition_settings=None)
 - **Output (example)**
 
   ```python
-  {'position_label': 'A1',
-   'files': ['/tmp/zmart-mock-output/A1.ome.tif', '/tmp/zmart-mock-output/A1.commands.json'],
-   'planes': [{'path': '/tmp/zmart-mock-output/A1.ome.tif', 'c': 0, 'z': 0, 't': 0,
-               'x_um': 100.0, 'y_um': 50.0, 'z_um': 0.0}]}
+  {'success': True,
+   'content': {'position_label': 'A1',
+               'files': ['/tmp/zmart-mock-output/A1.ome.tif', '/tmp/zmart-mock-output/A1.commands.json'],
+               'planes': [{'path': '/tmp/zmart-mock-output/A1.ome.tif', 'c': 0, 'z': 0, 't': 0,
+                           'x_um': 100.0, 'y_um': 50.0, 'z_um': 0.0}]}}
   ```
 
 - **Note:** Takes an image at the current position with the current settings, and saves it. `files` lists every file that was saved. `planes` lists every image plane: its file, channel, depth, time point, and where on the sample it was taken. A second acquisition with the same label never overwrites the first.
@@ -238,8 +255,9 @@ mic.get_procedures()
 - **Output (example)**
 
   ```python
-  {'autofocus': {'description': 'Take a short z-stack around the current height, find the sharpest plane, and move there. Optional: range_um (default 20), step_um (default 2).'},
-   ...}
+  {'success': True,
+   'content': {'autofocus': {'description': 'Take a short z-stack around the current height, find the sharpest plane, and move there. Optional: range_um (default 20), step_um (default 2).'},
+               ...}}
   ```
 
 ### mic.run_procedure()
@@ -253,7 +271,8 @@ mic.run_procedure(procedure)
 - **Output (example)**
 
   ```python
-  {'ran': 'autofocus'}
+  {'success': True,
+   'content': {'ran': 'autofocus'}}
   ```
 
 ### mic.disconnect()
