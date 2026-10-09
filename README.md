@@ -65,15 +65,18 @@ mic.get_actuators()
 mic.get_xyz()
 mic.set_xyz(x, y, z, with_actuators=Dict)
 
-# 4) Capture the instrument settings, and apply them again later
+# 4) Capture the instrument state, and apply it again later with optional changes
+#    (the state is not standardised and differs between microscopes; capturing it
+#    and applying it again is what keeps a workflow interoperable)
 mic.get_state()
 mic.set_state(Dict)
 
-# 5) Capture and save an image with the current settings and position
+# 5) Capture and save an image with the appropriate acquisition settings
 mic.get_acquisition_settings()
 mic.acquire(position_label=String, acquisition_settings=Dict)
 
 # 6) Run a routine the microscope offers (for example autofocus)
+#    (the routines are not standardised either and differ between microscopes)
 mic.get_procedures()
 mic.run_procedure(Dict)
 
@@ -101,28 +104,18 @@ To use it in a project of your own, add it to the project's dependencies, for ex
 dependencies = ["zmart-controller @ git+https://github.com/thomdehoog/ZMART-controller"]
 ```
 
-## Run the tests
-
-The tests run on the mock driver, so they need no microscope:
-
-```bash
-pip install -e ".[test]"
-python -m pytest
-```
-
 ## Related standards
 
 We are aware of the [useq-schema](https://github.com/pymmcore-plus/useq-schema) from the Micro-Manager
 community and of Anthropic's [Model Hardware Standard](https://www.anthropic.com/news/model-hardware-standard-research-preview).
-We might switch, because both have real upsides. Today the useq-schema is not interoperable enough for
+We might switch, because both have real upsides. However, today the useq-schema is not interoperable enough for
 our needs, and the Model Hardware Standard is not released to the public yet.
 
 ## Status
 
-This is version 0.1. We do not use it daily yet, because our smart-microscopy workflows are not in routine
-use. Today it is the layer between our workflows and the Leica Stellaris: the workflow speaks the
-controller's commands, and the Stellaris driver turns them into actions on the microscope. The mock driver,
-`zmart_controller.mock`, lets you try everything without a microscope.
+This is version 0.1. Today it is the layer between our workflows and the Leica Stellaris: the workflow
+speaks the controller's commands, and the Stellaris driver turns them into actions on the microscope.
+However, the mock driver, `zmart_controller.mock`, lets you try everything without a microscope.
 
 ## Author
 Thom de Hoog, Center for Microscopy and Image Analysis (ZMB), University of
@@ -130,6 +123,9 @@ Zurich (thom.dehoog@zmb.uzh.ch, thomdehoog@gmail.com).
 
 ## License
 MIT License. See LICENSE file for details.
+
+If the code in this repository inspires you, or you use it or build on it, please acknowledge it.
+The [CITATION.cff](CITATION.cff) file says how to cite it.
 
 ## Links
 
