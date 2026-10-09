@@ -62,6 +62,8 @@ The values in the examples below are from the mock. On your microscope they will
 
 Every call waits for the microscope. It returns when the driver is done.
 
+<br>
+
 ### mic.get_instruments()
 
 ```python
