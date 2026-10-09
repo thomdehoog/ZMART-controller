@@ -1,4 +1,4 @@
-"""Part 7 of the driver anatomy (``docs/driver-anatomy.md`` in ZMART-drivers): configuration.
+"""Part 6 of the driver anatomy (``docs/driver-anatomy.md`` in ZMART-drivers): configuration.
 
 Everything the person at the microscope sets up once and saves, loaded every
 time the driver connects:

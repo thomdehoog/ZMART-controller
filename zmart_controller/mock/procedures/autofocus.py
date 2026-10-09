@@ -13,8 +13,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from .. import get_actions as get
-from .. import set_actions as setter
+from ..actions import get
+from ..actions import set as setter
 from ..configuration import user_from_raw
 from ..data_handling import wait_for_file
 from .focus_score import brenner

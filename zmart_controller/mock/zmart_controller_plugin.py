@@ -1,6 +1,6 @@
 """The mock microscope's ZMART controller plugin: the 11 functions.
 
-This is part 8 of the driver anatomy (``docs/driver-anatomy.md`` in ZMART-drivers). It presents the driver to the ZMART
+This is part 7 of the driver anatomy (``docs/driver-anatomy.md`` in ZMART-drivers). It presents the driver to the ZMART
 Controller in the shape every microscope shares, and it does nothing else:
 no coordinate arithmetic and no safety checks of its own. Those happened
 further down. Each function here only maps a controller command onto the
@@ -8,10 +8,11 @@ driver's get actions, set actions, procedures and data handling.
 
 The mock is a complete driver, built from the same parts a real one has::
 
-    vendor_interface/   talks to MockScope Control, the pretend vendor software
-    error_handling/     sorts every problem into a kind, and says what to do
-    get_actions/        asks the microscope things, through the get dispatcher
-    set_actions/        changes the microscope, through the set dispatcher
+    vendor_interface/   talks to MockScope Control, the pretend vendor software,
+                        and sorts its errors into the shared kinds
+    dispatcher/         the engines that run an action safely: the limits gate,
+                        retries, confirmation, and the rules for each kind of problem
+    actions/            the readings (get.py) and the changes (set.py)
     procedures/         recipes: autofocus, backlash takeup, parking the piezo
     data_handling/      turns the vendor's files into OME-TIFF or OME-Zarr
     configuration/      origin, registration, limits, calibration
@@ -43,8 +44,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from zmart_controller.mock import get_actions as get
-from zmart_controller.mock import set_actions as setter
+from zmart_controller.mock.actions import get
+from zmart_controller.mock.actions import set as setter
 from zmart_controller.mock.configuration import (
     IDENTITY,
     SETTING_NAMES,
@@ -54,11 +55,9 @@ from zmart_controller.mock.configuration import (
 )
 from zmart_controller.mock.data_handling import FORMATS, CommandLog, save_acquisition
 from zmart_controller.mock.data_handling.save import safe_name
-from zmart_controller.mock.error_handling import classify
-from zmart_controller.mock.get_actions import GetDispatcher
+from zmart_controller.mock.dispatcher import Gate, GetDispatcher, SetDispatcher
 from zmart_controller.mock.procedures import PROCEDURES
-from zmart_controller.mock.set_actions import Gate, SetDispatcher
-from zmart_controller.mock.vendor_interface import NAME_LIMIT, MockScopeConnection
+from zmart_controller.mock.vendor_interface import NAME_LIMIT, MockScopeConnection, classify
 from zmart_controller.zmart_controller import UNIT
 
 logger = logging.getLogger("zmart_controller.mock")

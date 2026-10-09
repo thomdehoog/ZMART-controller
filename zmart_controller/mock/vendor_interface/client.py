@@ -19,25 +19,11 @@ from typing import Any
 # folder: here, the pretend vendor software *is* the microscope. A real
 # driver imports the vendor's own library at this point instead.
 from ..testing.mock_api import MockScope, read_mraw
+from .errors import VendorError
 
 # The longest acquisition name MockScope Control accepts. The driver keeps its
 # own names shorter; the files it saves are named separately, in full.
 NAME_LIMIT = 100
-
-
-class VendorError(Exception):
-    """The vendor software refused a command and answered with an error code.
-
-    ``code`` is the vendor's number (see the MockScope error table) and
-    ``message`` its text. The error handling sorts these into kinds; nothing
-    else in the driver looks at the code.
-    """
-
-    def __init__(self, command: str, code: int, message: str) -> None:
-        super().__init__(f"{command} refused by the microscope software: {message} (code {code})")
-        self.command = command
-        self.code = code
-        self.message = message
 
 
 class MockScopeConnection:

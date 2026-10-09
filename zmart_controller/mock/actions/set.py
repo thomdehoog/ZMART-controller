@@ -13,10 +13,9 @@ University of Zurich (thom.dehoog@zmb.uzh.ch, thomdehoog@gmail.com).
 
 from __future__ import annotations
 
-from .. import get_actions as get
 from ..configuration import raw_from_user
-from .dispatch import NeverConfirmed, Outcome, SetCommand
-from .tuning import ACQUIRE_TUNING, OBJECTIVE_TUNING
+from ..dispatcher import ACQUIRE_TUNING, OBJECTIVE_TUNING, NeverConfirmed, Outcome, SetCommand
+from . import get
 
 # How close a readback must be to its target to count as arrived, in µm.
 POSITION_TOLERANCE_UM = 0.05

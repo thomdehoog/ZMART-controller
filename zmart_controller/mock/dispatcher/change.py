@@ -31,8 +31,9 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
-from ..error_handling import RULES, Action, Kind
+from ..vendor_interface import Kind
 from .gate import Gate
+from .rules import RULES, Action
 from .tuning import DEFAULT_SET_TUNING, SetTuning
 
 # Marks a send whose reply was lost: the command may or may not have happened.

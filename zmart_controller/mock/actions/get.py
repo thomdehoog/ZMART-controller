@@ -18,7 +18,7 @@ from typing import Any
 
 from ..configuration import user_from_raw
 from ..configuration.checks import SETTING_NAMES
-from .dispatch import Reading
+from ..dispatcher import Reading
 
 # The name MockScope uses for each setting in SETTING_NAMES. Translating
 # names is part of giving values a meaning, so it lives here and not in the

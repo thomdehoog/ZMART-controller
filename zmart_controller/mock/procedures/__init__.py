@@ -1,4 +1,4 @@
-"""Part 5 of the driver anatomy (``docs/driver-anatomy.md`` in ZMART-drivers): procedures.
+"""Part 4 of the driver anatomy (``docs/driver-anatomy.md`` in ZMART-drivers): procedures.
 
 A procedure is a recipe of several get and set actions, such as autofocus.
 It never talks to the vendor software directly, so every step passes the

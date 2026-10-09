@@ -14,7 +14,7 @@ from __future__ import annotations
 import time
 from typing import Any
 
-from .. import get_actions as get
+from ..actions import get
 
 #: How often, in seconds, to look whether the vendor's file is complete.
 POLL_INTERVAL_S = 0.01

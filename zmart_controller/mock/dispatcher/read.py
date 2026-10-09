@@ -32,30 +32,9 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
-from ..error_handling import RULES, Action, Kind
-
-
-@dataclass(frozen=True)
-class GetTuning:
-    """How patient the get dispatcher is. Set by the driver author, not the operator.
-
-    ``max_retries`` is how often a read is tried again after a temporary
-    problem, ``retry_pause_s`` the pause between tries, ``time_limit_s`` how
-    long one reading may take in all, and ``wait_for_turn_s`` how long a read
-    waits for its turn while another read is under way. All times are in
-    seconds.
-
-    ``time_limit_s`` must stay well inside the set dispatcher's confirmation
-    window, so that a confirmation always gets its answer in time.
-    """
-
-    max_retries: int = 2
-    retry_pause_s: float = 0.02
-    time_limit_s: float = 0.5
-    wait_for_turn_s: float = 2.0
-
-
-DEFAULT_GET_TUNING = GetTuning()
+from ..vendor_interface import Kind
+from .rules import RULES, Action
+from .tuning import DEFAULT_GET_TUNING, GetTuning
 
 
 @dataclass(frozen=True)

@@ -1,4 +1,4 @@
-"""Part 6 of the driver anatomy (``docs/driver-anatomy.md`` in ZMART-drivers): data handling.
+"""Part 5 of the driver anatomy (``docs/driver-anatomy.md`` in ZMART-drivers): data handling.
 
 Acquiring an image is a set command; data handling starts once it is
 confirmed. It finds the vendor's file, waits until it is complete, turns the

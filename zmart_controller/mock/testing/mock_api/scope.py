@@ -15,7 +15,7 @@ To be a useful stand-in it behaves like vendor software, not like ZMART:
   has to translate.
 - **It answers with status codes.** Every command returns a reply,
   ``{"ok": True, "result": {...}}`` or ``{"ok": False, "code": 201,
-  "message": "..."}``, and the driver's error handling has to sort the codes
+  "message": "..."}``, and the driver's vendor interface has to sort the codes
   and messages into kinds.
 - **Things take time.** A move is accepted at once but finishes later, so
   reading the position straight away shows the stage still travelling. A

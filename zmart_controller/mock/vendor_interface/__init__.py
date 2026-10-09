@@ -11,10 +11,13 @@ It keeps the three promises from the driver anatomy:
 2. Every failure can be classified: a refused command raises
    :class:`VendorError` with the vendor's code, a lost reply raises
    ``TimeoutError``, and a closed program raises ``ConnectionError``.
+   :func:`classify` in :mod:`.errors` sorts each of these into one of the
+   shared :class:`Kind` of problem, which is all the dispatcher ever sees.
 3. It can be swapped: in a real driver, this folder talks to LAS X, ZEN or
    NIS-Elements instead, and nothing above it changes shape.
 """
 
-from .client import NAME_LIMIT, MockScopeConnection, VendorError
+from .client import NAME_LIMIT, MockScopeConnection
+from .errors import Kind, VendorError, classify
 
-__all__ = ["NAME_LIMIT", "MockScopeConnection", "VendorError"]
+__all__ = ["NAME_LIMIT", "Kind", "MockScopeConnection", "VendorError", "classify"]
