@@ -6,6 +6,8 @@
 [![tests](https://github.com/thomdehoog/ZMART-controller/actions/workflows/tests.yml/badge.svg)](https://github.com/thomdehoog/ZMART-controller/actions/workflows/tests.yml)
 [![status](https://img.shields.io/badge/status-early%20use-orange)](#status)
 
+<br>
+
 <table>
 <tr>
 <td width="170"><img src="docs/zmart-controller-icon.png" width="150" alt="ZMART Controller"></td>
