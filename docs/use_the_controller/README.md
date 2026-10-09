@@ -133,11 +133,11 @@ mic.get_xyz(with_actuators=None)
    'z': {'position': 0.0, 'unit': 'micrometer', 'actuators': {'motoric': 5000.0, 'piezo': 0.0},  'canvas': [-500.0, 500.0]}}
   ```
 
-- **Note:** One dictionary with the keys `x`, `y` and `z`. Each axis has the same four entries, and every number in them is in micrometres:
-  - `position`: where the axis is, measured from the origin, a point saved once for this microscope. In a saved image, right is +x and down is +y.
-  - `unit`: always `'micrometer'`.
-  - `actuators`: every motor of this axis, each with its own raw reading, exactly as the microscope reports it. These are the stage's own numbers, not measured from the origin, so they show how the motors share the position; on the mock, z is the coarse drive plus the piezo.
-  - `canvas`: `[min, max]`, everywhere a picture can show along this axis: the travel plus half a field of view.
+- **Note:** The answer is one dictionary with the keys `x`, `y` and `z`. Each axis has the same four entries. All numbers are in micrometres.
+  - `position`: the position of the view in the absolute coordinate system. In a saved image, right is +x and down is +y.
+  - `unit`: `'micrometer'`, the unit of every number in the answer, given as information.
+  - `actuators`: the raw reading of each motor on this axis, as the microscope reports it. On an axis with several motors, the readings show how the motors share the position.
+  - `canvas`: `[min, max]`, the range along this axis in which an image can be taken: the stage travel plus half a field of view.
 
 ### mic.set_xyz()
 
@@ -156,7 +156,7 @@ mic.set_xyz(x, y, z, with_actuators=None)
    'z': {'position': 0.0,   'unit': 'micrometer', 'actuators': {'motoric': 5000.0, 'piezo': 0.0},  'canvas': [-500.0, 500.0]}}
   ```
 
-- **Note:** The answer is exactly what `get_xyz` answers, read from the microscope after the stage has arrived. It shows where the stage really is, not the numbers that were asked for, so there is no need to call `get_xyz` after a move. A move outside the travel, or one the driver could not confirm, is `success: False`.
+- **Note:** The answer has the same form as the answer of `get_xyz`. It is read from the microscope after the stage has arrived, so it reports the actual position, not the requested one. A move outside the travel, or a move the driver could not confirm, returns `success: False`.
 
 ### mic.get_state()
 
