@@ -222,7 +222,7 @@ mic.get_acquisition_settings()
                ...}}
   ```
 
-- **Note:** The choices for capturing and saving. `options` says which values a setting may have. `active` is the value used when you give none.
+- **Note:** The settings for taking and saving an image. `options` lists the values a setting can take. `active` is the value in use now. It is used when you give nothing.
 
 ### mic.acquire()
 
@@ -231,7 +231,7 @@ mic.acquire(position_label, acquisition_settings=None)
 ```
 
 - **Input**
-  - `position_label`: a name for this position, for example `"A1"`. The saved files are named after it.
+  - `position_label`: a name for this position, for example `"A1"`. The files are saved under this name.
   - `acquisition_settings`: optional; values from `get_acquisition_settings`, for example `{"z_planes": 3, "z_step_um": 2.0}`. Default: the `active` value of every setting.
 - **Output (example)**
 
@@ -243,7 +243,7 @@ mic.acquire(position_label, acquisition_settings=None)
                            'x_um': 100.0, 'y_um': 50.0, 'z_um': 0.0}]}}
   ```
 
-- **Note:** Takes an image at the current position with the current settings, and saves it. `files` lists every file that was saved. `planes` lists every image plane: its file, channel, depth, time point, and where on the sample it was taken. A second acquisition with the same label never overwrites the first.
+- **Note:** Takes an image at the current position with the current settings, and saves it to disk. `files` lists every saved file. `planes` lists every image plane, with its file, channel, depth, time point, and the sample position where it was taken. A second acquisition with the same label is saved as a new file. The first one is never overwritten.
 
 ### mic.get_procedures()
 
@@ -260,6 +260,8 @@ mic.get_procedures()
                ...}}
   ```
 
+- **Note:** Each routine has a name and a description. The description says what the routine does, which options it takes, and their defaults.
+
 ### mic.run_procedure()
 
 ```python
@@ -267,7 +269,7 @@ mic.run_procedure(procedure)
 ```
 
 - **Input**
-  - `procedure`: `{"name": ..., ...}`. The name picks the routine. The other keys are its options. Default for an option you leave out: see the routine's description in `get_procedures`.
+  - `procedure`: a dictionary with the key `"name"` and the options of that routine, for example `{"name": "autofocus", "range_um": 30}`. An option you leave out takes the default from the description in `get_procedures`.
 - **Output (example)**
 
   ```python
