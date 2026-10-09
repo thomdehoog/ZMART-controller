@@ -84,6 +84,8 @@ mic.get_instruments()
 
 - **Note:** One entry per installed driver. The key is the name you use in `connect`. The value is the connection from the driver's `zmart_driver.json`, without the password. The mock needs no connection, so its entry is empty.
 
+<br>
+
 ### mic.connect()
 
 ```python
@@ -94,6 +96,8 @@ mic.connect(driver, connection=None)
   - `driver`: a name from `get_instruments`
   - `connection`: optional; a dictionary that is passed to the driver as it is. Default: the `connection` from the driver's `zmart_driver.json`.
 - **Output:** nothing. After this call, every command below goes to that microscope.
+
+<br>
 
 ### mic.get_info()
 
@@ -116,6 +120,8 @@ mic.get_info()
 
 - **Note:** A description of the microscope, written by the driver's author. It explains the settings and the axes. Read it once when you start on a new microscope.
 
+<br>
+
 ### mic.get_actuators()
 
 ```python
@@ -129,6 +135,8 @@ mic.get_actuators()
   {'success': True,
    'content': {'x': ['motoric'], 'y': ['motoric'], 'z': ['motoric', 'piezo']}}
   ```
+
+<br>
 
 ### mic.get_xyz()
 
@@ -153,6 +161,8 @@ mic.get_xyz(with_actuators=None)
   - `actuators`: the raw reading of each motor on this axis, as the microscope reports it. When an axis has several motors, this shows how they share the position.
   - `canvas`: `[min, max]`. The range on this axis where an image can be taken. It is the stage travel plus half a field of view.
 
+<br>
+
 ### mic.set_xyz()
 
 ```python
@@ -173,6 +183,8 @@ mic.set_xyz(x, y, z, with_actuators=None)
 
 - **Note:** The call returns when the stage has arrived. The answer is the same as `get_xyz`, read from the microscope. So it shows the real position, not the one you asked for. A move outside the travel returns `success: False`. So does a move the driver could not confirm.
 
+<br>
+
 ### mic.get_state()
 
 ```python
@@ -190,6 +202,8 @@ mic.get_state()
 
 - **Note:** A snapshot of the settings, in two parts. `changeable` holds the settings that `set_state` can change. `observed` holds facts you can only read, such as the objective in use and the pixel size. The keys are not standardised. They differ between microscopes, and `get_info` explains them for yours. A state is a plain dictionary. You can save it as JSON and apply it again later.
 
+<br>
+
 ### mic.set_state()
 
 ```python
@@ -206,6 +220,8 @@ mic.set_state(state)
   ```
 
 - **Note:** Only the settings you give are applied. All other settings keep their value. The answer lists what was applied, read back from the microscope.
+
+<br>
 
 ### mic.get_acquisition_settings()
 
@@ -225,6 +241,8 @@ mic.get_acquisition_settings()
   ```
 
 - **Note:** The settings for taking and saving an image. `options` lists the values a setting can take. `active` is the value in use now. It is used when you give nothing.
+
+<br>
 
 ### mic.acquire()
 
@@ -247,6 +265,8 @@ mic.acquire(position_label, acquisition_settings=None)
 
 - **Note:** Takes an image at the current position with the current settings, and saves it to disk. `files` lists every saved file. `planes` lists every image plane, with its file, channel, depth, time point, and the sample position where it was taken. A second acquisition with the same label is saved as a new file. The first one is never overwritten.
 
+<br>
+
 ### mic.get_procedures()
 
 ```python
@@ -264,6 +284,8 @@ mic.get_procedures()
 
 - **Note:** Each routine has a name and a description. The description says what the routine does, which options it takes, and their defaults.
 
+<br>
+
 ### mic.run_procedure()
 
 ```python
@@ -278,6 +300,8 @@ mic.run_procedure(procedure)
   {'success': True,
    'content': {'ran': 'autofocus'}}
   ```
+
+<br>
 
 ### mic.disconnect()
 
