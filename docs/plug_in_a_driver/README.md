@@ -92,8 +92,8 @@ def set_state(self, changeable):
     raise ValueError("unknown setting")      # anything that raises: {"success": False, "content": "ValueError: unknown setting"}
 ```
 
-Apply only what is under `changeable`. Read each setting back to confirm
-it took; a setting the microscope does not have is a failure.
+Apply only the settings under `changeable`. Read each one back to check
+that it was applied. A setting the microscope does not have is a failure.
 
 ### Per call
 
