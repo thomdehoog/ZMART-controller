@@ -28,7 +28,11 @@ Issues = "https://github.com/thomdehoog/ZMART-controller/issues"
 "ZMART microscopy" = "https://github.com/thomdehoog/ZMART-microscopy"
 
 [project.optional-dependencies]
-test = ["pytest"]
+# pytest runs the tests. The rest run the two tutorial notebooks in docs/ from
+# start to end, so a renamed call or a changed answer breaks the build instead
+# of a reader's first session: nbmake and ipykernel execute the notebooks, and
+# numpy and pillow are what the "use the controller" tutorial imports.
+test = ["pytest", "nbmake", "ipykernel", "numpy", "pillow"]
 
 [tool.setuptools.packages.find]
 include = ["zmart_controller*"]

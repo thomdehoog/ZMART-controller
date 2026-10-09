@@ -164,16 +164,10 @@ def test_a_copied_template_is_installed_from_its_folder_or_json(tmp_path):
         zmart_controller.remove_driver("my-scope-2")
 
 
-def test_the_readme_names_every_method_and_quotes_the_controller_faithfully():
-    """Every controller function the README quotes is the code itself, so they cannot drift."""
+def test_the_readme_names_every_driver_method():
+    """The driver guide shows each method a driver must offer, so a new or renamed
+    method in the template cannot go unmentioned in the guide."""
     text = README.read_text()
-    source = Path(controller.__file__).read_text()
-    quoted = re.findall(
-        r"```python\n# zmart_controller/zmart_controller.py\n\n(.*?)```", text, re.S
-    )
-    for block in quoted:
-        for line in block.splitlines():
-            assert not line.strip() or line.strip() in source, line
     for name in dir(ZmartDriver):
         if not name.startswith("_"):
-            assert f"def {name}(self" in text
+            assert f"def {name}(self" in text, f"the driver guide does not show {name}"

@@ -60,9 +60,7 @@ class ZmartDriver:
         or is None for the first one; raise ``ValueError`` for a name that
         is not listed.
         """
-        raise NotImplementedError(
-            "ZmartDriver.get_xyz: return True, (x, y, z, actuators, canvas)"
-        )
+        raise NotImplementedError("ZmartDriver.get_xyz: return True, (x, y, z, actuators, canvas)")
 
     def set_xyz(self, x, y, z, with_actuators):
         """Move the stage, then return what ``get_xyz`` returns, or ``False, message``.
@@ -74,9 +72,7 @@ class ZmartDriver:
         stage never arrives, return ``False`` and say where it is, so the
         workflow can stop.
         """
-        raise NotImplementedError(
-            "ZmartDriver.set_xyz: move, then return what get_xyz returns"
-        )
+        raise NotImplementedError("ZmartDriver.set_xyz: move, then return what get_xyz returns")
 
     def get_state(self):
         """Return ``True, (changeable, observed)``: two dictionaries.
