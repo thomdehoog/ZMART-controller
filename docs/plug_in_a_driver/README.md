@@ -106,6 +106,8 @@ def __init__(self, connection):     # connection: the dict from zmart_driver.jso
     # open the vendor software; load the origin, travel limits and calibration
 ```
 
+The controller calls this once, when a workflow connects. Load here everything a later command needs, so that each command can work in the sample's coordinate system.
+
 <br>
 
 #### `disconnect`
@@ -114,6 +116,8 @@ def __init__(self, connection):     # connection: the dict from zmart_driver.jso
 def disconnect(self):
     # close the vendor software
 ```
+
+Close cleanly, so that the vendor software can be opened again.
 
 <br>
 
@@ -124,6 +128,8 @@ def get_info(self):
     return True, description        # str: the settings, their units and limits, the objectives, which way +z points
 ```
 
+This text is what a person or an AI agent reads to understand your microscope. Write what the other commands cannot tell.
+
 <br>
 
 #### `get_actuators`
@@ -132,6 +138,8 @@ def get_info(self):
 def get_actuators(self):
     return True, (x_motors, y_motors, z_motors)     # e.g. ["motoric", "piezo"]; the first is the default
 ```
+
+The first motor of each axis is used when a command does not choose one.
 
 <br>
 
@@ -145,6 +153,8 @@ def get_xyz(self, with_actuators):              # {"z": "piezo"} or None
     # canvas       (x_min, x_max, y_min, y_max, z_min, z_max)   travel plus half a field of view
 ```
 
+Positions are in the sample's coordinate system. The raw readings are reported as the microscope gives them, with nothing subtracted or converted.
+
 <br>
 
 #### `set_xyz`
@@ -155,6 +165,8 @@ def set_xyz(self, x, y, z, with_actuators):
     return self.get_xyz(with_actuators)
     return False, "<error message>"             # outside the limits, or never arrived
 ```
+
+The answer is read from the microscope after the move, so the workflow sees the real position. If the stage never arrives, return `False`, so that the workflow stops.
 
 <br>
 
@@ -167,6 +179,8 @@ def get_state(self):
     # observed     {"objective": "10x", ...}    read-only
 ```
 
+The keys are yours to choose. They differ between microscopes, so explain them in `get_info`.
+
 <br>
 
 #### `set_state`
@@ -178,6 +192,8 @@ def set_state(self, changeable):
     return False, "<error message>"             # did not take, or unknown setting
 ```
 
+Read each setting back, so that the answer shows what really took. A setting the microscope does not have is a failure.
+
 <br>
 
 #### `get_acquisition_settings`
@@ -188,6 +204,8 @@ def get_acquisition_settings(self):
     # options   the allowed values, or a rule such as "number > 0"
     # active    the value used when acquire gets none
 ```
+
+Which settings exist is up to the driver, for example the file format or the number of planes in a z-stack.
 
 <br>
 
@@ -201,6 +219,8 @@ def acquire(self, position_label, acquisition_settings):
     # planes   [{"path": ..., "c": 0, "z": 0, "t": 0, "x_um": ..., "y_um": ..., "z_um": ...}, ...]
 ```
 
+Return every saved file and every image plane with its stage position. A workflow then finds its images in the same way on every microscope.
+
 <br>
 
 #### `get_procedures`
@@ -209,6 +229,8 @@ def acquire(self, position_label, acquisition_settings):
 def get_procedures(self):
     return True, {name: {"description": ...}}  # e.g. autofocus; the description names the options and defaults
 ```
+
+Routines are not standardised. The description is where you tell the user what a routine does and which options it takes.
 
 <br>
 
@@ -219,6 +241,8 @@ def run_procedure(self, procedure):             # {"name": "autofocus", ...}: th
     return True, procedure["name"]
     return False, "<error message>"             # unknown name
 ```
+
+A name that `get_procedures` does not list is a failure.
 
 <br>
 
