@@ -5,40 +5,50 @@
 1. [Overview of the calls](#1-overview-of-the-calls)
 2. [More information about the calls](#2-more-information-about-the-calls)
 
-For a step-by-step walk-through on the mock driver, the simulated microscope
-that comes with the controller, open the [tutorial notebook](tutorial.ipynb).
+For a hands-on, step-by-step walk-through with a driver that simulates a
+microscope, go to [this tutorial](tutorial.ipynb).
 
 ## 1) Overview of the calls
 
 ```python
 from zmart_controller import mic
 
-mic.get_instruments()                                     # the drivers installed here, and how each connects
-mic.connect("mock")                                       # connect
+# 1) See which drivers are installed and how each connects, then connect to one
+mic.get_instruments()
+mic.connect(driver, connection=None)
 
-mic.get_info()                                            # the microscope in plain words
+# 2) Learn about the connected setup in more detail
+mic.get_info()
 
-mic.get_actuators()                                       # the motors of each axis
-mic.get_xyz(with_actuators=None)                          # where the stage is, and where pictures can show
-mic.set_xyz(x, y, z, with_actuators=None)                 # move, in micrometres from the origin
+# 3) Discover the motors, where you are in xyz space, and change the position
+mic.get_actuators()
+mic.get_xyz(with_actuators=None)
+mic.set_xyz(x, y, z, with_actuators=None)
 
-mic.get_state()                                           # the instrument settings
-mic.set_state(state)                                      # apply them again
+# 4) Capture the instrument state, and apply it again later with optional changes
+#    (the state is not standardised and differs between microscopes; capturing it
+#    and applying it again is what keeps a workflow interoperable)
+mic.get_state()
+mic.set_state(state)
 
-mic.get_acquisition_settings()                            # the choices for capturing and saving
-mic.acquire(position_label, acquisition_settings=None)    # capture and save an image here
+# 5) Capture and save an image with the appropriate acquisition settings
+mic.get_acquisition_settings()
+mic.acquire(position_label, acquisition_settings=None)
 
-mic.get_procedures()                                      # the routines on offer, such as autofocus
-mic.run_procedure(procedure)                              # run one
+# 6) Run a routine the microscope offers (for example autofocus)
+#    (the routines are not standardised either and differ between microscopes)
+mic.get_procedures()
+mic.run_procedure(procedure)
 
-mic.disconnect()                                          # close the connection
+# 7) Close the connection
+mic.disconnect()
 ```
 
 ## 2) More information about the calls
 
-The outputs are real answers from the mock, trimmed where they are long, shown as the `content` of the answer. On another microscope the values differ; the keys shown are the same on every microscope, and anything else is an extra of that driver.
+Below is more information about the input and output of the individual calls. The outputs shown are the `content` of the answer; the values are examples, and on your microscope they will differ.
 
-Every call waits for the microscope. It returns only when the driver has finished: a move has arrived, a setting has been applied, an image has been saved. The line after a call can therefore trust that the call is done.
+Every call waits for the microscope. It returns only when the driver has finished.
 
 ### mic.get_instruments()
 
@@ -50,8 +60,14 @@ mic.get_instruments()
 - **Output**
 
   ```python
-  {'mock': {}, 'stellaris': {'microscope': 'stellaris5-room-42', 'host': ..., ...}}
+  {'mock': {},
+   'my-scope': {'microscope': 'my-scope-room-12',
+                'api_type': 'socket',
+                'host': '192.168.1.20',
+                'config': 'C:/vendor/settings.cfg'}}
   ```
+
+- **Note:** One entry per installed driver, under the name you connect with. The value is the driver's connection details from its `zmart_driver.json`, without its password. The mock has none, so its entry is empty.
 
 ### mic.connect()
 
@@ -78,10 +94,15 @@ mic.get_info()
 - **Output**
 
   ```python
-  {'description': 'A pretend widefield fluorescence microscope ...'}
+  {'description': 'An inverted widefield microscope in room 12. The stage moves x and y, '
+                  'the focus drive moves z; all three are in micrometres from the origin, '
+                  'and +z moves the objective towards the sample. Objectives: slot 1 is '
+                  '10x/0.30 air, slot 2 is 20x/0.75 air, slot 3 is 63x/1.40 oil. Channels: '
+                  'DAPI, GFP and TxRed, each with its own exposure in milliseconds and '
+                  'LED power in percent.'}
   ```
 
-- **Note:** The microscope in plain words: what each setting means, its unit and bounds, which objective sits in which slot, which way +z points. Read it once when you meet a new microscope.
+- **Note:** A description of the microscope, written by the driver's author. It tells you what the settings mean and which way the axes run, so read it once when you meet a new microscope.
 
 ### mic.get_actuators()
 
