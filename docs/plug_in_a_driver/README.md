@@ -25,11 +25,11 @@ A ZMART driver is a folder with at least two files:
 - Optional other tooling for interacting with the microscope
 
 The drivers for the microscopes at the ZMB are in
-[ZMART drivers](https://github.com/thomdehoog/ZMART-drivers).
+the [ZMART drivers](https://github.com/thomdehoog/ZMART-drivers) repository.
 
 ## 2) Installing a ZMART driver
 
-Installing a driver means pointing the controller, once, at the driver's
+Installing a driver means pointing the controller at the driver's
 `zmart_driver.json`:
 
 ```python
@@ -72,15 +72,17 @@ The zmart_driver.json is formatted in the following way:
 
 ## 3) Writing a driver
 
-Fill in the methods of the `ZmartDriver` class in `zmart_driver.py`. Each
-command a workflow gives the controller calls the method of the same name.
+Open `zmart_driver.py` and fill in the methods of the `ZmartDriver` class.
+There is one method per command. When a workflow calls `mic.set_state(...)`,
+the controller calls your `set_state(...)`, and so on for every command.
 
 ### Input and output
 
-A method hands back `True` and the values, or `False` and a message. The
-controller turns that into the answer the workflow sees. An error that
-happens anyway, a bug or the vendor library failing, is answered the same
-way, with its text:
+Each method returns two things: `True` and the output, or `False` and an
+error message. The controller turns this into the answer the workflow sees,
+with the keys `success` and `content`. If the method raises an error instead,
+for example because the vendor library failed, the controller catches it and
+answers `False` with the text of the error:
 
 ```python
 def set_state(self, changeable):
