@@ -19,27 +19,28 @@ It is part of [**ZMART**](https://github.com/thomdehoog/ZMART-microscopy) (ZMB's
 </tr>
 </table>
 
+<br>
+
 ## The Problem
 
-When you want to implement an automated workflow on a microscope, you run into two problems:
+When you want to implement an automated workflow on a microscope, you likely run into two problems:
 
 1. **Available time on the microscope is often scarce.** 
 
-2. **You want to share the workflow, but it only runs on your specific microscope.** 
+2. **You want to share the workflow, but it only runs on your specific microscope.**
 
+<br>
 
 ## The Solution
 
-The ZMART controller sits between your workflow and the microscope. It addresses both problems:
+The ZMART controller sits between your workflow and the microscope and addresses these two problems:
 
 1. **A universal interface.** Your workflow talks to the controller instead of to the microscope directly.
    Behind the controller you can plug in a simulated microscope, so you can build and test the whole
-   workflow at your desk, and go to the microscope only once it works.
+   workflow at your desk, and go to the microscope only once it works and when you have time for it.
 
-2. **A common vocabulary.** Every microscope speaks its own language. A ZMART driver translates that language
-   into a short list of shared commands, so a workflow written once runs on every microscope that has a
-   driver. The driver also keeps the microscope within its safe limits, and gives every microscope the same
-   coordinates: the space in which you observe the specimen.
+2. **A common vocabulary.** A ZMART driver translates the specific language a microscope speaks into a
+   short list of shared commands, so a workflow written once runs on every microscope that has a driver.
 
 <p align="center">
   <img src="docs/zmart-controller-overview-2.png" width="100%" alt="Three microscopes, each with its own driver plugged in, connect through the ZMART Controller, one universal command vocabulary, to a script, an interface and an AI agent">
@@ -56,11 +57,10 @@ from zmart_controller import mic
 mic.get_instruments()
 mic.connect(String)
 
-# 2) Learn about the connected setup: the microscope in plain words
+# 2) Learn about the connected setup in more detail
 mic.get_info()
 
-# 3) Discover the motors, then read the position or move; get_xyz and set_xyz answer the same:
-#    per axis its position in micrometres from the origin, the raw reading of every motor, and the canvas
+# 3) Discover the motors, where you are in xyz space, and change the position
 mic.get_actuators()
 mic.get_xyz()
 mic.set_xyz(x, y, z, with_actuators=Dict)
