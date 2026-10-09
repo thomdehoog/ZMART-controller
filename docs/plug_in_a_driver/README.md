@@ -97,138 +97,127 @@ that it was applied. A setting the microscope does not have is a failure.
 
 ### Per call
 
-Each block shows the method as the controller calls it, and what it must return. The comments are the contract.
-
 <br>
 
-#### __init__
+#### `__init__`
 
 ```python
-def __init__(self, connection):
-    # connection: the "connection" dict from zmart_driver.json
-    # open the vendor software and keep what you need on self
-    # load the origin, the travel limits and the calibration of this microscope
+def __init__(self, connection):     # connection: the dict from zmart_driver.json
+    # open the vendor software; load the origin, travel limits and calibration
 ```
 
 <br>
 
-#### disconnect
+#### `disconnect`
 
 ```python
 def disconnect(self):
-    # close the connection to the vendor software
+    # close the vendor software
 ```
 
 <br>
 
-#### get_info
+#### `get_info`
 
 ```python
 def get_info(self):
-    return True, description
-    # description: a text for the person or program driving the microscope:
-    #              what each setting means, its unit and limits, the objectives, which way +z points
+    return True, description        # str: the settings, their units and limits, the objectives, which way +z points
 ```
 
 <br>
 
-#### get_actuators
+#### `get_actuators`
 
 ```python
 def get_actuators(self):
-    return True, (x_motors, y_motors, z_motors)
-    # the motor names per axis, for example ["motoric", "piezo"]; the first one is the default
+    return True, (x_motors, y_motors, z_motors)     # e.g. ["motoric", "piezo"]; the first is the default
 ```
 
 <br>
 
-#### get_xyz
+#### `get_xyz`
 
 ```python
-def get_xyz(self, with_actuators):
-    # with_actuators: {"z": "piezo"} or None for the first motor of each axis
+def get_xyz(self, with_actuators):              # {"z": "piezo"} or None
     return True, (x, y, z, actuators, canvas)
-    # x, y, z:   micrometres from the origin; in a saved image, right is +x and down is +y
-    # actuators: {"x": {"motoric": 50000.0}, "y": {...}, "z": {"motoric": 5000.0, "piezo": 0.0}}
-    #            the raw reading of every motor, as the microscope reports it
-    # canvas:    (x_min, x_max, y_min, y_max, z_min, z_max): the travel plus half a field of view
+    # x, y, z      micrometres from the origin
+    # actuators    {"x": {"motoric": 50000.0}, "y": {...}, "z": {"motoric": 5000.0, "piezo": 0.0}}   raw readings
+    # canvas       (x_min, x_max, y_min, y_max, z_min, z_max)   travel plus half a field of view
 ```
 
 <br>
 
-#### set_xyz
+#### `set_xyz`
 
 ```python
 def set_xyz(self, x, y, z, with_actuators):
-    # check the travel limits, move, then read back until the stage has arrived
-    return self.get_xyz(with_actuators)            # the same answer as get_xyz
-    return False, "<error message>"                # outside the travel, or the stage never arrived
+    # check the limits, move, wait until arrived
+    return self.get_xyz(with_actuators)
+    return False, "<error message>"             # outside the limits, or never arrived
 ```
 
 <br>
 
-#### get_state
+#### `get_state`
 
 ```python
 def get_state(self):
     return True, (changeable, observed)
-    # changeable: {"exposure_ms": 10.0, ...}: the settings set_state can change
-    # observed:   {"objective": "10x", ...}: facts that can only be read
+    # changeable   {"exposure_ms": 10.0, ...}   what set_state can change
+    # observed     {"objective": "10x", ...}    read-only
 ```
 
 <br>
 
-#### set_state
+#### `set_state`
 
 ```python
 def set_state(self, changeable):
-    # apply each setting, then read it back
-    return True, applied                           # {"exposure_ms": 20.0, ...}: what was applied
-    return False, "<error message>"                # a setting that did not take, or an unknown one
+    # apply each setting, read it back
+    return True, applied                        # {"exposure_ms": 20.0, ...}
+    return False, "<error message>"             # did not take, or unknown setting
 ```
 
 <br>
 
-#### get_acquisition_settings
+#### `get_acquisition_settings`
 
 ```python
 def get_acquisition_settings(self):
     return True, {name: {"options": [...], "active": value}}
-    # options: the values a setting can take, or a description such as "number > 0"
-    # active:  the value used when acquire is called without it
+    # options   the allowed values, or a rule such as "number > 0"
+    # active    the value used when acquire gets none
 ```
 
 <br>
 
-#### acquire
+#### `acquire`
 
 ```python
 def acquire(self, position_label, acquisition_settings):
-    # take an image here and save it under position_label; never overwrite an earlier file
+    # take an image, save it under position_label, never overwrite
     return True, (files, planes)
-    # files:  ["D:/images/A1.ome.tif", ...]: every saved file
-    # planes: [{"path": ..., "c": 0, "z": 0, "t": 0, "x_um": ..., "y_um": ..., "z_um": ...}, ...]
+    # files    ["D:/images/A1.ome.tif", ...]
+    # planes   [{"path": ..., "c": 0, "z": 0, "t": 0, "x_um": ..., "y_um": ..., "z_um": ...}, ...]
 ```
 
 <br>
 
-#### get_procedures
+#### `get_procedures`
 
 ```python
 def get_procedures(self):
-    return True, {name: {"description": ...}}
-    # the routines this microscope offers, such as autofocus; the description names the options and their defaults
+    return True, {name: {"description": ...}}  # e.g. autofocus; the description names the options and defaults
 ```
 
 <br>
 
-#### run_procedure
+#### `run_procedure`
 
 ```python
-def run_procedure(self, procedure):
-    # procedure: {"name": "autofocus", ...}: the routine and its options
+def run_procedure(self, procedure):             # {"name": "autofocus", ...}: the routine and its options
     return True, procedure["name"]
-    return False, "<error message>"                # a name that get_procedures does not list
+    return False, "<error message>"             # unknown name
 ```
 
 <br>
