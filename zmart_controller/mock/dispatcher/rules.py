@@ -1,8 +1,8 @@
-"""The kinds of error, and what to do about each one.
+"""What each dispatcher does about each kind of problem.
 
 This table is meant to be the same for every ZMART driver. A new microscope
-does not change it; it only writes a classifier that sorts its own errors
-into these kinds. Changing a rule here changes how every command behaves,
+does not change it; it only sorts its own errors into the shared kinds, in
+its vendor interface. Changing a rule here changes how every command behaves,
 which is exactly why it lives in one place.
 
 Author: Thom de Hoog, Center for Microscopy and Image Analysis (ZMB),
@@ -14,17 +14,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import Enum
 
-
-class Kind(Enum):
-    """The kinds of problem a driver can meet."""
-
-    REFUSED_BY_LIMITS = "refused by limits"
-    BAD_REQUEST = "bad request"
-    TEMPORARY = "temporary"
-    PERMANENT = "permanent"
-    UNKNOWN_READING = "unknown reading"
-    UNCONFIRMED = "unconfirmed"
-    CONNECTION_LOST = "connection lost"
+from ..vendor_interface import Kind
 
 
 class Action(Enum):

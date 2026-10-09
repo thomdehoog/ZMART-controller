@@ -29,7 +29,7 @@ a real microscope does. So MockScope deliberately does not speak ZMART:
 | does not tell you how the camera sits, or how objectives are offset | these are hidden, and setup has to measure them |
 
 The driver's vendor interface translates all of this into plain values in
-micrometres, and its error handling sorts the codes into kinds.
+micrometres, and its vendor interface sorts the codes into kinds.
 
 ## Getting started
 

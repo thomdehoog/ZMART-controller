@@ -1,4 +1,4 @@
-"""How patient the set dispatcher is, per command.
+"""How patient the two dispatchers are: how often to try again, and how long to wait.
 
 These numbers belong to the driver author, not to the operator: they
 describe how this microscope behaves, not what an experiment may do. That is
@@ -11,6 +11,29 @@ University of Zurich (thom.dehoog@zmb.uzh.ch, thomdehoog@gmail.com).
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
+
+
+@dataclass(frozen=True)
+class GetTuning:
+    """How patient the get dispatcher is. Set by the driver author, not the operator.
+
+    ``max_retries`` is how often a read is tried again after a temporary
+    problem, ``retry_pause_s`` the pause between tries, ``time_limit_s`` how
+    long one reading may take in all, and ``wait_for_turn_s`` how long a read
+    waits for its turn while another read is under way. All times are in
+    seconds.
+
+    ``time_limit_s`` must stay well inside the set dispatcher's confirmation
+    window, so that a confirmation always gets its answer in time.
+    """
+
+    max_retries: int = 2
+    retry_pause_s: float = 0.02
+    time_limit_s: float = 0.5
+    wait_for_turn_s: float = 2.0
+
+
+DEFAULT_GET_TUNING = GetTuning()
 
 
 @dataclass(frozen=True)

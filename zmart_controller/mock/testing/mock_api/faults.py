@@ -7,7 +7,7 @@ and the only way to be sure it does is to make them happen in a test.
 
 Each fault below matches one kind of error from the driver anatomy
 (``docs/driver-anatomy.md`` in ZMART-drivers), so a
-test can check that the driver's error handling sorts it into the right kind
+test can check that the driver's vendor interface sorts it into the right kind
 and does the right thing.
 
 Use it through :attr:`MockScope.faults`::

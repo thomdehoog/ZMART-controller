@@ -49,31 +49,30 @@ work.
 
 | Folder | Part | What it does here |
 |---|---|---|
-| [`vendor_interface/`](vendor_interface/) | 1. Vendor interface | Starts MockScope, logs in, and offers one plain function (a *primitive*) per vendor command. The only part that knows MockScope. |
-| [`error_handling/`](error_handling/) | 2. Error handling | Sorts every problem into a kind (temporary, bad request, permanent, connection lost, ...) and holds the table of what to do for each kind. |
-| [`get_actions/`](get_actions/) | 3. Get actions | Ask the microscope things through the get dispatcher: one read at a time, a few tries after a temporary problem, a time limit, and "unknown" rather than a guess. |
-| [`set_actions/`](set_actions/) | 4. Set actions | Change the microscope through the set dispatcher: the limits gate, sending, retries, reading back to confirm, sending again, and giving up softly when it cannot confirm. |
-| [`procedures/`](procedures/) | 5. Procedures | Recipes built only from get and set actions: autofocus, backlash takeup, parking the piezo, and recording the origin. |
-| [`data_handling/`](data_handling/) | 6. Data handling | Waits for the vendor's file, turns the picture to line up with the stage, writes OME-TIFF or OME-Zarr, and saves the log of the commands behind it. |
-| [`configuration/`](configuration/) | 7. Configuration | The machine description, image-to-stage registration, origin, limits and optical calibration, each with shipped defaults and a check. Also the arithmetic between stage and user coordinates. |
-| [`zmart_controller_plugin.py`](zmart_controller_plugin.py) | 8. The functions the controller calls | The 11 functions, plus `disconnect`. They only map commands onto the parts listed before them. [`__init__.py`](__init__.py) imports them, which is how the controller finds them. |
-| [`testing/`](testing/) | 9. Testing | The mock API, MockScope Control. The mock driver's own tests are in the repository's [`tests/mock_tests/`](../../tests/mock_tests/). |
+| [`vendor_interface/`](vendor_interface/) | 1. Vendor interface | Starts MockScope, logs in, and offers one plain function (a *primitive*) per vendor command. The only part that knows MockScope. Its `errors.py` sorts every error MockScope raises into one of the shared kinds (temporary, bad request, permanent, connection lost). |
+| [`dispatcher/`](dispatcher/) | 2. Dispatcher | The engines that run an action safely, the same for every microscope. `read.py` runs a reading: one read at a time, a few tries after a temporary problem, a time limit, and "unknown" rather than a guess. `change.py` runs a change: the limits gate (`gate.py`), sending, retries, reading back to confirm, sending again, and giving up softly when it cannot confirm. `rules.py` says what each engine does for each kind of problem, and `tuning.py` holds the retries and time windows. |
+| [`actions/`](actions/) | 3. Actions | What the driver asks the microscope, as short definitions the dispatcher runs: `get.py` holds the readings (which primitive, what the value means) and `set.py` the changes (which primitive, how to confirm it). |
+| [`procedures/`](procedures/) | 4. Procedures | Recipes built only from actions: autofocus, backlash takeup, parking the piezo, and recording the origin. |
+| [`data_handling/`](data_handling/) | 5. Data handling | Waits for the vendor's file, turns the picture to line up with the stage, writes OME-TIFF or OME-Zarr, and saves the log of the commands behind it. |
+| [`configuration/`](configuration/) | 6. Configuration | The machine description, image-to-stage registration, origin, limits and optical calibration, each with shipped defaults and a check. Also the arithmetic between stage and user coordinates. |
+| [`zmart_controller_plugin.py`](zmart_controller_plugin.py) | 7. The functions the controller calls | One function per command, plus `disconnect`. They only map commands onto the parts listed before them. [`__init__.py`](__init__.py) imports them, which is how the controller finds them. |
+| [`testing/`](testing/) | 8. Testing | The mock API, MockScope Control. The mock driver's own tests are in the repository's [`tests/mock_tests/`](../../tests/mock_tests/). |
 
 ## How a move travels through the driver
 
 `zmart_controller.set_xyz(100, 50, 0)` goes through these steps:
 
 1. **`zmart_controller_plugin.py`** picks the motor for each axis and hands the request to the
-   set actions.
-2. **The set command** reads the current position through the get
-   dispatcher, and turns the user position (micrometres from the origin)
-   into a stage position, using the configuration.
-3. **The set dispatcher** asks the limits gate. A position outside the
+   set action for a move.
+2. **The set action** (`actions/set.py`) reads the current position through
+   the reading engine, and turns the user position (micrometres from the
+   origin) into a stage position, using the configuration.
+3. **The change engine** (`dispatcher/change.py`) asks the limits gate. A position outside the
    limits is refused here, before anything is sent.
 4. It waits until the microscope is not busy, then **sends** the move
    through the vendor interface.
-5. If MockScope answers "busy", **error handling** calls that temporary, and
-   the dispatcher sends again after a short pause.
+5. If MockScope answers "busy", the vendor interface's `errors.py` sorts that
+   as temporary, and the **rules** say to send again after a short pause.
 6. The dispatcher **reads back** the position until it matches the target.
    If it never does, `set_xyz` raises `RuntimeError`, because carrying on
    at an unknown position is never safe.

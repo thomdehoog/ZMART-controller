@@ -24,11 +24,9 @@ import pytest
 import zmart_controller.mock
 from zmart_controller import ZmartController
 from zmart_controller.mock.configuration import load_configuration, save, saved_path
-from zmart_controller.mock.error_handling import RULES, Kind, classify
-from zmart_controller.mock.get_actions import DEFAULT_GET_TUNING
-from zmart_controller.mock.set_actions import DEFAULT_SET_TUNING, Gate
+from zmart_controller.mock.dispatcher import DEFAULT_GET_TUNING, DEFAULT_SET_TUNING, RULES, Gate
 from zmart_controller.mock.testing.mock_api import read_mraw
-from zmart_controller.mock.vendor_interface import VendorError
+from zmart_controller.mock.vendor_interface import Kind, VendorError, classify
 
 PACKAGE = Path(zmart_controller.mock.__file__).resolve().parent
 
@@ -57,7 +55,7 @@ def _sent(session, command):
     return [entry for entry in session._handle.scope.history if entry["command"] == command]
 
 
-# --- part 2: error handling -----------------------------------------------------
+# --- the kinds of problem, and the rules ----------------------------------------
 
 
 class TestErrorHandling:
@@ -560,7 +558,7 @@ class TestRealisticTiming:
         assert len(reads) > 1  # it had to read back more than once
 
     def test_stop_during_an_acquisition(self, slow_mic):
-        from zmart_controller.mock import set_actions
+        from zmart_controller.mock.actions import set as set_actions
 
         handle = slow_mic._handle
         handle.vendor.start_acquisition("long", z_planes=200, z_step_um=0.1)
@@ -577,18 +575,16 @@ class TestRealisticTiming:
 # Which parts each part may import. A part may always import from itself.
 ALLOWED = {
     "vendor_interface": {"testing"},
-    "error_handling": {"vendor_interface"},
+    "dispatcher": {"vendor_interface"},
     "configuration": set(),
-    "get_actions": {"error_handling", "configuration"},
-    "set_actions": {"error_handling", "configuration", "get_actions"},
-    "data_handling": {"get_actions"},
-    "procedures": {"get_actions", "set_actions", "configuration", "data_handling"},
+    "actions": {"vendor_interface", "dispatcher", "configuration"},
+    "data_handling": {"actions"},
+    "procedures": {"actions", "configuration", "data_handling"},
     "zmart_controller_plugin": {
         "vendor_interface",
-        "error_handling",
+        "dispatcher",
         "configuration",
-        "get_actions",
-        "set_actions",
+        "actions",
         "data_handling",
         "procedures",
     },
@@ -628,6 +624,15 @@ def test_each_part_only_uses_the_parts_below_it(part):
     for path in folder.rglob("*.py") if folder.is_dir() else [PACKAGE / f"{part}.py"]:
         used = _imported_parts(path, part)
         assert used <= ALLOWED[part], f"{path.relative_to(PACKAGE)} imports {used - ALLOWED[part]}"
+
+
+def test_a_reading_never_uses_a_change():
+    """A get never calls a set: actions/get.py must not import actions/set.py."""
+    tree = ast.parse((PACKAGE / "actions" / "get.py").read_text())
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ImportFrom):
+            names = [node.module or "", *(a.name for a in node.names)]
+            assert "set" not in names, "actions/get.py imports actions/set.py"
 
 
 def test_only_the_vendor_interface_touches_the_mock_api():
