@@ -111,6 +111,8 @@ details in `connection`. Then load what was measured once for this
 microscope: the origin, the travel limits and the calibration. Every later
 command uses them to work in the sample's coordinate system.
 
+<br>
+
 #### disconnect
 
 ```python
@@ -119,6 +121,8 @@ def disconnect(self):
 ```
 
 Close the connection to the vendor software, so that it can be opened again later.
+
+<br>
 
 #### get_info
 
@@ -133,6 +137,8 @@ microscope. Write what the other commands cannot tell: what each setting
 means, its unit and its limits, which objective is in which slot, and which
 way +z points.
 
+<br>
+
 #### get_actuators
 
 ```python
@@ -143,6 +149,8 @@ def get_actuators(self):
 
 List every motor that can move each axis. The first motor in the list is
 the default when a command does not choose one.
+
+<br>
 
 #### get_xyz
 
@@ -170,6 +178,8 @@ entry per axis with `position`, `unit`, `actuators` and `canvas`:
 {"x": {"position": 0.0, "unit": "micrometer", "actuators": {"motoric": 50000.0}, "canvas": [-5032.0, 5032.0]}, "y": {...}, "z": {...}}
 ```
 
+<br>
+
 #### set_xyz
 
 ```python
@@ -186,6 +196,8 @@ workflow then sees the real position, not the one it asked for. If the
 stage never arrives, return `False` with a message, so that the workflow
 stops.
 
+<br>
+
 #### get_state
 
 ```python
@@ -200,6 +212,8 @@ that `set_state` can change. `observed` holds facts that can only be read,
 such as the objective in use. Only `changeable` is ever sent back to
 `set_state`.
 
+<br>
+
 #### set_state
 
 ```python
@@ -208,6 +222,8 @@ def set_state(self, changeable):
     return True, applied                           # {"exposure_ms": 20.0, ...}: what took
     return False, "<error message>"                # e.g. a setting that did not take, or an unknown one
 ```
+
+<br>
 
 #### get_acquisition_settings
 
@@ -221,6 +237,8 @@ def get_acquisition_settings(self):
 List the settings for taking one image, such as the file format or the
 number of planes in a z-stack. For each setting, give the values it can take
 and the value in use.
+
+<br>
 
 #### acquire
 
@@ -239,6 +257,8 @@ way a workflow finds its images in the same way on every microscope. Never
 overwrite an earlier image: save a second image with the same label under
 a new name.
 
+<br>
+
 #### get_procedures
 
 ```python
@@ -250,6 +270,8 @@ def get_procedures(self):
 List the routines this microscope offers, such as autofocus. Give each one
 a description that says what it does, which options it takes, and their
 defaults.
+
+<br>
 
 #### run_procedure
 
