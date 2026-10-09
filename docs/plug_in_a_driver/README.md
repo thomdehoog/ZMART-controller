@@ -74,6 +74,15 @@ The zmart_driver.json is formatted in the following way:
 
 Fill in the methods of the `ZmartDriver` class in `zmart_driver.py`. Each
 command a workflow gives the controller calls the method of the same name.
+Start from the copy in the controller's `template/` folder, which holds both
+files with every method left to fill in.
+
+This page says what each method takes and hands back. How to organise the
+code behind the methods, so that the microscope stays within its limits and
+every change is confirmed, is described in
+[the anatomy of a ZMART driver](https://github.com/thomdehoog/ZMART-drivers/blob/main/docs/driver-anatomy.md)
+in the ZMART-drivers repository. The mock driver, `zmart_controller.mock`, is
+built that way and is the one to read alongside it.
 
 ### Input and output
 
