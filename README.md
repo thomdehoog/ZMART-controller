@@ -46,7 +46,7 @@ The ZMART controller sits between your workflow and the microscope and addresses
   <img src="docs/zmart-controller-overview-2.png" width="100%" alt="Three microscopes, each with its own driver plugged in, connect through the ZMART Controller, one universal command vocabulary, to a script, an interface and an AI agent">
 </p>
 
-### The vocabulary
+### A common vocabulary
 
 Everything you can say to a microscope:
 
