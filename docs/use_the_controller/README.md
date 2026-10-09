@@ -77,7 +77,7 @@ mic.connect(driver, connection=None)
 
 - **Input**
   - `driver`: a name from `get_instruments`
-  - `connection`: optional; a dictionary handed to the driver unchanged, replacing the one from its `zmart_driver.json`
+  - `connection`: optional; a dictionary handed to the driver unchanged. Default: the `connection` from the driver's `zmart_driver.json`.
 - **Output**
 
   ```python
@@ -124,7 +124,7 @@ mic.get_xyz(with_actuators=None)
 ```
 
 - **Input**
-  - `with_actuators`: optional; the motor to read per axis, such as `{"z": "piezo"}`; an axis left out uses the first motor from `get_actuators`
+  - `with_actuators`: optional; the motor to read per axis, such as `{"z": "piezo"}`. Default: the first motor that `get_actuators` lists for each axis.
 - **Output (example)**
 
   ```python
@@ -146,8 +146,8 @@ mic.set_xyz(x, y, z, with_actuators=None)
 ```
 
 - **Input**
-  - `x`, `y`, `z`: the position to move to, in micrometres from the origin; all three always given
-  - `with_actuators`: optional; the motor to use per axis; an axis left out uses the first motor from `get_actuators`
+  - `x`, `y`, `z`: the position to move to, in micrometres from the origin; all three are required
+  - `with_actuators`: optional; the motor to use per axis, such as `{"z": "piezo"}`. Default: the first motor that `get_actuators` lists for each axis.
 - **Output (example)**
 
   ```python
@@ -156,7 +156,7 @@ mic.set_xyz(x, y, z, with_actuators=None)
    'z': {'position': 0.0,   'unit': 'micrometer', 'actuators': {'motoric': 5000.0, 'piezo': 0.0},  'canvas': [-500.0, 500.0]}}
   ```
 
-- **Note:** The answer has the same form as the answer of `get_xyz`. It is read from the microscope after the stage has arrived, so it reports the actual position, not the requested one. A move outside the travel, or a move the driver could not confirm, returns `success: False`.
+- **Note:** The call returns once the stage has arrived. The answer is then the same as `get_xyz` would give, read from the microscope, so it reports the actual position rather than the requested one. A move outside the travel, or a move the driver could not confirm, returns `success: False`.
 
 ### mic.get_state()
 
@@ -172,7 +172,7 @@ mic.get_state()
    'observed': {'objective': '10x/0.30 Air', 'pixel_size': {'x': 1.0, 'y': 1.0, 'unit': 'um'}, ...}}
   ```
 
-- **Note:** A snapshot of the settings. `changeable` is what `set_state` can apply; `observed` is read only. A state is a plain dictionary: save it with `json` and apply it again another day.
+- **Note:** A snapshot of the instrument settings, in two parts. `changeable` holds the settings that `set_state` can change. `observed` holds read-only facts about the current configuration, such as the objective in use and the pixel size. Which keys appear is up to the driver: the state is not standardised and differs between microscopes, so read `get_info` to learn what each key means on yours. A state is a plain dictionary, so it can be saved as JSON and applied again later.
 
 ### mic.set_state()
 
@@ -187,6 +187,8 @@ mic.set_state(state)
   ```python
   {'applied': {'gain': 200.0}}
   ```
+
+- **Note:** Only the settings given are applied; every other setting keeps its value. The answer lists what was applied, as read back from the microscope.
 
 ### mic.get_acquisition_settings()
 
@@ -214,7 +216,7 @@ mic.acquire(position_label, acquisition_settings=None)
 
 - **Input**
   - `position_label`: the name of this position, such as `"A1"`; the saved files are named after it
-  - `acquisition_settings`: optional; choices from `get_acquisition_settings`, such as `{"z_planes": 3, "z_step_um": 2.0}`
+  - `acquisition_settings`: optional; choices from `get_acquisition_settings`, such as `{"z_planes": 3, "z_step_um": 2.0}`. Default: the `active` value of every setting.
 - **Output (example)**
 
   ```python
@@ -247,7 +249,7 @@ mic.run_procedure(procedure)
 ```
 
 - **Input**
-  - `procedure`: `{"name": ..., ...}`; the name picks the routine, the other keys are its options
+  - `procedure`: `{"name": ..., ...}`; the name picks the routine, the other keys are its options. Default for an option left out: as stated in the routine's description from `get_procedures`.
 - **Output (example)**
 
   ```python
