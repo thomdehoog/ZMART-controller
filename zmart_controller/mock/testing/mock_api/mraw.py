@@ -2,7 +2,7 @@
 
 Every real microscope saves its images in its own format: Leica writes
 ``.lif`` and exports, ZEISS writes ``.czi``, Nikon writes ``.nd2``. A driver's
-data handling has to find these files, wait until they are complete, and turn
+output part has to find these files, wait until they are complete, and turn
 them into OME-TIFF or OME-Zarr. So the pretend vendor software has a format of
 its own too, deliberately simple, so that this step can be practised and
 tested without any hardware.

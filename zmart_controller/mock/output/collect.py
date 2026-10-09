@@ -2,7 +2,7 @@
 
 MockScope Control, like most vendor software, writes a file in steps: the
 description first, the pixels when the acquisition is done. Reading too
-early gives half a file. So data handling waits until the software reports
+early gives half a file. So the output part waits until the software reports
 the acquisition as done *and* the file reads back complete.
 
 Author: Thom de Hoog, Center for Microscopy and Image Analysis (ZMB),

@@ -1,6 +1,6 @@
-"""Part 5 of the driver anatomy (``docs/driver-anatomy.md`` in ZMART-drivers): data handling.
+"""Part 5 of the driver anatomy (``docs/driver-anatomy.md`` in ZMART-drivers): the output.
 
-Acquiring an image is a set command; data handling starts once it is
+Acquiring an image is a change; the output part starts once it is
 confirmed. It finds the vendor's file, waits until it is complete, turns the
 picture so that it lines up with the stage, writes it as OME-TIFF or
 OME-Zarr with its metadata, keeps the log of the commands behind it, and
