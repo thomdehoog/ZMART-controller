@@ -4,7 +4,7 @@ This is part 7 of the driver anatomy (``docs/driver-anatomy.md`` in ZMART-driver
 Controller in the shape every microscope shares, and it does nothing else:
 no coordinate arithmetic and no safety checks of its own. Those happened
 further down. Each function here only maps a controller command onto the
-driver's get actions, set actions, procedures and data handling.
+driver's actions, procedures and output.
 
 The mock is a complete driver, built from the same parts a real one has::
 
@@ -14,7 +14,8 @@ The mock is a complete driver, built from the same parts a real one has::
                         retries, confirmation, and the rules for each kind of problem
     actions/            the readings (get.py) and the changes (set.py)
     procedures/         recipes: autofocus, backlash takeup, parking the piezo
-    data_handling/      turns the vendor's files into OME-TIFF or OME-Zarr
+    output/             what comes out of one acquire call: OME-TIFF or OME-Zarr, named,
+                        with the metadata and the command log beside it
     configuration/      origin, registration, limits, calibration
     zmart_controller_plugin.py  this file
     testing/            the mock API and everything else for testing
@@ -53,9 +54,9 @@ from zmart_controller.mock.configuration import (
     load_configuration,
     user_range,
 )
-from zmart_controller.mock.data_handling import FORMATS, CommandLog, save_acquisition
-from zmart_controller.mock.data_handling.save import safe_name
 from zmart_controller.mock.dispatcher import Gate, GetDispatcher, SetDispatcher
+from zmart_controller.mock.output import FORMATS, CommandLog, save_acquisition
+from zmart_controller.mock.output.save import safe_name
 from zmart_controller.mock.procedures import PROCEDURES
 from zmart_controller.mock.vendor_interface import NAME_LIMIT, MockScopeConnection, classify
 from zmart_controller.zmart_controller import UNIT

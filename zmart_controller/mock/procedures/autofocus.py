@@ -16,7 +16,7 @@ from typing import Any
 from ..actions import get
 from ..actions import set as setter
 from ..configuration import user_from_raw
-from ..data_handling import wait_for_file
+from ..output import wait_for_file
 from .focus_score import brenner
 
 # Counts the autofocus runs in this session, so that each run's z-stack gets

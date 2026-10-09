@@ -262,7 +262,7 @@ class TestProcedures:
             again.disconnect()
 
 
-# --- part 6: data handling --------------------------------------------------------------
+# --- part 5: output --------------------------------------------------------------
 
 
 def _tiff_description(path: Path) -> str:
@@ -458,7 +458,7 @@ def test_alignment_undoes_every_camera_orientation(orientation):
     # Draw the same slide twice, 5 µm apart in x and 3 µm apart in y, with a
     # non-square camera, and check that after alignment the picture moved
     # left by 5 pixels and up by 3, whatever way the camera sits.
-    from zmart_controller.mock.data_handling import align_to_stage
+    from zmart_controller.mock.output import align_to_stage
     from zmart_controller.mock.testing.mock_api.sample import render
 
     width, height = 40, 24
@@ -578,14 +578,14 @@ ALLOWED = {
     "dispatcher": {"vendor_interface"},
     "configuration": set(),
     "actions": {"vendor_interface", "dispatcher", "configuration"},
-    "data_handling": {"actions"},
-    "procedures": {"actions", "configuration", "data_handling"},
+    "output": {"actions"},
+    "procedures": {"actions", "configuration", "output"},
     "zmart_controller_plugin": {
         "vendor_interface",
         "dispatcher",
         "configuration",
         "actions",
-        "data_handling",
+        "output",
         "procedures",
     },
 }
