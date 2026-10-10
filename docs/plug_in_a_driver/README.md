@@ -185,14 +185,19 @@ axis with `position`, `unit`, `actuators` and `canvas`:
 def set_xyz(self, x, y, z, with_actuators):
     # move, then read back until the stage has arrived
     return self.get_xyz(with_actuators)            # the same True, (x, y, z, actuators, canvas) as get_xyz
-    return False, "<error message>"                # e.g. outside the travel, or the stage never arrived
+    return False, "<error message>"                # e.g. outside the travel, or the stage read back somewhere else
 ```
 
 Move in the sample's coordinate system. Check the travel limits before
 moving, then read the position back until the stage has arrived. Once it
 has, answer exactly as `get_xyz` does, read from the microscope: the
 workflow then sees where the stage really is, not the numbers it asked for.
-A move that never arrives is a failure, so the workflow stops.
+Confirm what you can, but do not stop the workflow over a readback that
+never came: a move that was sent and accepted but could not be confirmed
+still answers `True` with the position read back, and the driver notes it
+as unconfirmed in `get_state`. Answer `False` only when something
+contradicts the move: it was refused, the stage reads back somewhere else,
+or the connection dropped.
 
 #### get_state
 
@@ -213,8 +218,13 @@ instruction.
 def set_state(self, changeable):
     # apply each one, then read it back
     return True, applied                           # {"exposure_ms": 20.0, ...}: what took
-    return False, "<error message>"                # e.g. a setting that did not take, or an unknown one
+    return False, "<error message>"                # e.g. a setting that read back a different value, or an unknown one
 ```
+
+Apply each setting and read it back. A setting whose readback never came
+is not a failure: answer `True`, and note it as unconfirmed in `get_state`.
+A setting that reads back a different value, or that the microscope does
+not have, is.
 
 #### get_acquisition_settings
 

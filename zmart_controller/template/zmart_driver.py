@@ -70,9 +70,11 @@ class ZmartDriver:
         Raise ``ValueError`` for a position outside the travel. Read the
         position back until the stage has arrived, then hand back the same
         ``True, (x, y, z, actuators, canvas)`` as ``get_xyz``, read from the
-        microscope, so the workflow sees where the stage really is. When the
-        stage never arrives, return ``False`` and say where it is, so the
-        workflow can stop.
+        microscope, so the workflow sees where the stage really is. A move
+        that was sent and accepted but could not be confirmed still answers
+        ``True`` with the position read back; note it as unconfirmed in
+        ``get_state``. Return ``False`` only when something contradicts
+        the move: it was refused, or the stage reads back somewhere else.
         """
         raise NotImplementedError(
             "ZmartDriver.set_xyz: move, then return what get_xyz returns"
@@ -91,8 +93,9 @@ class ZmartDriver:
         """Apply each setting and return ``True, applied``, or ``False, message``.
 
         Raise ``ValueError`` for a setting the microscope does not have. Read
-        each setting back; when one did not take, return ``False`` and say
-        which.
+        each setting back; when one reads back a different value, return
+        ``False`` and say which. One whose readback never came is noted as
+        unconfirmed in ``get_state``, not failed.
         """
         raise NotImplementedError("ZmartDriver.set_state: apply the settings, return True, applied")
 
