@@ -115,15 +115,22 @@ class TestFaultsThroughTheDriver:
     def test_never_confirmed_is_reported_softly(self, mic):
         mic._handle.scope.faults.add("SetSetting", "ignore", times=None)
         answer = mic.set_state({"changeable": {"gain": 3.0}})
-        assert answer["success"] is False
+        # Sent and accepted, never confirmed: the workflow is told, not stopped.
+        assert answer["success"] is True
         assert "gain" in answer["content"]["unconfirmed"]
-        assert answer["content"]["applied"] == {}
+        assert answer["content"]["applied"] == {"gain": 3.0}
+        observed = mic.get_state()["content"]["observed"]
+        assert observed["unconfirmed"][-1]["what"] == "set_state: gain = 3.0"
 
-    def test_an_unconfirmed_move_is_raised(self, mic):
+    def test_an_unconfirmed_move_is_recorded_and_the_position_read_back(self, mic):
+        """The move was sent and accepted but the stage never showed it: the answer
+        is where the stage really is, and the move is written down as unconfirmed."""
         mic._handle.scope.faults.add("MoveStage", "ignore", times=None)
-        failed = mic.set_xyz(10, 0, 0)
-        assert failed["success"] is False
-        assert re.search("could not be confirmed", failed["content"])
+        answer = mic.set_xyz(10, 0, 0)
+        assert answer["success"] is True
+        assert answer["content"]["x"]["position"] == 0  # read back: it never moved
+        observed = mic.get_state()["content"]["observed"]
+        assert observed["unconfirmed"][-1]["what"] == "set_xyz to (10, 0, 0)"
 
     def test_stale_reading_only_delays_confirmation(self, mic):
         mic.get_xyz()  # gives the stale fault an old answer to repeat

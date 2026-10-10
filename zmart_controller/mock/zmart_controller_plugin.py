@@ -101,6 +101,8 @@ class MockHandle:
     closed: bool = False
     software: dict[str, str] = field(default_factory=dict)
     camera: dict[str, int] = field(default_factory=dict)
+    #: Changes sent and accepted but never confirmed by a readback, newest last.
+    unconfirmed: list[dict[str, Any]] = field(default_factory=list)
 
     @property
     def scope(self):
@@ -111,6 +113,21 @@ class MockHandle:
 def _answer(content: Any, *, success: bool = True) -> dict:
     """Wrap the content in the shape every command returns."""
     return {"success": success, "content": content}
+
+
+def _note_unconfirmed(handle: MockHandle, what: str, reason: str | None) -> None:
+    """Write down a change that was sent and accepted but never confirmed, and carry on.
+
+    The driver confirms what it can. When a readback never matched in time,
+    the change is not known to have failed, only not known to have happened,
+    so it is recorded here, said in a warning and in the command log, and the
+    command goes on. ``get_state`` reports the list under ``observed``.
+    """
+    note = {"what": what, "reason": reason or "readback did not confirm the change"}
+    handle.unconfirmed.append(note)
+    del handle.unconfirmed[:-50]  # keep the newest fifty
+    logger.warning("unconfirmed, carrying on: %s: %s", what, note["reason"])
+    handle.log.record("warning", f"unconfirmed, carrying on: {what}: {note['reason']}")
 
 
 def _require_open(handle: MockHandle) -> None:
@@ -318,15 +335,17 @@ def set_xyz(
     Once the stage has arrived, the position is read back from the
     microscope, so the answer shows where the stage really is rather than
     the numbers that were asked for. Raises ``ValueError`` for a position
-    outside the limits or an unknown motor, and ``RuntimeError`` when the
-    move cannot be confirmed: carrying on at an unknown position is never
-    safe.
+    outside the limits or an unknown motor. A move that was sent and
+    accepted but could not be confirmed by a readback does not raise: it is
+    written down as unconfirmed (a warning, the command log, and
+    ``get_state``), and the answer is still the position read back, so the
+    workflow sees where the stage really is and decides for itself.
     """
     _require_open(handle)
     chosen = _actuators(with_actuators)
     outcome, _raw = setter.move_to_user(handle, x=x, y=y, z=z, z_actuator=chosen["z"])
     if not outcome.confirmed:
-        raise RuntimeError(f"the move to ({x}, {y}, {z}) could not be confirmed: {outcome.reason}")
+        _note_unconfirmed(handle, f"set_xyz to ({x}, {y}, {z})", outcome.reason)
     return get_xyz(handle, with_actuators=with_actuators)
 
 
@@ -354,6 +373,10 @@ def get_state(handle: MockHandle) -> dict:
                     "unit": "um",
                 },
                 "software": dict(handle.software),
+                # Changes this session sent that were accepted but never
+                # confirmed by a readback, newest last. The driver carried
+                # on; a workflow that cares can look here.
+                "unconfirmed": list(handle.unconfirmed),
             },
         }
     )
@@ -364,9 +387,10 @@ def set_state(handle: MockHandle, state: dict) -> dict:
 
     ``observed`` is never read. A setting name this microscope does not know
     is refused with ``ValueError`` before anything is applied, so a typo never
-    passes silently. ``success`` is False when nothing was applied, or when a
-    setting was sent but could not be confirmed; both are safe to carry on
-    from, so they are reported, not raised.
+    passes silently. A setting that was sent but could not be confirmed is
+    written down as unconfirmed, named in the answer, and the command
+    carries on with ``success`` True: not confirmed is not contradicted.
+    ``success`` is False only when nothing was applied at all.
     """
     _require_open(handle)
     changeable = dict(state.get("changeable", {}))
@@ -383,13 +407,12 @@ def set_state(handle: MockHandle, state: dict) -> dict:
             outcome = setter.set_objective(handle, value)
         else:
             outcome = setter.set_setting(handle, name, value)
-        if outcome.confirmed:
-            applied[name] = value
-        else:
+        applied[name] = value
+        if not outcome.confirmed:
             unconfirmed[name] = outcome.reason
-    success = bool(applied) and not unconfirmed
+            _note_unconfirmed(handle, f"set_state: {name} = {value!r}", outcome.reason)
     content = {"applied": applied, "unconfirmed": unconfirmed}
-    return _answer(content, success=success)
+    return _answer(content, success=bool(applied))
 
 
 # --- acquiring ----------------------------------------------------------------

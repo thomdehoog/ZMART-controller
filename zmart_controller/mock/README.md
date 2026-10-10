@@ -74,8 +74,10 @@ work.
 5. If MockScope answers "busy", the vendor interface's `errors.py` sorts that
    as temporary, and the **rules** say to send again after a short pause.
 6. The dispatcher **reads back** the position until it matches the target.
-   If it never does, `set_xyz` raises `RuntimeError`, because carrying on
-   at an unknown position is never safe.
+   If it never does, the move is written down as unconfirmed (a warning,
+   the command log, and `get_state`), and `set_xyz` still answers with the
+   position read back from the microscope. The workflow is told, not
+   stopped; only a refused or failed move is a failure.
 
 Every step writes a line to the command log, which is saved next to the
 images of each acquisition.
