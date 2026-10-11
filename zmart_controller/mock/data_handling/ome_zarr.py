@@ -3,9 +3,14 @@
 OME-Zarr (also called OME-NGFF, the "next-generation file format") stores
 an image as a folder of small pieces with JSON descriptions. It is the
 format of choice for large and cloud-hosted data, and tools such as napari
-and neuroglancer open it directly. This writer produces version 0.4 of the
-format, with one uncompressed piece per z-plane, using only the Python
-standard library.
+and neuroglancer open it directly. This writer produces version 0.5 of the
+format, the one the rest of ZMART reads and writes, stored as Zarr version 3:
+one uncompressed piece per z-plane, using only the Python standard library.
+
+The image has one level, the full resolution. Its description still says how
+smaller levels would be made, by averaging (``"type": "mean"``), because a
+viewer that builds its own zoomed-out copies reads that to know it may
+average the pixels too.
 
 Author: Thom de Hoog, Center for Microscopy and Image Analysis (ZMB),
 University of Zurich (thom.dehoog@zmb.uzh.ch, thomdehoog@gmail.com).
@@ -38,55 +43,53 @@ def write_ome_zarr(
     it becomes the image's translation, so viewers place it correctly.
     """
     path.mkdir(parents=True)
-    (path / ".zgroup").write_text(json.dumps({"zarr_format": 2}))
     axes = [{"name": axis, "type": "space", "unit": "micrometer"} for axis in ("z", "y", "x")]
-    attributes = {
-        "multiscales": [
+    multiscale = {
+        "name": name,
+        "axes": axes,
+        "datasets": [
             {
-                "version": "0.4",
-                "name": name,
-                "axes": axes,
-                "datasets": [
+                "path": "0",
+                "coordinateTransformations": [
+                    {"type": "scale", "scale": [z_step_um, pixel_size_um, pixel_size_um]},
                     {
-                        "path": "0",
-                        "coordinateTransformations": [
-                            {"type": "scale", "scale": [z_step_um, pixel_size_um, pixel_size_um]},
-                            {
-                                "type": "translation",
-                                "translation": [
-                                    position_um["z"],
-                                    position_um["y"],
-                                    position_um["x"],
-                                ],
-                            },
-                        ],
-                    }
+                        "type": "translation",
+                        "translation": [position_um["z"], position_um["y"], position_um["x"]],
+                    },
                 ],
             }
         ],
-        "zmart": extra,
+        "type": "mean",
     }
-    (path / ".zattrs").write_text(json.dumps(attributes, indent=2))
+    group = {
+        "zarr_format": 3,
+        "node_type": "group",
+        "attributes": {"ome": {"version": "0.5", "multiscales": [multiscale]}, "zmart": extra},
+    }
+    (path / "zarr.json").write_text(json.dumps(group, indent=2))
     level = path / "0"
     level.mkdir()
-    (level / ".zarray").write_text(
+    (level / "zarr.json").write_text(
         json.dumps(
             {
-                "zarr_format": 2,
+                "zarr_format": 3,
+                "node_type": "array",
                 "shape": [len(planes), height, width],
-                "chunks": [1, height, width],
-                "dtype": "<u2",
-                "compressor": None,
+                "data_type": "uint16",
+                "chunk_grid": {
+                    "name": "regular",
+                    "configuration": {"chunk_shape": [1, height, width]},
+                },
+                "chunk_key_encoding": {"name": "default", "configuration": {"separator": "/"}},
                 "fill_value": 0,
-                "order": "C",
-                "filters": None,
-                "dimension_separator": "/",
+                "codecs": [{"name": "bytes", "configuration": {"endian": "little"}}],
+                "dimension_names": ["z", "y", "x"],
             },
             indent=2,
         )
     )
     for index, plane in enumerate(planes):
-        piece = level / str(index) / "0"
+        piece = level / "c" / str(index) / "0"
         piece.mkdir(parents=True)
         pixels = array("H", plane)
         if sys.byteorder == "big":

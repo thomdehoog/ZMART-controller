@@ -119,7 +119,7 @@ class TestAcquire:
         assert rec["settle"] == "direct"
         assert rec["format"] == "ome-zarr"
         assert [Path(f).name for f in rec["files"]] == ["B2.ome.zarr", "B2.commands.json"]
-        assert (Path(rec["files"][0]) / ".zattrs").is_file()
+        assert (Path(rec["files"][0]) / "zarr.json").is_file()
 
     def test_acquisition_settings_discovered(self, mic):
         opts = mic.get_acquisition_settings()["content"]

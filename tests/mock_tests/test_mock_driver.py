@@ -352,11 +352,21 @@ class TestDataHandling:
             acquisition_settings={"format": "ome-zarr", "z_planes": 4, "z_step_um": 2.0},
         )["content"]
         root = Path(answer["files"][0])
-        array = json.loads((root / "0" / ".zarray").read_text())
+        group = json.loads((root / "zarr.json").read_text())
+        assert group["zarr_format"] == 3 and group["node_type"] == "group"
+        ome = group["attributes"]["ome"]
+        assert ome["version"] == "0.5"
+        multiscale = ome["multiscales"][0]
+        assert multiscale["type"] == "mean"
+        assert [axis["name"] for axis in multiscale["axes"]] == ["z", "y", "x"]
+        scale = multiscale["datasets"][0]["coordinateTransformations"][0]["scale"]
+        assert scale == [2.0, 1.0, 1.0]
+        array = json.loads((root / "0" / "zarr.json").read_text())
+        assert array["node_type"] == "array"
         assert array["shape"] == [4, 64, 64]
-        scale = json.loads((root / ".zattrs").read_text())["multiscales"][0]["datasets"][0]
-        assert scale["coordinateTransformations"][0]["scale"] == [2.0, 1.0, 1.0]
-        assert (root / "0" / "3" / "0" / "0").stat().st_size == 64 * 64 * 2
+        assert array["data_type"] == "uint16"
+        assert array["codecs"] == [{"name": "bytes", "configuration": {"endian": "little"}}]
+        assert (root / "0" / "c" / "3" / "0" / "0").stat().st_size == 64 * 64 * 2
 
     def test_registration_lines_the_image_up_with_the_stage(self, tmp_path):
         # Save the camera orientation the mock really has, then check that a
