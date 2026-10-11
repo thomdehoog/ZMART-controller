@@ -232,6 +232,8 @@ def get_info(handle: MockHandle) -> dict:
             "serial": handle.config.machine_description["serial"],
             "software": dict(handle.software),
             "configuration": dict(handle.config.sources),
+            # Nothing on the mock is set up once: it lives in memory.
+            "setup": {},
         }
     )
 

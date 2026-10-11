@@ -115,7 +115,10 @@ mic.get_info()
                               'and +z moves the objective towards the sample. Objectives: slot 1 is '
                               '10x/0.30 air, slot 2 is 20x/0.75 air, slot 3 is 63x/1.40 oil. Channels: '
                               'DAPI, GFP and TxRed, each with its own exposure in milliseconds and '
-                              'LED power in percent.'}}
+                              'LED power in percent.',
+               'output_root': 'D:/ZMART-data',
+               'setup': {'limits': {'done': True, 'says': 'published 2026-07-09'},
+                         'data_location': {'done': True, 'says': 'D:/ZMART-data'}}}}
   ```
 
 - **Note:** A description of the microscope, written by the driver's author. It explains the settings and the axes. Read it once when you start on a new microscope.
@@ -234,13 +237,13 @@ mic.get_acquisition_settings()
 
   ```python
   {'success': True,
-   'content': {'format':    {'options': ['ome-tiff', 'ome-zarr'], 'active': 'ome-tiff'},
+   'content': {'format':    {'options': ['ome-tiff', 'ome-zarr'], 'active': 'ome-tiff', 'default': 'ome-zarr'},
                'z_planes':  {'options': 'whole number from 1 up to the limit', 'active': 1},
                'z_step_um': {'options': 'number > 0', 'active': 1.0},
                ...}}
   ```
 
-- **Note:** The settings for taking and saving an image. `options` lists the values a setting can take. `active` is the value in use now. It is used when you give nothing.
+- **Note:** The settings for taking and saving an image. `options` lists the values a setting can take. `active` is the value in use now. It is used when you give nothing. `default`, when a driver gives it, is the value the microscope starts with; an `active` that differs from it was chosen, for example by this session.
 
 <br>
 

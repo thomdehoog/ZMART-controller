@@ -32,12 +32,20 @@ class ZmartDriver:
         raise NotImplementedError("ZmartDriver.disconnect: close the connection")
 
     def get_info(self):
-        """Return ``True, description``: the microscope in plain words.
+        """Return ``True, (description, output_root, setup)``.
 
-        Say what each changeable setting means, its unit and bounds, which
-        objective sits in which slot, and which way +z points.
+        ``description`` is the microscope in plain words: what each
+        changeable setting means, its unit and bounds, which objective sits
+        in which slot, and which way +z points. ``output_root`` is the
+        folder this microscope saves under, or ``None`` while that is not
+        set up. ``setup`` is ``{item: {"done": bool, "says": text}}``: each
+        thing set up once on this microscope (its limits, a calibration,
+        where data goes), whether it is done, and in words what it holds or
+        what to do; ``{}`` when there is nothing to set up.
         """
-        raise NotImplementedError("ZmartDriver.get_info: return True, description")
+        raise NotImplementedError(
+            "ZmartDriver.get_info: return True, (description, output_root, setup)"
+        )
 
     def get_actuators(self):
         """Return ``True, (x_motors, y_motors, z_motors)``: the motor names per axis, at least one each."""
@@ -93,11 +101,14 @@ class ZmartDriver:
         raise NotImplementedError("ZmartDriver.set_state: apply the settings, return True, applied")
 
     def get_acquisition_settings(self):
-        """Return ``True, settings``: ``{name: {"options": [...], "active": value}}``.
+        """Return ``True, settings``: ``{name: {"options": [...], "active": value, "default": value}}``.
 
         ``options`` lists the values a setting may take, or describes them
         when they cannot be listed. ``active`` is the value used when the
-        setting is left out of ``acquire``.
+        setting is left out of ``acquire``. ``default``, which may be left
+        out, is the value the microscope starts with: set up on it, or built
+        into the driver. When ``active`` differs from it, something chose
+        another value, for example this session.
         """
         raise NotImplementedError("ZmartDriver.get_acquisition_settings: return True, settings")
 

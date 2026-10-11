@@ -83,6 +83,20 @@ def _check_info(content, problems):
         problems.append(
             "get_info: the content must contain description, text that describes the microscope"
         )
+    if not isinstance(content, dict):
+        return
+    output_root = content.get("output_root")
+    if output_root is not None and not (isinstance(output_root, str) and output_root.strip()):
+        problems.append("get_info: output_root must be the folder it saves under, or None while not set up")
+    setup = content.get("setup", {})
+    if not isinstance(setup, dict):
+        problems.append('get_info: setup must map each set-up item to {"done": ..., "says": ...}')
+        return
+    for item, state in setup.items():
+        if not isinstance(state, dict) or not isinstance(state.get("done"), bool):
+            problems.append(f'get_info: setup {item!r} must say "done": True or False')
+        elif not (isinstance(state.get("says"), str) and state["says"].strip()):
+            problems.append(f"get_info: setup {item!r} must say in words what it holds or what to do")
 
 
 def _check_actuators(content, problems):
@@ -176,6 +190,12 @@ def _check_acquisition_settings(content, problems):
     for name, spec in content.items():
         if not isinstance(spec, dict) or "options" not in spec or "active" not in spec:
             problems.append(f'get_acquisition_settings: {name!r} must have "options" and "active"')
+            continue
+        if "default" in spec and isinstance(spec["options"], list) and spec["default"] not in spec["options"]:
+            problems.append(
+                f"get_acquisition_settings: {name!r} has default {spec['default']!r}, "
+                f"which is not one of its options {spec['options']!r}"
+            )
 
 
 def _check_procedures(content, problems):

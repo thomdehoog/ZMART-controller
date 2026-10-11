@@ -125,10 +125,15 @@ Close cleanly, so that the vendor software can be opened again.
 
 ```python
 def get_info(self):
-    return True, description        # str: the settings, their units and limits, the objectives, which way +z points
+    return True, (description, output_root, setup)
+    # description   str: the settings, their units and limits, the objectives, which way +z points
+    # output_root   str: the folder this microscope saves under; None while that is not set up
+    # setup         {item: {"done": bool, "says": str}}: each thing set up once on this microscope; {} if none
 ```
 
-This text is what a person or an AI agent reads to understand your microscope. Write what the other commands cannot tell.
+The description is what a person or an AI agent reads to understand your microscope. Write what the other commands cannot tell.
+
+`setup` lists what is set up once on this microscope, such as its limits, a calibration or where data goes. For each item, say whether it is done, and in words what it holds or, when it is not done, what to run. A program can then tell the operator what is missing before anything is captured.
 
 <br>
 
@@ -200,9 +205,10 @@ Read each setting back, so that the answer shows what really took. A setting the
 
 ```python
 def get_acquisition_settings(self):
-    return True, {name: {"options": [...], "active": value}}
+    return True, {name: {"options": [...], "active": value, "default": value}}
     # options   the allowed values, or a rule such as "number > 0"
     # active    the value used when acquire gets none
+    # default   optional: the value the microscope starts with, set up on it or built into the driver
 ```
 
 Which settings exist is up to the driver, for example the file format or the number of planes in a z-stack.
