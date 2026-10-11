@@ -227,6 +227,8 @@ def acquire(self, position_label, acquisition_settings):
 
 Return every saved file and every image plane with its stage position. A workflow then finds its images in the same way on every microscope.
 
+Every plane says where on the sample it was taken, in the frame `set_xyz` takes. A z-stack the microscope makes by itself is described the same way on every microscope: `z_um` is each slice's own height, `z = 0` is the lowest slice and each depth above it is higher, whichever way the microscope moved, and the channels of one slice share its height. `check_acquire_answer` refuses an answer that does not.
+
 <br>
 
 #### `get_procedures`

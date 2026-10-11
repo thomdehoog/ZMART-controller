@@ -226,11 +226,16 @@ def check_acquire_answer(answer: Any) -> list[str]:
     ``planes`` then says, for every saved image plane, which file it is in,
     which channel, depth and moment it is (``c``, ``z`` and ``t``, each
     counted from 0, which also find the plane inside a file that holds many),
-    and where on the sample it was taken (``x_um``, ``y_um`` and ``z_um``,
-    the stage position in micrometres, or None where the driver cannot know
-    it). Every file a plane names must be in ``files``, and no two planes may
-    share the same channel, depth and moment. A driver may add entries of its
-    own to a plane; they are not checked.
+    and where on the sample it was taken (``x_um``, ``y_um`` and ``z_um``, in
+    micrometres, in the frame ``set_xyz`` takes). Every file a plane names must
+    be in ``files``, and no two planes may share the same channel, depth and
+    moment. A driver may add entries of its own to a plane; they are not
+    checked.
+
+    A z-stack is described the same way on every microscope, however it was
+    made: ``z_um`` is each slice's own height, depth 0 is the lowest slice,
+    each depth above it is higher, and the channels of one slice share its
+    height.
 
     An acquisition that did not succeed may list no files and no planes.
     Returns the problems found, one sentence each; empty means the answer fits.
@@ -294,6 +299,7 @@ def _plane_problems(succeeded: bool, content: dict, files: list[str]) -> list[st
         )
     listed = {str(Path(path)) for path in files}
     seen: set[tuple[int, int, int]] = set()
+    heights: dict[tuple[int, int, int], float] = {}
     for number, plane in enumerate(planes):
         name = f"acquire: planes[{number}]"
         missing = [key for key in _PLANE_KEYS if key not in plane]
@@ -310,18 +316,8 @@ def _plane_problems(succeeded: bool, content: dict, files: list[str]) -> list[st
                 problems.append(f"{name} {key} must be a whole number from 0, got {value!r}")
                 counts_fit = False
         for key in _PLANE_POSITION_UM:
-            value = plane[key]
-            if value is None:
-                continue
-            if (
-                isinstance(value, bool)
-                or not isinstance(value, (int, float))
-                or not math.isfinite(value)
-            ):
-                problems.append(
-                    f"{name} {key} must be a number of micrometres, or None when unknown, "
-                    f"got {value!r}"
-                )
+            if not (_is_number(plane[key]) and math.isfinite(plane[key])):
+                problems.append(f"{name} {key} must be a number of micrometres, got {plane[key]!r}")
         if counts_fit:
             slot = (plane["c"], plane["z"], plane["t"])
             if slot in seen:
@@ -329,5 +325,34 @@ def _plane_problems(succeeded: bool, content: dict, files: list[str]) -> list[st
                     f"{name} repeats channel {slot[0]}, depth {slot[1]} and time {slot[2]} "
                     "of an earlier plane"
                 )
+            elif _is_number(plane["z_um"]) and math.isfinite(plane["z_um"]):
+                heights[slot] = plane["z_um"]
             seen.add(slot)
+    return problems + _stack_problems(heights)
+
+
+def _stack_problems(heights: dict[tuple[int, int, int], float]) -> list[str]:
+    """The problems with where the slices of a stack are, from ``(c, z, t) -> z_um``.
+
+    Whichever way the microscope moved through the stack, depth 0 is the
+    lowest slice and each depth above it is higher, so a workflow reads a
+    stack the same way on every microscope. The channels of one slice were
+    taken at the same height, so they share it.
+    """
+    problems = []
+    for (c, z, t), height in sorted(heights.items()):
+        first = min(one for one in heights if one[1:] == (z, t))
+        if heights[first] != height:
+            problems.append(
+                f"acquire: depth {z} at time {t} is at z_um {heights[first]} in channel "
+                f"{first[0]} but {height} in channel {c}; the channels of one slice share its height"
+            )
+        below = max((one for one in heights if one[0] == c and one[2] == t and one[1] < z),
+                    default=None)
+        if below is not None and height <= heights[below]:
+            problems.append(
+                f"acquire: channel {c} at time {t}: depth {z} is at z_um {height}, not above "
+                f"depth {below[1]} at {heights[below]}; z counts upwards, so the lowest slice "
+                "is depth 0"
+            )
     return problems

@@ -266,7 +266,7 @@ mic.acquire(position_label, acquisition_settings=None)
                            'x_um': 100.0, 'y_um': 50.0, 'z_um': 0.0}]}}
   ```
 
-- **Note:** Takes an image at the current position with the current settings, and saves it to disk. `files` lists every saved file. `planes` lists every image plane, with its file, channel, depth, time point, and the sample position where it was taken. A second acquisition with the same label is saved as a new file. The first one is never overwritten.
+- **Note:** Takes an image at the current position with the current settings, and saves it to disk. `files` lists every saved file. `planes` lists every image plane, with its file, channel, depth, time point, and the sample position where it was taken. In a z-stack, `z = 0` is the lowest slice on every microscope, and each slice's `z_um` is its own height. A second acquisition with the same label is saved as a new file. The first one is never overwritten.
 
 <br>
 

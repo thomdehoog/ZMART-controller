@@ -309,15 +309,64 @@ def test_a_position_must_be_a_number_of_micrometres(saved, key, value):
     problems = check_acquire_answer(
         _answer(files=[str(saved)], planes=[_plane(saved, **{key: value})])
     )
-    assert problems == [
-        f"acquire: planes[0] {key} must be a number of micrometres, or None when unknown, "
-        f"got {value!r}"
+    assert problems == [f"acquire: planes[0] {key} must be a number of micrometres, got {value!r}"]
+
+
+def test_every_plane_says_where_it_is(saved):
+    plane = _plane(saved, z_um=None)
+    assert check_acquire_answer(_answer(files=[str(saved)], planes=[plane])) == [
+        "acquire: planes[0] z_um must be a number of micrometres, got None"
     ]
 
 
-def test_a_position_the_driver_cannot_know_may_be_none(saved):
-    plane = _plane(saved, x_um=None, y_um=None, z_um=None)
-    assert check_acquire_answer(_answer(files=[str(saved)], planes=[plane])) == []
+# ---- a z-stack: each slice at its own height, counted upwards
+
+
+def _stack(saved, heights, channels=1):
+    """The planes of one stack: every channel of slice z at heights[z]."""
+    return [
+        _plane(saved, c=c, z=z, z_um=height)
+        for z, height in enumerate(heights)
+        for c in range(channels)
+    ]
+
+
+def test_a_stack_counted_upwards_fits(saved):
+    planes = _stack(saved, [96.0, 98.0, 100.0], channels=2)
+    assert check_acquire_answer(_answer(files=[str(saved)], planes=planes)) == []
+
+
+def test_a_stack_counted_downwards_is_reported(saved):
+    planes = _stack(saved, [100.0, 98.0, 96.0])
+    assert check_acquire_answer(_answer(files=[str(saved)], planes=planes)) == [
+        "acquire: channel 0 at time 0: depth 1 is at z_um 98.0, not above depth 0 at 100.0; "
+        "z counts upwards, so the lowest slice is depth 0",
+        "acquire: channel 0 at time 0: depth 2 is at z_um 96.0, not above depth 1 at 98.0; "
+        "z counts upwards, so the lowest slice is depth 0",
+    ]
+
+
+def test_slices_at_one_height_are_reported(saved):
+    planes = _stack(saved, [5.0, 5.0])
+    assert check_acquire_answer(_answer(files=[str(saved)], planes=planes)) == [
+        "acquire: channel 0 at time 0: depth 1 is at z_um 5.0, not above depth 0 at 5.0; "
+        "z counts upwards, so the lowest slice is depth 0",
+    ]
+
+
+def test_the_channels_of_one_slice_share_its_height(saved):
+    planes = [_plane(saved, c=0, z_um=10.0), _plane(saved, c=1, z_um=10.5)]
+    assert check_acquire_answer(_answer(files=[str(saved)], planes=planes)) == [
+        "acquire: depth 0 at time 0 is at z_um 10.0 in channel 0 but 10.5 in channel 1; "
+        "the channels of one slice share its height",
+    ]
+
+
+def test_a_later_time_point_may_stand_at_other_heights(saved):
+    planes = [*_stack(saved, [10.0, 12.0]), *[
+        _plane(saved, z=z, t=1, z_um=height) for z, height in enumerate([10.5, 12.5])
+    ]]
+    assert check_acquire_answer(_answer(files=[str(saved)], planes=planes)) == []
 
 
 def test_a_driver_may_add_its_own_entries_to_a_plane(saved):
