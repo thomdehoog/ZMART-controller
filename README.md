@@ -3,8 +3,8 @@
 [![python](https://img.shields.io/badge/python-3.11%2B-blue)](https://www.python.org/downloads/)
 [![license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 [![dependencies](https://img.shields.io/badge/dependencies-none-brightgreen)](pyproject.toml)
-[![tests](https://github.com/thomdehoog/ZMART-controller/actions/workflows/tests.yml/badge.svg)](https://github.com/thomdehoog/ZMART-controller/actions/workflows/tests.yml)
-[![status](https://img.shields.io/badge/status-early%20use-orange)](#status)
+[![tests](https://github.com/thomdehoog/ZMART-controller/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/thomdehoog/ZMART-controller/actions/workflows/tests.yml)
+[![status](https://img.shields.io/badge/status-beta-yellow)](#status)
 
 <br>
 
@@ -113,24 +113,16 @@ our needs, and the Model Hardware Standard is not released to the public yet.
 
 ## Status
 
-This is version 0.3. Today it is the layer between our workflows and the Leica Stellaris: the workflow
+This is version 0.3, a beta. Today it is the layer between our workflows and the Leica Stellaris: the workflow
 speaks the controller's commands, and the Stellaris driver turns them into actions on the microscope.
 However, the mock driver, `zmart_controller.mock`, lets you try everything without a microscope.
 
 ## Author
-Thom de Hoog, Center for Microscopy and Image Analysis (ZMB), University of
-Zurich (thom.dehoog@zmb.uzh.ch, thomdehoog@gmail.com).
+Thom de Hoog, Center for Microscopy and Image Analysis (ZMB), University of Zurich.
+Questions and problems: please open an [issue](https://github.com/thomdehoog/ZMART-controller/issues).
 
 ## License
 MIT License. See LICENSE file for details.
 
 If the code in this repository inspires you, or you use it or build on it, please acknowledge it.
 The [CITATION.cff](CITATION.cff) file says how to cite it.
-
-## Links
-
-- [ZMART Microscopy](https://github.com/thomdehoog/ZMART-microscopy): the main repository, with the workflows and the drivers
-- [ZMART drivers](https://github.com/thomdehoog/ZMART-drivers): the drivers that plug into this controller, one per microscope
-- [ZMART analysis](https://github.com/thomdehoog/ZMART-analysis): the analysis engine that runs between acquisitions
-- [ZMART viewer](https://github.com/thomdehoog/ZMART-viewer): the viewer
-- [Center for Microscopy and Image Analysis (ZMB)](https://www.zmb.uzh.ch), University of Zurich
