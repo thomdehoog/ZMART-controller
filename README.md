@@ -13,7 +13,7 @@
 <td width="170"><img src="docs/zmart-controller-icon.png" width="150" alt="ZMART Controller"></td>
 <td valign="middle">
 
-The **ZMART Controller** provides a small, universal schema for driving a microscope from Python. Writing your automated workflow on it simplifies testing and simulating workflows. It also makes sure that you can reuse your workflows on different microscopes.
+The **ZMART Controller** provides a simple, universal schema for driving a microscope using Python. Writing your automated workflow on it simplifies testing and simulating workflows. It also allows you to reuse your workflows on different microscopes.
 
 It is part of [**ZMART**](https://github.com/thomdehoog/ZMART-microscopy) (ZMB's Microscopy-Agnostic Research Toolkit), the tools we are building for smart microscopy at the Center for Microscopy and Image Analysis (ZMB), University of Zurich.
 
@@ -39,10 +39,10 @@ The ZMART controller sits between your workflow and the microscope and addresses
 
 1. **A universal interface.** Your workflow talks to the controller instead of to the microscope directly.
    Behind the controller you can plug in a simulated microscope, so you can build and test the whole
-   workflow at your desk, and go to the microscope only once it works and when you have time for it.
+   workflow at your desk, then only go to the microscope once it works and when you have time for it.
 
-2. **A common vocabulary.** A ZMART driver translates the specific language a microscope speaks into a
-   short list of shared commands, so a workflow written once runs on every microscope that has a driver.
+2. **A common vocabulary.** Your workflow is written in a universal language that is interpreted by a
+   ZMART driver, so every microscope that has a ZMART driver can run your workflow.
 
 <p align="center">
   <img src="docs/zmart-controller-overview-2.png" width="100%" alt="Three microscopes, each with its own driver plugged in, connect through the ZMART Controller, one universal command vocabulary, to a script, an interface and an AI agent">
@@ -62,14 +62,13 @@ mic.connect(String)
 # 2) Learn about the connected setup in more detail
 mic.get_info()
 
-# 3) Discover the motors, where you are in xyz space, and change the position
+# 3) Discover where you are in the xyz space of the canvas, and change the position
+#    using the actuators that are available
 mic.get_actuators()
 mic.get_xyz()
 mic.set_xyz(x, y, z, with_actuators=Dict)
 
 # 4) Capture the instrument state, and apply it again later with optional changes
-#    (the state is not standardised and differs between microscopes; capturing it
-#    and applying it again is what keeps a workflow interoperable)
 mic.get_state()
 mic.set_state(Dict)
 

@@ -50,18 +50,17 @@ mic.get_instruments()                        # {'mock': {}, 'my-scope': {'micros
 mic.connect("my-scope")
 ```
 
-`get_instruments` lists every installed driver with how it connects,
-without its password.
+`get_instruments` lists every installed driver with how it connects.
 
 The zmart_driver.json is formatted in the following way: 
 
 ```json
 {
-  "name": "<the name you want the driver listed under by get_instruments(), for example stellaris>",
+  "name": "<the name you want the driver listed under by get_instruments()>",
   "driver": "<the file that holds your ZmartDriver class; leave it unless you moved the file>",
   "connection": {
-    "microscope": "<a name for this particular instrument, for example stellaris5-room-42>",
-    "api_type": "<how the vendor software is reached, for example socket, grpc or dll>",
+    "microscope": "<a name for this particular instrument>",
+    "api_type": "<how the vendor software is reached>",
     "host": "<if the vendor software listens on a network address, put it here>",
     "password": "<if the vendor software requires a password or token, put it here>",
     "config": "<if the vendor software has a configuration file, put its path here>"
@@ -78,7 +77,7 @@ the controller calls your `set_state(...)`, and so on for every command.
 
 ### Input and output
 
-Each method returns two things: `True` and the output, or `False` and an
+Each method returns two things: `True` and the content, or `False` and an
 error message. The controller turns this into the answer the workflow sees,
 with the keys `success` and `content`. If the method raises an error instead,
 for example because the vendor library failed, the controller catches it and
@@ -106,7 +105,7 @@ def __init__(self, connection):     # connection: the dict from zmart_driver.jso
     # open the vendor software; load the origin, travel limits and calibration
 ```
 
-The controller calls this once, when a workflow connects. Load here everything a later command needs, so that each command can work in the sample's coordinate system.
+The controller calls this once, when you connect. Load here everything a later command needs, so that each command can work in the sample's coordinate system.
 
 <br>
 
@@ -171,7 +170,7 @@ def set_xyz(self, x, y, z, with_actuators):
     return False, "<error message>"             # outside the limits, or never arrived
 ```
 
-The answer is read from the microscope after the move, so the workflow sees the real position. If the stage never arrives, return `False`, so that the workflow stops.
+The call should return when the stage has arrived. The answer is read from the microscope after the move, so the workflow sees the real position. If the stage never arrives, return `False`, so that the workflow stops.
 
 <br>
 
@@ -197,7 +196,7 @@ def set_state(self, changeable):
     return False, "<error message>"             # did not take, or unknown setting
 ```
 
-Read each setting back, so that the answer shows what really took. A setting the microscope does not have is a failure.
+The call should return when the state has changed. Read each setting back, so that the answer shows what really took. A setting the microscope does not have is a failure.
 
 <br>
 
@@ -225,7 +224,7 @@ def acquire(self, position_label, acquisition_settings):
     # planes   [{"path": ..., "c": 0, "z": 0, "t": 0, "x_um": ..., "y_um": ..., "z_um": ...}, ...]
 ```
 
-Return every saved file and every image plane with its stage position. A workflow then finds its images in the same way on every microscope.
+The call should return when the acquisition is done. Return every saved file and every image plane with its stage position. A workflow then finds its images in the same way on every microscope.
 
 Every plane says where on the sample it was taken, in the frame `set_xyz` takes. A z-stack the microscope makes by itself is described the same way on every microscope: `z_um` is each slice's own height, `z = 0` is the lowest slice and each depth above it is higher, whichever way the microscope moved, and the channels of one slice share its height. `check_acquire_answer` refuses an answer that does not.
 
@@ -250,7 +249,7 @@ def run_procedure(self, procedure):             # {"name": "autofocus", ...}: th
     return False, "<error message>"             # unknown name
 ```
 
-A name that `get_procedures` does not list is a failure.
+The call should return when the procedure is done. A name that `get_procedures` does not list is a failure.
 
 <br>
 

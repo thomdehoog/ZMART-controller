@@ -20,14 +20,15 @@ mic.connect(driver, connection=None)
 # 2) Learn about the connected setup in more detail
 mic.get_info()
 
-# 3) Discover the motors, where you are in xyz space, and change the position
+# 3) Discover where you are in the xyz space of the canvas, and change the position
+#    using the actuators that are available
 mic.get_actuators()
 mic.get_xyz(with_actuators=None)
 mic.set_xyz(x, y, z, with_actuators=None)
 
 # 4) Capture the instrument state, and apply it again later with optional changes
-#    (the state is not standardised and differs between microscopes; capturing it
-#    and applying it again is what keeps a workflow interoperable)
+#        (the state is not standardised and differs between microscopes; capturing it
+#        and applying it again is what keeps a workflow interoperable)
 mic.get_state()
 mic.set_state(state)
 
@@ -36,7 +37,7 @@ mic.get_acquisition_settings()
 mic.acquire(position_label, acquisition_settings=None)
 
 # 6) Run a routine the microscope offers (for example autofocus)
-#    (the routines are not standardised either and differ between microscopes)
+#        (the routines are not standardised either and differ between microscopes)
 mic.get_procedures()
 mic.run_procedure(procedure)
 
@@ -184,7 +185,7 @@ mic.set_xyz(x, y, z, with_actuators=None)
                'z': {'position': 0.0,   'unit': 'micrometer', 'actuators': {'motoric': 5000.0, 'piezo': 0.0},  'canvas': [-500.0, 500.0]}}}
   ```
 
-- **Note:** The call returns when the stage has arrived. The answer is the same as `get_xyz`, read from the microscope. So it shows the real position, not the one you asked for. A move outside the travel returns `success: False`. So does a move the driver could not confirm.
+- **Note:** You choose which actuator makes the move, but `x`, `y` and `z` are always positions in the absolute coordinate system of the canvas, in micrometres, never in the actuator's own units. The call should return when the stage has arrived. The answer is the same as `get_xyz`, read from the microscope. So it shows the real position, not the one you asked for. A move outside the travel returns `success: False`. So does a move the driver could not confirm.
 
 <br>
 
@@ -222,7 +223,7 @@ mic.set_state(state)
    'content': {'applied': {'gain': 200.0}}}
   ```
 
-- **Note:** Only the settings you give are applied. All other settings keep their value. The answer lists what was applied, read back from the microscope.
+- **Note:** The call should return when the state has changed. Only the settings you give are applied. All other settings keep their value. The answer lists what was applied, read back from the microscope.
 
 <br>
 
@@ -266,7 +267,7 @@ mic.acquire(position_label, acquisition_settings=None)
                            'x_um': 100.0, 'y_um': 50.0, 'z_um': 0.0}]}}
   ```
 
-- **Note:** Takes an image at the current position with the current settings, and saves it to disk. `files` lists every saved file. `planes` lists every image plane, with its file, channel, depth, time point, and the sample position where it was taken. In a z-stack, `z = 0` is the lowest slice on every microscope, and each slice's `z_um` is its own height. A second acquisition with the same label is saved as a new file. The first one is never overwritten.
+- **Note:** Takes an image at the current position with the current settings, and saves it to disk. The call should return when the acquisition is done. `files` lists every saved file. `planes` lists every image plane, with its file, channel, depth, time point, and the sample position where it was taken. In a z-stack, `z = 0` is the lowest slice on every microscope, and each slice's `z_um` is its own height. A second acquisition with the same label is saved as a new file. The first one is never overwritten.
 
 <br>
 
@@ -303,6 +304,8 @@ mic.run_procedure(procedure)
   {'success': True,
    'content': {'ran': 'autofocus'}}
   ```
+
+- **Note:** The call should return when the procedure is done.
 
 <br>
 
