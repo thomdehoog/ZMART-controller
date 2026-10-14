@@ -81,11 +81,11 @@ DEFAULT_OUTPUT_ROOT = Path(tempfile.gettempdir()) / "zmart-mock-output"
 # changing it can change what the other settings mean.
 _STATE_ORDER = ("objective", *SETTING_NAMES)
 
-# The stored stack the ``recipe`` trigger takes, part of the changeable state.
-_RECIPE = ("z_planes", "z_step_um")
+# The stored stack the ``full`` trigger takes, part of the changeable state.
+_STACK = ("z_planes", "z_step_um")
 
 #: The ways an acquisition can be triggered, and the one used when none is chosen.
-TRIGGERS = ("snap", "recipe")
+TRIGGERS = ("snap", "full")
 DEFAULT_TRIGGER = "snap"
 
 
@@ -100,7 +100,7 @@ class MockHandle:
     ``image_format``. ``backlash_correction`` says whether the stage's slack
     is taken up before each acquisition. ``camera`` is the camera's frame in
     pixels, read once at connect: it never changes while the software runs.
-    ``recipe`` is the stack the ``recipe`` trigger takes, which the vendor
+    ``stack`` is the stack the ``full`` trigger takes, which the vendor
     software would keep as a stored acquisition; it is part of the state.
     """
 
@@ -117,7 +117,7 @@ class MockHandle:
     closed: bool = False
     software: dict[str, str] = field(default_factory=dict)
     camera: dict[str, int] = field(default_factory=dict)
-    recipe: dict[str, Any] = field(default_factory=lambda: {"z_planes": 1, "z_step_um": 1.0})
+    stack: dict[str, Any] = field(default_factory=lambda: {"z_planes": 1, "z_step_um": 1.0})
 
     @property
     def scope(self):
@@ -237,7 +237,7 @@ Objectives, by slot: 1 is 10x/0.30 Air (1.0 µm per pixel), 2 is 20x/0.75 Air (0
 
 Settings (the changeable part of the state): objective is the slot number above; laser_power is the excitation in percent, {laser_power}; gain is the detector gain, {gain}; exposure_ms is the exposure time in milliseconds, {exposure_ms}. The image gets brighter with more laser power, gain or exposure; very bright settings saturate it. z_planes and z_step_um are the stored stack, the number of planes and the step between them in micrometres, upwards from the current height.
 
-Triggers: snap takes one plane here with the settings as they are; recipe takes the stored stack. Each image is saved under the output folder, in a file whose name starts with the position label."""
+Triggers: snap takes one plane here with the settings as they are; full takes the stored stack. Each image is saved under the output folder, in a file whose name starts with the position label."""
 
 
 def _described(limits: dict) -> str:
@@ -383,7 +383,7 @@ def set_xyz(
 def get_state(handle: MockHandle) -> dict:
     """The settings that can be changed, and a read-only description of the instrument."""
     _require_open(handle)
-    changeable = {**get.state(handle).value_or_raise("the settings"), **handle.recipe}
+    changeable = {**get.state(handle).value_or_raise("the settings"), **handle.stack}
     slot = str(changeable["objective"])
     hardware = get.hardware(handle).value_or_raise("the hardware description")
     pixel = float(handle.config.image_stage_registration["pixel_size_um"].get(slot, 0.0))
@@ -420,14 +420,14 @@ def set_state(handle: MockHandle, state: dict) -> dict:
     """
     _require_open(handle)
     changeable = dict(state.get("changeable", {}))
-    known = (*_STATE_ORDER, *_RECIPE)
+    known = (*_STATE_ORDER, *_STACK)
     unknown = sorted(set(changeable) - set(known))
     if unknown:
         raise ValueError(f"unknown settings {unknown}; this microscope has {list(known)}")
-    recipe = {name: changeable[name] for name in _RECIPE if name in changeable}
-    _check_recipe({**handle.recipe, **recipe})
-    handle.recipe.update(recipe)
-    applied: dict[str, Any] = dict(recipe)
+    stack = {name: changeable[name] for name in _STACK if name in changeable}
+    _check_stack({**handle.stack, **stack})
+    handle.stack.update(stack)
+    applied: dict[str, Any] = dict(stack)
     unconfirmed: dict[str, str] = {}
     for name in _STATE_ORDER:
         if name not in changeable:
@@ -475,12 +475,12 @@ def _with_defaults(settings: dict | None) -> dict:
     return resolved
 
 
-def _check_recipe(recipe: dict) -> None:
+def _check_stack(stack: dict) -> None:
     """Refuse a stored stack that is not one: whole planes from 1, a step above 0."""
-    planes = recipe["z_planes"]
+    planes = stack["z_planes"]
     if isinstance(planes, bool) or not isinstance(planes, int) or planes < 1:
         raise ValueError(f"z_planes must be a whole number from 1, not {planes!r}")
-    step = recipe["z_step_um"]
+    step = stack["z_step_um"]
     if isinstance(step, bool) or not isinstance(step, (int, float)) or not step > 0:
         raise ValueError(f"z_step_um must be a number above 0, not {step!r}")
 
@@ -492,7 +492,7 @@ def acquire(
 
     Every file name starts with ``position_label``. The ``trigger`` decides
     what is taken: ``snap``, one plane with the settings as they are, or
-    ``recipe``, the stack stored in the state. How the files are saved and
+    ``full``, the whole stack stored in the state. How the files are saved and
     whether the stage settles first were set at connect. The content lists
     every saved file under ``files`` (the images, then the ``command_log``
     that records how they were made, which is also named on its own), and
@@ -502,7 +502,7 @@ def acquire(
     """
     _require_open(handle)
     settings = _with_defaults(acquisition_settings)
-    stack = handle.recipe if settings["trigger"] == "recipe" else {"z_planes": 1, "z_step_um": 1.0}
+    stack = handle.stack if settings["trigger"] == "full" else {"z_planes": 1, "z_step_um": 1.0}
     mark = handle.log.mark()
     if handle.backlash_correction:
         PROCEDURES["backlash_takeup"]["run"](handle)

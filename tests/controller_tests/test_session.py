@@ -127,7 +127,7 @@ class TestAcquire:
 
     def test_acquisition_settings_only_say_how_to_trigger(self, mic):
         assert mic.get_acquisition_settings()["content"] == {
-            "trigger": {"options": ["snap", "recipe"], "default": "snap", "active": "snap"}
+            "trigger": {"options": ["snap", "full"], "default": "snap", "active": "snap"}
         }
 
 

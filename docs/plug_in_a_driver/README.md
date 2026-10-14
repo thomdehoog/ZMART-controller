@@ -204,13 +204,13 @@ The call should return when the state has changed. Read each setting back, so th
 
 ```python
 def get_acquisition_settings(self):
-    return True, {"trigger": {"options": ["snap", "recipe"], "default": "snap", "active": "snap"}}
+    return True, {"trigger": {"options": ["snap", "full"], "default": "snap", "active": "snap"}}
     # options   the allowed values, or a rule in words
     # default   the value you decide the microscope starts with
     # active    the value used when acquire gets none
 ```
 
-Acquisition settings say only how an acquisition is triggered. `snap` takes one picture with the settings as they are; `recipe` runs the acquisition the vendor software has stored and selected. List only the triggers your microscope has, or add one of its own and explain it in `get_info`. Nothing else belongs here: a z-stack, an exposure or which recipe is selected are state, and how files are saved is set up once on the microscope.
+Acquisition settings say only how an acquisition is triggered. For example, `snap` takes one picture with the settings as they are, and `full` runs the whole acquisition the vendor software has stored and selected. The names are yours to choose: list only the triggers your microscope has, and explain them in `get_info`. Nothing else belongs here: a z-stack, an exposure or which stored acquisition is selected are state, and how files are saved is set up once on the microscope.
 
 <br>
 

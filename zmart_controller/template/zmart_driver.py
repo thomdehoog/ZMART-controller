@@ -108,12 +108,13 @@ class ZmartDriver:
 
         ``settings`` is ``{name: {"options": ..., "default": value, "active": value}}``,
         usually only ``trigger``, for example
-        ``{"trigger": {"options": ["snap", "recipe"], "default": "snap", "active": "snap"}}``:
-        ``snap`` takes one picture with what is set now, ``recipe`` runs the
-        acquisition the vendor software has stored and selected. List only
+        ``{"trigger": {"options": ["snap", "full"], "default": "snap", "active": "snap"}}``:
+        ``snap`` takes one picture with what is set now, ``full`` runs the
+        whole acquisition the vendor software has stored and selected. These
+        two are examples, not fixed names. List only
         the ways your microscope has, or add one of its own and say what it
         does in ``get_info``. Nothing else belongs here: a z-stack, an
-        exposure or the selected recipe are state, how files are saved is
+        exposure or which stored acquisition is selected are state, how files are saved is
         set up once on the microscope.
 
         ``options`` lists the values a setting may take, or describes them

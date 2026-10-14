@@ -53,11 +53,11 @@ def slow_mic(tmp_path):
     session.disconnect()
 
 
-def _recipe(session, z_planes, z_step_um=1.0):
-    """Set a stack as the mock's recipe, and return the settings that trigger it."""
+def _full_stack(session, z_planes, z_step_um=1.0):
+    """Set the mock's stored stack, and return the settings that trigger all of it."""
     answer = session.set_state({"changeable": {"z_planes": z_planes, "z_step_um": z_step_um}})
     assert answer["success"] is True, answer["content"]
-    return {"trigger": "recipe"}
+    return {"trigger": "full"}
 
 
 def _sent(session, command):
@@ -191,7 +191,7 @@ class TestLimitsGate:
         session = _open(tmp_path, mock_timing="instant", backlash_correction=False)
         try:
             session.set_xyz(0, 0, 490)
-            failed = session.acquire(position_label="p", acquisition_settings=_recipe(session, 20))
+            failed = session.acquire(position_label="p", acquisition_settings=_full_stack(session, 20))
         finally:
             session.disconnect()
         assert failed["success"] is False and "z-stack" in failed["content"]
@@ -285,11 +285,11 @@ def _tiff_description(path: Path) -> str:
 
 
 class TestDataHandling:
-    def test_the_stack_is_state_and_the_recipe_trigger_takes_it(self, mic):
+    def test_the_stack_is_state_and_the_full_trigger_takes_it(self, mic):
         mic.set_state({"changeable": {"z_planes": 3, "z_step_um": 2.0}})
         assert {"z_planes": 3, "z_step_um": 2.0}.items() <= mic.get_state()["content"]["changeable"].items()
         snapped = mic.acquire(position_label="snap")["content"]
-        taken = mic.acquire(position_label="stack", acquisition_settings={"trigger": "recipe"})["content"]
+        taken = mic.acquire(position_label="stack", acquisition_settings={"trigger": "full"})["content"]
         assert len(snapped["planes"]) == 1
         assert len(taken["planes"]) == 3
 
@@ -298,7 +298,7 @@ class TestDataHandling:
         assert failed["success"] is False and "z_planes" in failed["content"]
 
     def test_a_z_stack_is_one_file_per_plane(self, mic):
-        answer = mic.acquire(position_label="cell 1", acquisition_settings=_recipe(mic, 3))[
+        answer = mic.acquire(position_label="cell 1", acquisition_settings=_full_stack(mic, 3))[
             "content"
         ]
         names = [Path(f).name for f in answer["files"]]
@@ -316,7 +316,7 @@ class TestDataHandling:
         mic.set_xyz(100, 50, 3)
         answer = mic.acquire(
             position_label="cell 2",
-            acquisition_settings=_recipe(mic, 3, 2.0),
+            acquisition_settings=_full_stack(mic, 3, 2.0),
         )["content"]
         assert answer["planes"] == [
             {
@@ -335,7 +335,7 @@ class TestDataHandling:
         session = _open(tmp_path, mock_timing="instant", format="ome-zarr")
         try:
             answer = session.acquire(
-                position_label="zp", acquisition_settings=_recipe(session, 2, 0.5)
+                position_label="zp", acquisition_settings=_full_stack(session, 2, 0.5)
             )["content"]
         finally:
             session.disconnect()
@@ -373,7 +373,7 @@ class TestDataHandling:
         session = _open(tmp_path, mock_timing="instant", format="ome-zarr")
         try:
             answer = session.acquire(
-                position_label="z", acquisition_settings=_recipe(session, 4, 2.0)
+                position_label="z", acquisition_settings=_full_stack(session, 4, 2.0)
             )["content"]
         finally:
             session.disconnect()

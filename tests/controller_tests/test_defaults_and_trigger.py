@@ -25,7 +25,7 @@ class Scope(ZmartDriver):
     """A driver in memory that remembers which motors each move was asked to use."""
 
     actuators = ACTUATORS
-    settings = {"trigger": {"options": ["snap", "recipe"], "default": "snap", "active": "snap"}}
+    settings = {"trigger": {"options": ["snap", "full"], "default": "snap", "active": "snap"}}
     info = ("A scope in memory. +z points up.", {"saving": {"done": True, "says": "OME-TIFF under D:/data"}})
 
     def __init__(self, connection):
@@ -160,7 +160,7 @@ def test_a_wrong_actuator_answer_is_named(actuators, says):
     ("settings", "says"),
     [
         ({"trigger": {"options": ["snap"], "active": "snap"}}, "'trigger' must have \"options\", \"default\" and \"active\""),
-        ({"trigger": {"options": ["snap"], "default": "recipe", "active": "snap"}}, "default 'recipe'"),
+        ({"trigger": {"options": ["snap"], "default": "full", "active": "snap"}}, "default 'full'"),
         ({"trigger": {"options": ["snap"], "default": "snap", "active": "burst"}}, "active 'burst'"),
     ],
 )

@@ -182,7 +182,7 @@ def _acquire(connection=None, **stack):
     """Acquire once on the mock and return its answer, as a driver's own test would.
 
     A ``stack`` (``z_planes``, ``z_step_um``) is set as state and taken with
-    the ``recipe`` trigger; without one, the mock snaps one plane.
+    the ``full`` trigger; without one, the mock snaps one plane.
     """
     from zmart_controller import ZmartController
 
@@ -191,7 +191,7 @@ def _acquire(connection=None, **stack):
         if not stack:
             return session.acquire(position_label="A1")
         session.set_state({"changeable": stack})
-        return session.acquire(position_label="A1", acquisition_settings={"trigger": "recipe"})
+        return session.acquire(position_label="A1", acquisition_settings={"trigger": "full"})
     finally:
         session.disconnect()
 

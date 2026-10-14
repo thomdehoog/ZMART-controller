@@ -18,7 +18,7 @@ class Scope(ZmartDriver):
     """A driver that lives in memory; ``info`` and ``settings`` are what it answers."""
 
     info = ("A scope in memory. +z points up.", {"limits": {"done": True, "says": "published"}})
-    settings = {"trigger": {"options": ["snap", "recipe"], "default": "snap", "active": "snap"}}
+    settings = {"trigger": {"options": ["snap", "full"], "default": "snap", "active": "snap"}}
 
     def __init__(self, connection):
         pass
@@ -89,9 +89,9 @@ def test_a_wrong_answer_is_named(info, says):
 
 
 def test_a_default_may_differ_from_the_active_value():
-    driver = scope(settings={"trigger": {"options": ["snap", "recipe"], "default": "snap", "active": "recipe"}})
+    driver = scope(settings={"trigger": {"options": ["snap", "full"], "default": "snap", "active": "full"}})
 
     content = ZmartController(driver, {}).get_acquisition_settings()["content"]
 
-    assert content["trigger"] == {"options": ["snap", "recipe"], "default": "snap", "active": "recipe"}
+    assert content["trigger"] == {"options": ["snap", "full"], "default": "snap", "active": "full"}
     assert validate_driver(driver, {}) == []

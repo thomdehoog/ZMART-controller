@@ -241,10 +241,10 @@ mic.get_acquisition_settings()
 
   ```python
   {'success': True,
-   'content': {'trigger': {'options': ['snap', 'recipe'], 'default': 'snap', 'active': 'snap'}}}
+   'content': {'trigger': {'options': ['snap', 'full'], 'default': 'snap', 'active': 'snap'}}}
   ```
 
-- **Note:** How an acquisition can be triggered, and nothing else. `snap` takes one picture with the settings as they are. `recipe` runs the acquisition the microscope has stored, such as a z-stack; on the mock, its planes and step are part of the state. Each driver lists only the triggers its microscope has, and may add one of its own, which `get_info` explains. `options` lists the values a setting can take, or describes them in words. `default` is the value the driver chose. `active` is the value in use now, used when you give nothing; an `active` that differs from `default` was chosen, for example by this session.
+- **Note:** How an acquisition can be triggered, and nothing else. `snap` takes one picture with the settings as they are. `full` runs the whole acquisition the microscope has stored, such as a z-stack; on the mock, its planes and step are part of the state. These are the mock's triggers: each driver names and lists only the ones its microscope has, and `get_info` explains them. `options` lists the values a setting can take, or describes them in words. `default` is the value the driver chose. `active` is the value in use now, used when you give nothing; an `active` that differs from `default` was chosen, for example by this session.
 
 <br>
 
@@ -256,7 +256,7 @@ mic.acquire(position_label, acquisition_settings=None)
 
 - **Input**
   - `position_label`: a name for this position, for example `"A1"`. Every saved file's name starts with it.
-  - `acquisition_settings`: optional; values from `get_acquisition_settings`, for example `{"trigger": "recipe"}`. Default: the `active` value of every setting.
+  - `acquisition_settings`: optional; values from `get_acquisition_settings`, for example `{"trigger": "full"}`. Default: the `active` value of every setting.
 - **Output (example)**
 
   ```python
