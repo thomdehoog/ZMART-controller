@@ -124,15 +124,14 @@ Close cleanly, so that the vendor software can be opened again.
 
 ```python
 def get_info(self):
-    return True, (description, output_root, setup)
+    return True, (description, setup)
     # description   str: the settings, their units and limits, the objectives, which way +z points
-    # output_root   str: the folder this microscope saves under; None while that is not set up
     # setup         {item: {"done": bool, "says": str}}: each thing set up once on this microscope; {} if none
 ```
 
 The description is what a person or an AI agent reads to understand your microscope. Write what the other commands cannot tell.
 
-`setup` lists what is set up once on this microscope, such as its limits, a calibration or where data goes. For each item, say whether it is done, and in words what it holds or, when it is not done, what to run. A program can then tell the operator what is missing before anything is captured.
+`setup` lists what is set up once on this microscope, such as its limits, a calibration, or where and in which format it saves. For each item, say whether it is done, and in words what it holds or, when it is not done, what to run. A program can then tell the operator what is missing before anything is captured.
 
 <br>
 
@@ -140,24 +139,25 @@ The description is what a person or an AI agent reads to understand your microsc
 
 ```python
 def get_actuators(self):
-    return True, (x_motors, y_motors, z_motors)     # e.g. ["motoric", "piezo"]; the first is the default
+    return True, (x, y, z)
+    # each axis    {"options": ["motoric", "piezo"], "default": "motoric"}
 ```
 
-The first motor of each axis is used when a command does not choose one.
+`options` lists the motors that move the axis. `default` is the one used when a command does not choose: you decide it, and the controller uses it for `get_xyz` and `set_xyz` alike.
 
 <br>
 
 #### `get_xyz`
 
 ```python
-def get_xyz(self, with_actuators):              # {"z": "piezo"} or None
+def get_xyz(self, with_actuators):              # {"x": "motoric", "y": "motoric", "z": "piezo"}
     return True, (x, y, z, actuators, canvas)
     # x, y, z      micrometres from the origin
     # actuators    {"x": {"motoric": 50000.0}, "y": {...}, "z": {"motoric": 5000.0, "piezo": 0.0}}   raw readings
     # canvas       (x_min, x_max, y_min, y_max, z_min, z_max)   travel plus half a field of view
 ```
 
-Positions are in the sample's coordinate system. The raw readings are reported as the microscope gives them, with nothing subtracted or converted.
+`with_actuators` names a motor for every axis: the controller has filled in your defaults and refused a motor you do not list, and it tells the workflow which motor was used. Positions are in the sample's coordinate system. The raw readings are reported as the microscope gives them, with nothing subtracted or converted.
 
 <br>
 
@@ -170,7 +170,7 @@ def set_xyz(self, x, y, z, with_actuators):
     return False, "<error message>"             # outside the limits, or never arrived
 ```
 
-The call should return when the stage has arrived. The answer is read from the microscope after the move, so the workflow sees the real position. If the stage never arrives, return `False`, so that the workflow stops.
+The call should return when the stage has arrived. `with_actuators` names a motor for every axis, as for `get_xyz`; `x`, `y` and `z` stay micrometres from the origin whichever motor moves. The answer is read from the microscope after the move, so the workflow sees the real position. If the stage never arrives, return `False`, so that the workflow stops.
 
 <br>
 
@@ -204,13 +204,13 @@ The call should return when the state has changed. Read each setting back, so th
 
 ```python
 def get_acquisition_settings(self):
-    return True, {name: {"options": [...], "active": value, "default": value}}
-    # options   the allowed values, or a rule such as "number > 0"
+    return True, {"trigger": {"options": ["snap", "recipe"], "default": "snap", "active": "snap"}}
+    # options   the allowed values, or a rule in words
+    # default   the value you decide the microscope starts with
     # active    the value used when acquire gets none
-    # default   optional: the value the microscope starts with, set up on it or built into the driver
 ```
 
-Which settings exist is up to the driver, for example the file format or the number of planes in a z-stack.
+Acquisition settings say only how an acquisition is triggered. `snap` takes one picture with the settings as they are; `recipe` runs the acquisition the vendor software has stored and selected. List only the triggers your microscope has, or add one of its own and explain it in `get_info`. Nothing else belongs here: a z-stack, an exposure or which recipe is selected are state, and how files are saved is set up once on the microscope.
 
 <br>
 
@@ -218,7 +218,7 @@ Which settings exist is up to the driver, for example the file format or the num
 
 ```python
 def acquire(self, position_label, acquisition_settings):
-    # take an image, save it under position_label, never overwrite
+    # take an image, start every file name with position_label, never overwrite
     return True, (files, planes)
     # files    ["D:/images/A1.ome.tif", ...]
     # planes   [{"path": ..., "c": 0, "z": 0, "t": 0, "x_um": ..., "y_um": ..., "z_um": ...}, ...]

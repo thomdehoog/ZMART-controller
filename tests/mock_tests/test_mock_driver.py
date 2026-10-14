@@ -53,6 +53,13 @@ def slow_mic(tmp_path):
     session.disconnect()
 
 
+def _recipe(session, z_planes, z_step_um=1.0):
+    """Set a stack as the mock's recipe, and return the settings that trigger it."""
+    answer = session.set_state({"changeable": {"z_planes": z_planes, "z_step_um": z_step_um}})
+    assert answer["success"] is True, answer["content"]
+    return {"trigger": "recipe"}
+
+
 def _sent(session, command):
     return [entry for entry in session._handle.scope.history if entry["command"] == command]
 
@@ -180,16 +187,13 @@ class TestLimitsGate:
         assert re.search("laser_power = 80.0 is outside the limits", failed["content"])
         assert _sent(mic, "SetSetting") == []
 
-    def test_a_z_stack_must_stay_inside(self, mic):
-        mic.set_xyz(0, 0, 490)
-        failed = mic.acquire(
-            position_label="p",
-            acquisition_settings={
-                "z_planes": 20,
-                "z_step_um": 1.0,
-                "backlash_correction": False,
-            },
-        )
+    def test_a_z_stack_must_stay_inside(self, tmp_path):
+        session = _open(tmp_path, mock_timing="instant", backlash_correction=False)
+        try:
+            session.set_xyz(0, 0, 490)
+            failed = session.acquire(position_label="p", acquisition_settings=_recipe(session, 20))
+        finally:
+            session.disconnect()
         assert failed["success"] is False and "z-stack" in failed["content"]
 
     def test_without_limits_everything_is_refused(self):
@@ -281,8 +285,20 @@ def _tiff_description(path: Path) -> str:
 
 
 class TestDataHandling:
+    def test_the_stack_is_state_and_the_recipe_trigger_takes_it(self, mic):
+        mic.set_state({"changeable": {"z_planes": 3, "z_step_um": 2.0}})
+        assert {"z_planes": 3, "z_step_um": 2.0}.items() <= mic.get_state()["content"]["changeable"].items()
+        snapped = mic.acquire(position_label="snap")["content"]
+        taken = mic.acquire(position_label="stack", acquisition_settings={"trigger": "recipe"})["content"]
+        assert len(snapped["planes"]) == 1
+        assert len(taken["planes"]) == 3
+
+    def test_a_stack_must_be_a_whole_number_of_planes(self, mic):
+        failed = mic.set_state({"changeable": {"z_planes": 0}})
+        assert failed["success"] is False and "z_planes" in failed["content"]
+
     def test_a_z_stack_is_one_file_per_plane(self, mic):
-        answer = mic.acquire(position_label="cell 1", acquisition_settings={"z_planes": 3})[
+        answer = mic.acquire(position_label="cell 1", acquisition_settings=_recipe(mic, 3))[
             "content"
         ]
         names = [Path(f).name for f in answer["files"]]
@@ -300,7 +316,7 @@ class TestDataHandling:
         mic.set_xyz(100, 50, 3)
         answer = mic.acquire(
             position_label="cell 2",
-            acquisition_settings={"z_planes": 3, "z_step_um": 2.0},
+            acquisition_settings=_recipe(mic, 3, 2.0),
         )["content"]
         assert answer["planes"] == [
             {
@@ -315,22 +331,29 @@ class TestDataHandling:
             for index in range(3)
         ]
 
-    def test_an_ome_zarr_stack_names_its_planes_inside_the_one_folder(self, mic):
-        answer = mic.acquire(
-            position_label="zp",
-            acquisition_settings={"format": "ome-zarr", "z_planes": 2, "z_step_um": 0.5},
-        )["content"]
+    def test_an_ome_zarr_stack_names_its_planes_inside_the_one_folder(self, tmp_path):
+        session = _open(tmp_path, mock_timing="instant", format="ome-zarr")
+        try:
+            answer = session.acquire(
+                position_label="zp", acquisition_settings=_recipe(session, 2, 0.5)
+            )["content"]
+        finally:
+            session.disconnect()
         root = answer["files"][0]
         assert [(plane["path"], plane["z"]) for plane in answer["planes"]] == [(root, 0), (root, 1)]
         bottom = answer["position"]["z"]
         assert [plane["z_um"] for plane in answer["planes"]] == [bottom, bottom + 0.5]
 
-    def test_a_folder_option_groups_the_files(self, mic):
-        answer = mic.acquire(position_label="A1", acquisition_settings={"folder": "prescan"})[
-            "content"
-        ]
-        root = Path(mic.get_info()["content"]["output_root"])
-        assert Path(answer["files"][0]).parent == root / "prescan"
+    def test_the_files_land_in_the_connections_output_root(self, mic, tmp_path):
+        answer = mic.acquire(position_label="A1")["content"]
+        assert Path(answer["files"][0]).parent == tmp_path / "images"
+
+    def test_get_info_says_where_it_saves_as_a_setup_item(self, mic, tmp_path):
+        info = mic.get_info()["content"]
+        assert "output_root" not in info
+        saving = info["setup"]["saving"]
+        assert saving["done"] is True
+        assert str(tmp_path / "images") in saving["says"] and "OME-TIFF" in saving["says"]
 
     def test_never_overwrites(self, mic):
         first = mic.acquire(position_label="A1")["content"]["files"]
@@ -346,11 +369,14 @@ class TestDataHandling:
         assert "sending again" in messages
         assert "confirmed" in messages
 
-    def test_ome_zarr_holds_the_stack(self, mic):
-        answer = mic.acquire(
-            position_label="z",
-            acquisition_settings={"format": "ome-zarr", "z_planes": 4, "z_step_um": 2.0},
-        )["content"]
+    def test_ome_zarr_holds_the_stack(self, tmp_path):
+        session = _open(tmp_path, mock_timing="instant", format="ome-zarr")
+        try:
+            answer = session.acquire(
+                position_label="z", acquisition_settings=_recipe(session, 4, 2.0)
+            )["content"]
+        finally:
+            session.disconnect()
         root = Path(answer["files"][0])
         group = json.loads((root / "zarr.json").read_text())
         assert group["zarr_format"] == 3 and group["node_type"] == "group"
@@ -381,13 +407,12 @@ class TestDataHandling:
                 "pixel_size_um": {"1": 1.0, "2": 0.5, "3": 0.25},
             },
         )
-        session = _open(tmp_path, mock_timing="instant")
+        session = _open(tmp_path, mock_timing="instant", backlash_correction=False)
         session._handle.scope._noise = False
         try:
-            options = {"backlash_correction": False}
-            before = session.acquire(position_label="a", acquisition_settings=options)
+            before = session.acquire(position_label="a")
             session.set_xyz(5, 0, 0)
-            after = session.acquire(position_label="b", acquisition_settings=options)
+            after = session.acquire(position_label="b")
             first = _tiff_pixels(before["content"]["files"][0])
             second = _tiff_pixels(after["content"]["files"][0])
             width = 64
@@ -399,9 +424,7 @@ class TestDataHandling:
 
     def test_an_unconfirmed_acquisition_lists_no_files(self, mic):
         mic._handle.scope.faults.add("StartAcquisition", "ignore")
-        answer = mic.acquire(
-            position_label="lost", acquisition_settings={"backlash_correction": False}
-        )
+        answer = mic.acquire(position_label="lost")
         assert answer["success"] is False
         assert answer["content"]["files"] == []
         assert answer["content"]["planes"] == []
@@ -414,18 +437,15 @@ class TestProblemsFoundInReview:
 
     def test_lost_acquisition_reply_still_saves_the_image(self, mic):
         mic._handle.scope.faults.add("StartAcquisition", "timeout")
-        answer = mic.acquire(
-            position_label="lost", acquisition_settings={"backlash_correction": False}
-        )
+        answer = mic.acquire(position_label="lost")
         assert answer["success"] is True
         assert Path(answer["content"]["files"][0]).is_file()
 
     def test_an_ignored_acquisition_is_never_confirmed_by_an_older_one(self, mic):
-        options = {"backlash_correction": False}
-        first = mic.acquire(position_label="same", acquisition_settings=options)
+        first = mic.acquire(position_label="same")
         assert first["success"] is True
         mic._handle.scope.faults.add("StartAcquisition", "ignore")
-        second = mic.acquire(position_label="same", acquisition_settings=options)
+        second = mic.acquire(position_label="same")
         assert second["success"] is False
         assert second["content"]["files"] == []
         assert "not running" in second["content"]["reason"]

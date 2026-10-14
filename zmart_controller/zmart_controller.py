@@ -72,7 +72,7 @@ class ZmartController:
             self._handle.disconnect()
 
     def get_info(self) -> dict:
-        """The microscope in plain words, where it saves, and what it still needs set up."""
+        """The microscope in plain words, and what is set up on it, such as where it saves."""
         try:
             ok, result = self._handle.get_info()
 
@@ -82,15 +82,16 @@ class ZmartController:
         if not ok:
             return {"success": False, "content": result}
 
-        description, output_root, setup = result
+        description, setup = result
 
-        return {
-            "success": True,
-            "content": {"description": description, "output_root": output_root, "setup": setup},
-        }
+        return {"success": True, "content": {"description": description, "setup": setup}}
 
     def get_actuators(self) -> dict:
-        """The motors that can move each axis, e.g. ``{"z": ["motoric", "piezo"]}``."""
+        """The motors per axis, and the one used when none is chosen.
+
+        For example ``{"z": {"options": ["motoric", "piezo"], "default": "motoric"}}``.
+        The driver decides the default; ``get_xyz`` and ``set_xyz`` both use it.
+        """
         try:
             ok, result = self._handle.get_actuators()
 
@@ -100,20 +101,23 @@ class ZmartController:
         if not ok:
             return {"success": False, "content": result}
 
-        x_motors, y_motors, z_motors = result
+        x, y, z = result
 
-        return {"success": True, "content": {"x": x_motors, "y": y_motors, "z": z_motors}}
+        return {"success": True, "content": {"x": x, "y": y, "z": z}}
 
     def get_xyz(self, with_actuators: dict | None = None) -> dict:
-        """Where the stage is. Each axis: ``position``, ``unit``, ``actuators`` and ``canvas``.
+        """Where the stage is. Each axis: ``position``, ``unit``, ``actuator``, ``actuators``, ``canvas``.
 
         ``position`` is measured from the origin. ``unit`` says that every
-        number here is in micrometres. ``actuators`` gives each motor of that
-        axis with its own raw reading, as the microscope reports it.
+        number here is in micrometres. ``actuator`` is the motor this call
+        used: the one ``with_actuators`` chose for the axis, or else the
+        default ``get_actuators`` names. ``actuators`` gives each motor of
+        that axis with its own raw reading, as the microscope reports it.
         ``canvas`` is everywhere a picture can show.
         """
         try:
-            ok, result = self._handle.get_xyz(with_actuators)
+            chosen = chosen_actuators(self.get_actuators(), with_actuators)
+            ok, result = self._handle.get_xyz(chosen)
 
         except Exception as error:
             return {"success": False, "content": f"{type(error).__name__}: {error}"}
@@ -121,17 +125,21 @@ class ZmartController:
         if not ok:
             return {"success": False, "content": result}
 
-        return {"success": True, "content": _xyz_content(result)}
+        return {"success": True, "content": _xyz_content(result, chosen)}
 
     def set_xyz(self, x: float, y: float, z: float, with_actuators: dict | None = None) -> dict:
         """Move to a position in micrometres from the origin, and answer like ``get_xyz``.
 
-        ``with_actuators`` picks the motor per axis, such as ``{"z": "piezo"}``.
-        The answer is read from the microscope after the stage has arrived, so
-        it shows where the stage really is, not the numbers that were asked for.
+        ``with_actuators`` picks the motor per axis, such as ``{"z": "piezo"}``;
+        an axis left out moves with the default ``get_actuators`` names, the
+        same rule as ``get_xyz``. The position is micrometres from the origin
+        whichever motor moves, never the motor's own units. The answer is read
+        from the microscope after the stage has arrived, so it shows where the
+        stage really is, not the numbers that were asked for.
         """
         try:
-            ok, result = self._handle.set_xyz(x, y, z, with_actuators)
+            chosen = chosen_actuators(self.get_actuators(), with_actuators)
+            ok, result = self._handle.set_xyz(x, y, z, chosen)
 
         except Exception as error:
             return {"success": False, "content": f"{type(error).__name__}: {error}"}
@@ -139,7 +147,7 @@ class ZmartController:
         if not ok:
             return {"success": False, "content": result}
 
-        return {"success": True, "content": _xyz_content(result)}
+        return {"success": True, "content": _xyz_content(result, chosen)}
 
     def get_state(self) -> dict:
         """The settings: ``changeable``, which ``set_state`` applies, and ``observed``, read-only."""
@@ -172,7 +180,7 @@ class ZmartController:
         return {"success": True, "content": {"applied": applied}}
 
     def get_acquisition_settings(self) -> dict:
-        """The choices for one acquisition: ``{name: {"options": [...], "active": value}}``."""
+        """How an acquisition is triggered: ``{name: {"options": ..., "default": ..., "active": ...}}``."""
         try:
             ok, result = self._handle.get_acquisition_settings()
 
@@ -235,14 +243,39 @@ class ZmartController:
         return {"success": True, "content": {"ran": ran}}
 
 
-def _xyz_content(result) -> dict:
+def chosen_actuators(offered: dict, with_actuators: dict | None) -> dict[str, str]:
+    """The motor for every axis: the one asked for, or else the driver's default.
+
+    ``offered`` is the answer of ``get_actuators``. A driver therefore always
+    receives one motor per axis, and ``get_xyz`` and ``set_xyz`` cannot
+    differ about the default. Raises ``ValueError`` for an axis or a motor
+    the driver does not offer, before the driver is asked anything, and
+    ``RuntimeError`` when the driver could not say which motors it has.
+    """
+    if not offered["success"]:
+        raise RuntimeError(f"the driver could not list its actuators: {offered['content']}")
+    motors = offered["content"]
+    chosen = {axis: motors[axis]["default"] for axis in ("x", "y", "z")}
+    for axis, name in (with_actuators or {}).items():
+        if axis not in chosen:
+            raise ValueError(f"there is no axis {axis!r}; the axes are 'x', 'y' and 'z'")
+        if name not in motors[axis]["options"]:
+            raise ValueError(
+                f"{name!r} is not an actuator of axis {axis!r}; it has {motors[axis]['options']}"
+            )
+        chosen[axis] = name
+    return chosen
+
+
+def _xyz_content(result, chosen: dict[str, str]) -> dict:
     """Build the answer of ``get_xyz`` and ``set_xyz`` from what the driver hands back.
 
     The driver returns ``(x, y, z, actuators, canvas)``: the position in
     micrometres from the origin, the raw reading of every motor per axis
     (``{"x": {...}, "y": {...}, "z": {...}}``), and the canvas
     ``(x_min, x_max, y_min, y_max, z_min, z_max)``. Every number is in
-    micrometres, and each axis says so under ``unit``.
+    micrometres, and each axis says so under ``unit``. ``chosen`` is the
+    motor used per axis, which each axis names under ``actuator``.
     """
     x, y, z, actuators, canvas = result
     x_min, x_max, y_min, y_max, z_min, z_max = canvas
@@ -252,7 +285,13 @@ def _xyz_content(result) -> dict:
         "z": (z, actuators["z"], [z_min, z_max]),
     }
     return {
-        axis: {"position": position, "unit": UNIT, "actuators": dict(motors), "canvas": canvas}
+        axis: {
+            "position": position,
+            "unit": UNIT,
+            "actuator": chosen[axis],
+            "actuators": dict(motors),
+            "canvas": canvas,
+        }
         for axis, (position, motors, canvas) in axes.items()
     }
 

@@ -72,6 +72,7 @@ def _xyz_with(**per_axis):
                 "position": 0.0,
                 "unit": "micrometer",
                 "actuators": {"motoric": 48_000.0},
+                "actuator": "motoric",
                 "canvas": [-150.0, 150.0],
             }
             for key, value in per_axis.get(axis, {}).items():
@@ -83,6 +84,18 @@ def _xyz_with(**per_axis):
         return {"success": True, "content": content}
 
     return get_xyz
+
+
+def test_an_answer_that_does_not_say_which_motor_it_used_is_told_so(monkeypatch):
+    _break(monkeypatch, "get_xyz", _xyz_with(x={"actuator": "absent"}))
+    assert validate_driver(mock) == ["get_xyz: axis 'x' is missing 'actuator'"]
+
+
+def test_the_motor_used_must_be_one_of_the_axis_readings(monkeypatch):
+    _break(monkeypatch, "get_xyz", _xyz_with(z={"actuator": "piezo"}))
+    assert validate_driver(mock) == [
+        "get_xyz: axis 'z' actuator 'piezo' must be one of the motors it reads, ['motoric']"
+    ]
 
 
 def test_a_driver_without_canvas_is_told_so(monkeypatch):
@@ -165,13 +178,20 @@ def test_a_bare_answer_without_the_envelope_is_reported(monkeypatch):
 # ---- check_acquire_answer: does an acquisition say where its files are?
 
 
-def _acquire(**options):
-    """Acquire once on the mock and return its answer, as a driver's own test would."""
+def _acquire(connection=None, **stack):
+    """Acquire once on the mock and return its answer, as a driver's own test would.
+
+    A ``stack`` (``z_planes``, ``z_step_um``) is set as state and taken with
+    the ``recipe`` trigger; without one, the mock snaps one plane.
+    """
     from zmart_controller import ZmartController
 
-    session = ZmartController(mock)
+    session = ZmartController(mock, connection)
     try:
-        return session.acquire(position_label="A1", acquisition_settings=options or None)
+        if not stack:
+            return session.acquire(position_label="A1")
+        session.set_state({"changeable": stack})
+        return session.acquire(position_label="A1", acquisition_settings={"trigger": "recipe"})
     finally:
         session.disconnect()
 
@@ -215,7 +235,7 @@ def test_files_names_everything_the_acquisition_saved():
 
 
 def test_an_ome_zarr_folder_counts_as_a_saved_file():
-    assert check_acquire_answer(_acquire(format="ome-zarr")) == []
+    assert check_acquire_answer(_acquire({"format": "ome-zarr"})) == []
 
 
 def test_an_answer_without_files_is_reported():

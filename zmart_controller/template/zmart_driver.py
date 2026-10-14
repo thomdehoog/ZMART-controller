@@ -32,26 +32,27 @@ class ZmartDriver:
         raise NotImplementedError("ZmartDriver.disconnect: close the connection")
 
     def get_info(self):
-        """Return ``True, (description, output_root, setup)``.
+        """Return ``True, (description, setup)``.
 
         ``description`` is the microscope in plain words: what each
         changeable setting means, its unit and bounds, which objective sits
-        in which slot, and which way +z points. ``output_root`` is the
-        folder this microscope saves under, or ``None`` while that is not
-        set up. ``setup`` is ``{item: {"done": bool, "says": text}}``: each
-        thing set up once on this microscope (its limits, a calibration,
-        where data goes), whether it is done, and in words what it holds or
-        what to do; ``{}`` when there is nothing to set up.
+        in which slot, and which way +z points. ``setup`` is
+        ``{item: {"done": bool, "says": text}}``: each thing set up once on
+        this microscope (its limits, a calibration, where and how it saves),
+        whether it is done, and in words what it holds or what to do; ``{}``
+        when there is nothing to set up.
         """
-        raise NotImplementedError(
-            "ZmartDriver.get_info: return True, (description, output_root, setup)"
-        )
+        raise NotImplementedError("ZmartDriver.get_info: return True, (description, setup)")
 
     def get_actuators(self):
-        """Return ``True, (x_motors, y_motors, z_motors)``: the motor names per axis, at least one each."""
-        raise NotImplementedError(
-            "ZmartDriver.get_actuators: return True, (x_motors, y_motors, z_motors)"
-        )
+        """Return ``True, (x, y, z)``, each ``{"options": [motor names], "default": one of them}``.
+
+        ``options`` lists the motors that move the axis, at least one.
+        ``default`` is the one used when a command does not choose: you
+        decide it, and the controller uses it for ``get_xyz`` and
+        ``set_xyz`` alike.
+        """
+        raise NotImplementedError("ZmartDriver.get_actuators: return True, (x, y, z)")
 
     def get_xyz(self, with_actuators):
         """Return ``True, (x, y, z, actuators, canvas)``, everything in micrometres.
@@ -64,16 +65,18 @@ class ZmartDriver:
         ``{"z": {"motoric": 48211.5, "piezo": 37.0}}``. ``canvas`` is
         ``(x_min, x_max, y_min, y_max, z_min, z_max)``: the travel widened
         by half a field of view, everywhere a picture can show.
-        ``with_actuators`` picks a motor per axis, such as ``{"z": "piezo"}``,
-        or is None for the first one; raise ``ValueError`` for a name that
-        is not listed.
+        ``with_actuators`` names the motor of every axis, such as
+        ``{"x": "motoric", "y": "motoric", "z": "piezo"}``: the controller has
+        already filled in your defaults and refused a motor you do not list.
         """
         raise NotImplementedError("ZmartDriver.get_xyz: return True, (x, y, z, actuators, canvas)")
 
     def set_xyz(self, x, y, z, with_actuators):
         """Move the stage, then return what ``get_xyz`` returns, or ``False, message``.
 
-        Raise ``ValueError`` for a position outside the travel. Read the
+        ``with_actuators`` names the motor of every axis, as for ``get_xyz``;
+        ``x``, ``y`` and ``z`` stay micrometres from the origin whichever
+        motor moves. Raise ``ValueError`` for a position outside the travel. Read the
         position back until the stage has arrived, then hand back the same
         ``True, (x, y, z, actuators, canvas)`` as ``get_xyz``, read from the
         microscope, so the workflow sees where the stage really is. When the
@@ -101,22 +104,31 @@ class ZmartDriver:
         raise NotImplementedError("ZmartDriver.set_state: apply the settings, return True, applied")
 
     def get_acquisition_settings(self):
-        """Return ``True, settings``: ``{name: {"options": [...], "active": value, "default": value}}``.
+        """Return ``True, settings``: how an acquisition can be triggered.
+
+        ``settings`` is ``{name: {"options": ..., "default": value, "active": value}}``,
+        usually only ``trigger``, for example
+        ``{"trigger": {"options": ["snap", "recipe"], "default": "snap", "active": "snap"}}``:
+        ``snap`` takes one picture with what is set now, ``recipe`` runs the
+        acquisition the vendor software has stored and selected. List only
+        the ways your microscope has, or add one of its own and say what it
+        does in ``get_info``. Nothing else belongs here: a z-stack, an
+        exposure or the selected recipe are state, how files are saved is
+        set up once on the microscope.
 
         ``options`` lists the values a setting may take, or describes them
-        when they cannot be listed. ``active`` is the value used when the
-        setting is left out of ``acquire``. ``default``, which may be left
-        out, is the value the microscope starts with: set up on it, or built
-        into the driver. When ``active`` differs from it, something chose
-        another value, for example this session.
+        in words when they cannot be listed. ``default`` is the value you
+        decide the microscope starts with. ``active`` is the value used when
+        the setting is left out of ``acquire``; when it differs from
+        ``default``, something chose another value, for example this session.
         """
         raise NotImplementedError("ZmartDriver.get_acquisition_settings: return True, settings")
 
     def acquire(self, position_label, acquisition_settings):
         """Capture here, save, and return ``True, (files, planes)``, or ``False, message``.
 
-        Name the saved files after ``position_label`` and never overwrite an
-        earlier one. ``files`` lists the path of every file saved. ``planes``
+        Start the name of every saved file with ``position_label``, as the
+        workflow gave it, and never overwrite an earlier one. ``files`` lists the path of every file saved. ``planes``
         has one entry per saved image plane: its ``path``, its ``c``, ``z``
         and ``t`` counted from 0, and ``x_um``, ``y_um``, ``z_um``, the
         stage position it was taken at. Raise ``ValueError`` for an

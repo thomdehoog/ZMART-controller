@@ -55,7 +55,7 @@ class TestPosition:
         assert (pos["x"]["position"], pos["y"]["position"], pos["z"]["position"]) == (10, 20, 5)
         assert pos == mic.get_xyz()["content"]
         for axis in ("x", "y", "z"):
-            assert list(pos[axis]) == ["position", "unit", "actuators", "canvas"]
+            assert list(pos[axis]) == ["position", "unit", "actuator", "actuators", "canvas"]
             assert pos[axis]["unit"] == "micrometer"
 
     def test_origin_is_driver_configuration(self):
@@ -75,8 +75,12 @@ class TestPosition:
         finally:
             session.disconnect()
 
-    def test_get_actuators_lists_options(self, mic):
-        assert mic.get_actuators()["content"]["z"] == ["motoric", "piezo"]
+    def test_get_actuators_names_the_options_and_the_default(self, mic):
+        assert mic.get_actuators()["content"]["z"] == {"options": ["motoric", "piezo"], "default": "motoric"}
+
+    def test_every_answer_says_which_motor_it_used(self, mic):
+        assert mic.get_xyz()["content"]["z"]["actuator"] == "motoric"
+        assert mic.set_xyz(0, 0, 5, with_actuators={"z": "piezo"})["content"]["z"]["actuator"] == "piezo"
 
     def test_every_motor_reports_its_raw_reading(self, mic):
         """``actuators`` lists each motor of the axis with the reading the stage itself reports."""
@@ -100,31 +104,31 @@ class TestAcquire:
         assert rec["success"] is True
         rec = rec["content"]
         assert rec["position_label"] == "A1"
-        assert rec["settle"] == "backlash-corrected"  # active default
-        assert rec["format"] == "ome-tiff"  # active default
+        assert rec["settle"] == "backlash-corrected"  # the connection's default
+        assert rec["format"] == "ome-tiff"  # the connection's default
+        assert rec["trigger"] == "snap"  # the active trigger
         assert rec["confirmed"] is True
         assert [Path(f).name for f in rec["files"]] == ["A1.ome.tif", "A1.commands.json"]
         assert all(Path(f).is_file() for f in rec["files"])
         assert rec["files"][-1] == rec["command_log"]
 
-    def test_acquire_settings_override(self, mic):
-        rec = mic.acquire(
-            position_label="B2",
-            acquisition_settings={
-                "backlash_correction": False,
-                "format": "ome-zarr",
-                "folder": "targetscan",
-            },
-        )["content"]
+    def test_saving_and_settling_are_the_connections_choice(self, tmp_path):
+        session = ZmartController(
+            mock, {"output_root": str(tmp_path), "format": "ome-zarr", "backlash_correction": False}
+        )
+        try:
+            rec = session.acquire(position_label="B2")["content"]
+        finally:
+            session.disconnect()
         assert rec["settle"] == "direct"
         assert rec["format"] == "ome-zarr"
         assert [Path(f).name for f in rec["files"]] == ["B2.ome.zarr", "B2.commands.json"]
         assert (Path(rec["files"][0]) / "zarr.json").is_file()
 
-    def test_acquisition_settings_discovered(self, mic):
-        opts = mic.get_acquisition_settings()["content"]
-        assert opts["backlash_correction"]["active"] is True
-        assert "ome-zarr" in opts["format"]["options"]
+    def test_acquisition_settings_only_say_how_to_trigger(self, mic):
+        assert mic.get_acquisition_settings()["content"] == {
+            "trigger": {"options": ["snap", "recipe"], "default": "snap", "active": "snap"}
+        }
 
 
 class TestState:
@@ -209,7 +213,7 @@ class TestDisconnect:
     def test_actuator_selection_does_not_persist(self, mic):
         """A motor chosen for one call applies to that call only.
 
-        The next call is back to the default, the first motor in the list."""
+        The next call is back to the default the driver names."""
         with_piezo = mic.set_xyz(0, 0, 30, with_actuators={"z": "piezo"})["content"]["z"]
         assert with_piezo["actuators"]["piezo"] == 30.0
         by_default = mic.set_xyz(0, 0, 40)["content"]["z"]
@@ -217,11 +221,11 @@ class TestDisconnect:
         assert by_default["actuators"]["motoric"] == with_piezo["actuators"]["motoric"] + 10.0
 
     def test_invalid_acquire_option_rejected(self, mic):
-        failed = mic.acquire(position_label="A1", acquisition_settings={"fromat": "x"})
+        failed = mic.acquire(position_label="A1", acquisition_settings={"tigger": "snap"})
         assert failed["success"] is False and re.search(
             "unknown acquisition setting", failed["content"]
         )
-        failed = mic.acquire(position_label="A1", acquisition_settings={"format": "png"})
+        failed = mic.acquire(position_label="A1", acquisition_settings={"trigger": "burst"})
         assert failed["success"] is False and re.search("invalid value", failed["content"])
 
 

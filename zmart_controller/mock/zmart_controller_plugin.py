@@ -23,9 +23,13 @@ Plug it in like any driver::
     zmart_controller.ZmartController(zmart_controller.mock)
 
 The connection dictionary is optional. It may hold ``output_root`` (where
-images are saved), ``token`` (the vendor login, default ``"mock-token"``) and
-``mock_timing``: ``"realistic"`` (the default) lets moves and acquisitions
-take time, ``"instant"`` makes them finish at once.
+images are saved), ``format`` (``"ome-tiff"``, the default, or
+``"ome-zarr"``), ``backlash_correction`` (``True``, the default, takes up
+the stage's slack before each acquisition), ``token`` (the vendor login,
+default ``"mock-token"``) and ``mock_timing``: ``"realistic"`` (the
+default) lets moves and acquisitions take time, ``"instant"`` makes them
+finish at once. How the mock saves and settles is set once here, like a
+real microscope's setup, never per acquisition.
 
 Every function except ``connect`` and ``disconnect`` takes the handle first
 and returns ``{"success": bool, "content": ...}``.
@@ -77,6 +81,13 @@ DEFAULT_OUTPUT_ROOT = Path(tempfile.gettempdir()) / "zmart-mock-output"
 # changing it can change what the other settings mean.
 _STATE_ORDER = ("objective", *SETTING_NAMES)
 
+# The stored stack the ``recipe`` trigger takes, part of the changeable state.
+_RECIPE = ("z_planes", "z_step_um")
+
+#: The ways an acquisition can be triggered, and the one used when none is chosen.
+TRIGGERS = ("snap", "recipe")
+DEFAULT_TRIGGER = "snap"
+
 
 @dataclass
 class MockHandle:
@@ -85,9 +96,12 @@ class MockHandle:
     ``vendor`` is the connection to MockScope Control (``vendor.scope`` is
     the pretend software itself, for tests). ``get`` and ``set`` are the two
     dispatchers, ``config`` the configuration loaded at connect, ``log`` the
-    command log, and ``output_root`` the folder where images are saved.
-    ``camera`` is the camera's frame in pixels, read once at connect: it
-    never changes while the software runs.
+    command log, and ``output_root`` the folder where images are saved, in
+    ``image_format``. ``backlash_correction`` says whether the stage's slack
+    is taken up before each acquisition. ``camera`` is the camera's frame in
+    pixels, read once at connect: it never changes while the software runs.
+    ``recipe`` is the stack the ``recipe`` trigger takes, which the vendor
+    software would keep as a stored acquisition; it is part of the state.
     """
 
     vendor: MockScopeConnection
@@ -96,11 +110,14 @@ class MockHandle:
     set: SetDispatcher
     log: CommandLog
     output_root: Path
+    image_format: str
+    backlash_correction: bool
     identity: tuple[str, str, str]
     client: Any = None
     closed: bool = False
     software: dict[str, str] = field(default_factory=dict)
     camera: dict[str, int] = field(default_factory=dict)
+    recipe: dict[str, Any] = field(default_factory=lambda: {"z_planes": 1, "z_step_um": 1.0})
 
     @property
     def scope(self):
@@ -138,6 +155,12 @@ def connect(connection: dict | None = None) -> MockHandle:
     timing = connection.get("mock_timing", "realistic")
     if timing not in ("realistic", "instant"):
         raise ValueError(f"mock_timing must be 'realistic' or 'instant', not {timing!r}")
+    image_format = connection.get("format", "ome-tiff")
+    if image_format not in FORMATS:
+        raise ValueError(f"format must be one of {list(FORMATS)}, not {image_format!r}")
+    backlash_correction = connection.get("backlash_correction", True)
+    if not isinstance(backlash_correction, bool):
+        raise ValueError(f"backlash_correction must be True or False, not {backlash_correction!r}")
     vendor = MockScopeConnection.start(
         output_folder=output_root / "_vendor_raw",
         token=connection.get("token", "mock-token"),
@@ -153,6 +176,8 @@ def connect(connection: dict | None = None) -> MockHandle:
             set=SetDispatcher(gate=Gate(config.limits), classify=classify, record=log.record),
             log=log,
             output_root=output_root,
+            image_format=image_format,
+            backlash_correction=backlash_correction,
             identity=identity,
             client=connection.get("client"),
         )
@@ -206,13 +231,13 @@ def disconnect(handle: MockHandle) -> None:
 # runs, so the description never promises more than the driver allows.
 DESCRIPTION = """A pretend widefield fluorescence microscope that runs entirely in software (MockScope Control), for trying workflows without hardware. It images a sample of scattered fluorescent spots on a slide that is slightly tilted, so the height at which the spots are sharp changes a little from place to place.
 
-Stage: x and y move the slide, z moves the focus, all in micrometres from the origin. z has two motors: "motoric" for long moves and "piezo" for fine, fast steps around the current height.
+Stage: x and y move the slide, z moves the focus, all in micrometres from the origin. z has two motors: "motoric", the default, for long moves and "piezo" for fine, fast steps around the current height.
 
 Objectives, by slot: 1 is 10x/0.30 Air (1.0 µm per pixel), 2 is 20x/0.75 Air (0.5 µm per pixel), 3 is 40x/0.95 Air (0.25 µm per pixel). Every image is 64 x 64 pixels, so the field of view shrinks as the magnification grows. Changing objective shifts the view slightly; the driver corrects for it.
 
-Settings (the changeable part of the state): objective is the slot number above; laser_power is the excitation in percent, {laser_power}; gain is the detector gain, {gain}; exposure_ms is the exposure time in milliseconds, {exposure_ms}. The image gets brighter with more laser power, gain or exposure; very bright settings saturate it.
+Settings (the changeable part of the state): objective is the slot number above; laser_power is the excitation in percent, {laser_power}; gain is the detector gain, {gain}; exposure_ms is the exposure time in milliseconds, {exposure_ms}. The image gets brighter with more laser power, gain or exposure; very bright settings saturate it. z_planes and z_step_um are the stored stack, the number of planes and the step between them in micrometres, upwards from the current height.
 
-Acquiring saves each image under the output folder, in a file named by the position label. The acquisition setting folder puts it in a folder of that name instead. A z-stack of several planes around the current height is one acquisition."""
+Triggers: snap takes one plane here with the settings as they are; recipe takes the stored stack. Each image is saved under the output folder, in a file whose name starts with the position label."""
 
 
 def _described(limits: dict) -> str:
@@ -221,35 +246,54 @@ def _described(limits: dict) -> str:
     return DESCRIPTION.format(**bounds)
 
 
+#: The names of the file formats, as a person reads them.
+FORMAT_NAMES = {"ome-tiff": "OME-TIFF", "ome-zarr": "OME-Zarr"}
+
+#: The motor used per axis when a command does not choose one. The driver
+#: decides it; "motoric" reaches the whole travel, the piezo only a little.
+DEFAULT_ACTUATORS = {"x": "motoric", "y": "motoric", "z": "motoric"}
+
+
 def get_info(handle: MockHandle) -> dict:
-    """Where images go, a description of the microscope, and the configuration in use."""
+    """A description of the microscope, what is set up on it, and the configuration in use.
+
+    The one set-up item is saving: where the images go and in which format,
+    as the connection chose them. The workflow decides where its own runs go.
+    """
     _require_open(handle)
+    saving = (
+        f"{FORMAT_NAMES[handle.image_format]} files under {handle.output_root}, "
+        "as the connection's output_root and format say"
+    )
     return _answer(
         {
-            "output_root": str(handle.output_root),
             "description": _described(handle.config.limits),
             "client": handle.client,
             "serial": handle.config.machine_description["serial"],
             "software": dict(handle.software),
             "configuration": dict(handle.config.sources),
-            # Nothing on the mock is set up once: it lives in memory.
-            "setup": {},
+            "setup": {"saving": {"done": True, "says": saving}},
         }
     )
 
 
 def get_actuators(handle: MockHandle) -> dict:
-    """The motors that can move each axis."""
+    """The motors that can move each axis, and the one used when none is chosen."""
     _require_open(handle)
-    return _answer({axis: list(names) for axis, names in get.ACTUATORS.items()})
+    return _answer(
+        {
+            axis: {"options": list(names), "default": DEFAULT_ACTUATORS[axis]}
+            for axis, names in get.ACTUATORS.items()
+        }
+    )
 
 
 def _actuators(with_actuators: dict | None) -> dict[str, str]:
-    """The motor to use per axis: the one named, or else the first in the list.
+    """The motor to use per axis: the one named, or else the default.
 
     A choice made for one call does not carry over to the next call.
     """
-    chosen = {axis: names[0] for axis, names in get.ACTUATORS.items()}
+    chosen = dict(DEFAULT_ACTUATORS)
     for axis, name in (with_actuators or {}).items():
         if axis not in get.ACTUATORS or name not in get.ACTUATORS[axis]:
             raise ValueError(f"unknown actuator {name!r} for axis {axis!r}")
@@ -261,17 +305,17 @@ def _actuators(with_actuators: dict | None) -> dict[str, str]:
 
 
 def get_xyz(handle: MockHandle, *, with_actuators: dict | None = None) -> dict:
-    """Where the stage is, per axis: ``position``, ``unit``, ``actuators`` and ``canvas``.
+    """Where the stage is, per axis: ``position``, ``unit``, ``actuator``, ``actuators``, ``canvas``.
 
-    ``position`` is micrometres from the origin. ``actuators`` holds every
-    motor of the axis with its own raw reading, in the stage's own
-    coordinates: for z, the coarse drive and the piezo, whose sum is the
-    focus height. ``canvas`` is everywhere a picture can show along the axis.
-    ``with_actuators`` only checks that the motors named exist; the answer
-    always reports all of them.
+    ``position`` is micrometres from the origin. ``actuator`` is the motor
+    this call used: the one ``with_actuators`` named, or the default.
+    ``actuators`` holds every motor of the axis with its own raw reading, in
+    the stage's own coordinates: for z, the coarse drive and the piezo, whose
+    sum is the focus height. ``canvas`` is everywhere a picture can show
+    along the axis.
     """
     _require_open(handle)
-    _actuators(with_actuators)
+    chosen = _actuators(with_actuators)
     raw = get.raw_position(handle).value_or_raise("the position")
     user = get.user_position(handle).value_or_raise("the position")
     ranges = user_range(handle.config, raw["objective"])
@@ -286,6 +330,7 @@ def get_xyz(handle: MockHandle, *, with_actuators: dict | None = None) -> dict:
             axis: {
                 "position": user[axis],
                 "unit": UNIT,
+                "actuator": chosen[axis],
                 "actuators": readings[axis],
                 "canvas": canvas[axis],
             }
@@ -338,7 +383,7 @@ def set_xyz(
 def get_state(handle: MockHandle) -> dict:
     """The settings that can be changed, and a read-only description of the instrument."""
     _require_open(handle)
-    changeable = get.state(handle).value_or_raise("the settings")
+    changeable = {**get.state(handle).value_or_raise("the settings"), **handle.recipe}
     slot = str(changeable["objective"])
     hardware = get.hardware(handle).value_or_raise("the hardware description")
     pixel = float(handle.config.image_stage_registration["pixel_size_um"].get(slot, 0.0))
@@ -364,18 +409,25 @@ def get_state(handle: MockHandle) -> dict:
 def set_state(handle: MockHandle, state: dict) -> dict:
     """Apply the ``changeable`` settings, confirm each one, and report what happened.
 
-    ``observed`` is never read. A setting name this microscope does not know
-    is refused with ``ValueError`` before anything is applied, so a typo never
-    passes silently. ``success`` is False when nothing was applied, or when a
-    setting was sent but could not be confirmed; both are safe to carry on
-    from, so they are reported, not raised.
+    ``observed`` is never read. A setting name this microscope does not know,
+    or a stack that is not one, is refused with ``ValueError`` before
+    anything is applied, so a typo never passes silently. The stack
+    (``z_planes``, ``z_step_um``) is kept by the driver, as the vendor
+    software keeps a stored acquisition, so it takes at once. ``success`` is
+    False when nothing was applied, or when a setting was sent but could not
+    be confirmed; both are safe to carry on from, so they are reported, not
+    raised.
     """
     _require_open(handle)
     changeable = dict(state.get("changeable", {}))
-    unknown = sorted(set(changeable) - set(_STATE_ORDER))
+    known = (*_STATE_ORDER, *_RECIPE)
+    unknown = sorted(set(changeable) - set(known))
     if unknown:
-        raise ValueError(f"unknown settings {unknown}; this microscope has {list(_STATE_ORDER)}")
-    applied: dict[str, Any] = {}
+        raise ValueError(f"unknown settings {unknown}; this microscope has {list(known)}")
+    recipe = {name: changeable[name] for name in _RECIPE if name in changeable}
+    _check_recipe({**handle.recipe, **recipe})
+    handle.recipe.update(recipe)
+    applied: dict[str, Any] = dict(recipe)
     unconfirmed: dict[str, str] = {}
     for name in _STATE_ORDER:
         if name not in changeable:
@@ -398,17 +450,14 @@ def set_state(handle: MockHandle, state: dict) -> dict:
 
 
 def _menu() -> dict:
+    """The acquisition settings: only how to trigger, with the driver's default."""
     return {
-        "folder": {"options": "any text; empty saves straight into output_root", "active": ""},
-        "backlash_correction": {"options": [True, False], "active": True},
-        "format": {"options": list(FORMATS), "active": "ome-tiff"},
-        "z_planes": {"options": "whole number from 1 up to the limit", "active": 1},
-        "z_step_um": {"options": "number > 0", "active": 1.0},
+        "trigger": {"options": list(TRIGGERS), "default": DEFAULT_TRIGGER, "active": DEFAULT_TRIGGER},
     }
 
 
 def get_acquisition_settings(handle: MockHandle) -> dict:
-    """The choices for capturing and saving, with allowed values and the active one."""
+    """How an acquisition can be triggered: one plane as set now, or the stored stack."""
     _require_open(handle)
     return _answer(_menu())
 
@@ -420,50 +469,54 @@ def _with_defaults(settings: dict | None) -> dict:
     for name, value in (settings or {}).items():
         if name not in menu:
             raise ValueError(f"unknown acquisition setting {name!r}")
-        allowed = menu[name]["options"]
-        if isinstance(allowed, list) and value not in allowed:
+        if value not in menu[name]["options"]:
             raise ValueError(f"invalid value {value!r} for acquisition setting {name!r}")
         resolved[name] = value
-    if not isinstance(resolved["folder"], str):
-        raise ValueError(f"acquisition setting 'folder' must be text, not {resolved['folder']!r}")
-    planes = resolved["z_planes"]
-    if isinstance(planes, bool) or not isinstance(planes, int) or planes < 1:
-        raise ValueError(f"invalid value {planes!r} for acquisition setting 'z_planes'")
-    step = resolved["z_step_um"]
-    if isinstance(step, bool) or not isinstance(step, (int, float)) or not step > 0:
-        raise ValueError(f"invalid value {step!r} for acquisition setting 'z_step_um'")
     return resolved
+
+
+def _check_recipe(recipe: dict) -> None:
+    """Refuse a stored stack that is not one: whole planes from 1, a step above 0."""
+    planes = recipe["z_planes"]
+    if isinstance(planes, bool) or not isinstance(planes, int) or planes < 1:
+        raise ValueError(f"z_planes must be a whole number from 1, not {planes!r}")
+    step = recipe["z_step_um"]
+    if isinstance(step, bool) or not isinstance(step, (int, float)) or not step > 0:
+        raise ValueError(f"z_step_um must be a number above 0, not {step!r}")
 
 
 def acquire(
     handle: MockHandle, *, position_label: str, acquisition_settings: dict | None = None
 ) -> dict:
-    """Capture an image (or a z-stack) here and save it, in one step.
+    """Capture an image (or the stored stack) here and save it, in one step.
 
-    The files are named after ``position_label``. Settings left out keep their
-    active value; ``folder`` puts the files in a folder of that name. The
-    content lists every saved file under ``files`` (the images, then the ``command_log`` that records
-    how they were made, which is also named on its own), and under ``planes``
-    which file, channel and depth each image plane is and the stage position
-    it was taken at. When the acquisition cannot be confirmed, ``success`` is
-    False and no files or planes are listed.
+    Every file name starts with ``position_label``. The ``trigger`` decides
+    what is taken: ``snap``, one plane with the settings as they are, or
+    ``recipe``, the stack stored in the state. How the files are saved and
+    whether the stage settles first were set at connect. The content lists
+    every saved file under ``files`` (the images, then the ``command_log``
+    that records how they were made, which is also named on its own), and
+    under ``planes`` which file, channel and depth each image plane is and
+    the stage position it was taken at. When the acquisition cannot be
+    confirmed, ``success`` is False and no files or planes are listed.
     """
     _require_open(handle)
     settings = _with_defaults(acquisition_settings)
+    stack = handle.recipe if settings["trigger"] == "recipe" else {"z_planes": 1, "z_step_um": 1.0}
     mark = handle.log.mark()
-    if settings["backlash_correction"]:
+    if handle.backlash_correction:
         PROCEDURES["backlash_takeup"]["run"](handle)
     position = get.user_position(handle).value_or_raise("the position")
     # The vendor software takes short names only; the saved files keep the full label.
-    vendor_name = safe_name(f"{settings['folder']}_{position_label}")[:NAME_LIMIT]
+    vendor_name = safe_name(position_label)[:NAME_LIMIT]
     outcome = setter.acquire(
-        handle, name=vendor_name, z_planes=settings["z_planes"], z_step_um=settings["z_step_um"]
+        handle, name=vendor_name, z_planes=stack["z_planes"], z_step_um=stack["z_step_um"]
     )
     content: dict[str, Any] = {
         "position_label": position_label,
-        "folder": settings["folder"],
-        "format": settings["format"],
-        "settle": "backlash-corrected" if settings["backlash_correction"] else "direct",
+        "trigger": settings["trigger"],
+        "format": handle.image_format,
+        "settle": "backlash-corrected" if handle.backlash_correction else "direct",
         "position": position,
         "confirmed": outcome.confirmed,
     }
@@ -474,9 +527,8 @@ def acquire(
     saved = save_acquisition(
         handle,
         vendor_file=outcome.result,
-        folder=settings["folder"],
         position_label=position_label,
-        image_format=settings["format"],
+        image_format=handle.image_format,
         position_um=position,
         log_mark=mark,
     )

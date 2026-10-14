@@ -85,9 +85,6 @@ def _check_info(content, problems):
         )
     if not isinstance(content, dict):
         return
-    output_root = content.get("output_root")
-    if output_root is not None and not (isinstance(output_root, str) and output_root.strip()):
-        problems.append("get_info: output_root must be the folder it saves under, or None while not set up")
     setup = content.get("setup", {})
     if not isinstance(setup, dict):
         problems.append('get_info: setup must map each set-up item to {"done": ..., "says": ...}')
@@ -100,20 +97,38 @@ def _check_info(content, problems):
 
 
 def _check_actuators(content, problems):
+    """Check that every axis lists its motors and names the one used when none is chosen."""
     if not isinstance(content, dict):
-        problems.append("get_actuators: the content must map each axis to a list of motor names")
+        problems.append("get_actuators: the content must map each axis to its motors and default")
         return
     for axis in AXES:
         motors = content.get(axis)
-        if not isinstance(motors, list) or not motors:
+        if not isinstance(motors, dict) or not isinstance(motors.get("options"), list):
+            problems.append(
+                f"get_actuators: axis {axis!r} must be "
+                '{"options": [motor names], "default": one of them}'
+            )
+            continue
+        if not motors["options"]:
             problems.append(f"get_actuators: axis {axis!r} must list at least one motor")
+        elif "default" not in motors:
+            problems.append(
+                f"get_actuators: axis {axis!r} must name its default, "
+                "the motor used when none is chosen"
+            )
+        elif motors["default"] not in motors["options"]:
+            problems.append(
+                f"get_actuators: axis {axis!r} has default {motors['default']!r}, "
+                f"which is not one of its options {motors['options']!r}"
+            )
 
 
 def _check_xyz(content, problems):
     """Check a ``get_xyz`` answer; ``set_xyz`` answers the same, so it fits the same check.
 
     Each axis must carry ``position``, a number, micrometres from the
-    origin; ``unit``, which must be ``"micrometer"``; ``actuators``, every
+    origin; ``unit``, which must be ``"micrometer"``; ``actuator``, the
+    motor this answer used, one of those it reads; ``actuators``, every
     motor of the axis with its own raw reading, as a number; and ``canvas``,
     everywhere a picture can show, as [min, max].
     """
@@ -125,7 +140,7 @@ def _check_xyz(content, problems):
         if not isinstance(reading, dict):
             problems.append(f"get_xyz: axis {axis!r} is missing")
             continue
-        for key in ("position", "unit", "actuators", "canvas"):
+        for key in ("position", "unit", "actuator", "actuators", "canvas"):
             if key not in reading:
                 problems.append(f"get_xyz: axis {axis!r} is missing {key!r}")
         if "position" in reading and not _is_number(reading["position"]):
@@ -133,7 +148,14 @@ def _check_xyz(content, problems):
         if "unit" in reading and reading["unit"] != UNIT:
             problems.append(f"get_xyz: axis {axis!r} unit must be {UNIT!r}")
         if "actuators" in reading:
+            found = len(problems)
             _check_readings(axis, reading["actuators"], problems)
+            readings = reading["actuators"]
+            if len(problems) == found and "actuator" in reading and reading["actuator"] not in readings:
+                problems.append(
+                    f"get_xyz: axis {axis!r} actuator {reading['actuator']!r} must be one of "
+                    f"the motors it reads, {list(readings)}"
+                )
         canvas = reading.get("canvas")
         if canvas is not None:
             _check_canvas(axis, canvas, problems)
@@ -182,20 +204,30 @@ def _check_state(content, problems):
 
 
 def _check_acquisition_settings(content, problems):
+    """Check that every setting has its options, the driver's default and the active value.
+
+    Options may be a list or a rule in words; when they are a list, the
+    default and the active value must both be on it.
+    """
     if not isinstance(content, dict):
         problems.append(
             "get_acquisition_settings: the content must map each setting to its choices"
         )
         return
     for name, spec in content.items():
-        if not isinstance(spec, dict) or "options" not in spec or "active" not in spec:
-            problems.append(f'get_acquisition_settings: {name!r} must have "options" and "active"')
-            continue
-        if "default" in spec and isinstance(spec["options"], list) and spec["default"] not in spec["options"]:
+        if not isinstance(spec, dict) or not {"options", "default", "active"} <= set(spec):
             problems.append(
-                f"get_acquisition_settings: {name!r} has default {spec['default']!r}, "
-                f"which is not one of its options {spec['options']!r}"
+                f'get_acquisition_settings: {name!r} must have "options", "default" and "active"'
             )
+            continue
+        if not isinstance(spec["options"], list):
+            continue
+        for key in ("default", "active"):
+            if spec[key] not in spec["options"]:
+                problems.append(
+                    f"get_acquisition_settings: {name!r} has {key} {spec[key]!r}, "
+                    f"which is not one of its options {spec['options']!r}"
+                )
 
 
 def _check_procedures(content, problems):

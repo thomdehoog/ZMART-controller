@@ -35,10 +35,14 @@ class PretendDriver(ZmartDriver):
         pass
 
     def get_info(self):
-        return True, ("A pretend microscope. +z points up.", str(self.folder), {})
+        return True, ("A pretend microscope. +z points up.", {})
 
     def get_actuators(self):
-        return True, (["motor"], ["motor"], ["motor", "piezo"])
+        return True, (
+            {"options": ["motor"], "default": "motor"},
+            {"options": ["motor"], "default": "motor"},
+            {"options": ["motor", "piezo"], "default": "motor"},
+        )
 
     def get_xyz(self, with_actuators):
         p = self.position
@@ -66,7 +70,7 @@ class PretendDriver(ZmartDriver):
         return True, dict(changeable)
 
     def get_acquisition_settings(self):
-        return True, {"format": {"options": ["json"], "active": "json"}}
+        return True, {"trigger": {"options": ["snap"], "default": "snap", "active": "snap"}}
 
     def acquire(self, position_label, acquisition_settings):
         path = self.folder / f"{position_label}.json"

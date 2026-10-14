@@ -117,11 +117,10 @@ mic.get_info()
                               '10x/0.30 air, slot 2 is 20x/0.75 air, slot 3 is 63x/1.40 oil. Channels: '
                               'DAPI, GFP and TxRed, each with its own exposure in milliseconds and '
                               'LED power in percent.',
-               'output_root': '<the folder this microscope saves under>',
                'setup': {'<something set up once on this microscope>': {'done': True, 'says': '<whatever context you want to provide>'}}}}
   ```
 
-- **Note:** A description of the microscope, written by the driver's author. It explains the settings and the axes. Read it once when you start on a new microscope.
+- **Note:** A description of the microscope, written by the driver's author. It explains the settings and the axes. Read it once when you start on a new microscope. `setup` lists what is set up once on this microscope, such as where and how it saves, each with whether it is done.
 
 <br>
 
@@ -136,8 +135,12 @@ mic.get_actuators()
 
   ```python
   {'success': True,
-   'content': {'x': ['motoric'], 'y': ['motoric'], 'z': ['motoric', 'piezo']}}
+   'content': {'x': {'options': ['motoric'], 'default': 'motoric'},
+               'y': {'options': ['motoric'], 'default': 'motoric'},
+               'z': {'options': ['motoric', 'piezo'], 'default': 'motoric'}}}
   ```
+
+- **Note:** The motors that move each axis. `default` is the motor used when you do not choose one; the driver decides it, and `get_xyz` and `set_xyz` both use it.
 
 <br>
 
@@ -148,19 +151,20 @@ mic.get_xyz(with_actuators=None)
 ```
 
 - **Input**
-  - `with_actuators`: optional; which motor to read per axis, for example `{"z": "piezo"}`. Default: the first motor in `get_actuators` for each axis.
+  - `with_actuators`: optional; which motor to read per axis, for example `{"z": "piezo"}`. Default: the `default` in `get_actuators` for each axis you leave out.
 - **Output (example)**
 
   ```python
   {'success': True,
-   'content': {'x': {'position': 0.0, 'unit': 'micrometer', 'actuators': {'motoric': 50000.0},               'canvas': [-5032.0, 5032.0]},
-               'y': {'position': 0.0, 'unit': 'micrometer', 'actuators': {'motoric': 37500.0},               'canvas': [-5032.0, 5032.0]},
-               'z': {'position': 0.0, 'unit': 'micrometer', 'actuators': {'motoric': 5000.0, 'piezo': 0.0},  'canvas': [-500.0, 500.0]}}}
+   'content': {'x': {'position': 0.0, 'unit': 'micrometer', 'actuator': 'motoric', 'actuators': {'motoric': 50000.0},               'canvas': [-5032.0, 5032.0]},
+               'y': {'position': 0.0, 'unit': 'micrometer', 'actuator': 'motoric', 'actuators': {'motoric': 37500.0},               'canvas': [-5032.0, 5032.0]},
+               'z': {'position': 0.0, 'unit': 'micrometer', 'actuator': 'motoric', 'actuators': {'motoric': 5000.0, 'piezo': 0.0},  'canvas': [-500.0, 500.0]}}}
   ```
 
-- **Note:** One dictionary with the keys `x`, `y` and `z`. Each axis has the same four entries. All numbers are in micrometres.
+- **Note:** One dictionary with the keys `x`, `y` and `z`. Each axis has the same five entries. All numbers are in micrometres.
   - `position`: the position of the view in the absolute coordinate system. In a saved image, right is +x and down is +y.
   - `unit`: `'micrometer'`. This is the unit of every number in the answer. It is given as information.
+  - `actuator`: the motor this call used: the one you chose, or else the default.
   - `actuators`: the raw reading of each motor on this axis, as the microscope reports it. When an axis has several motors, this shows how they share the position.
   - `canvas`: `[min, max]`. The range on this axis where an image can be taken. It is the stage travel plus half a field of view.
 
@@ -174,14 +178,14 @@ mic.set_xyz(x, y, z, with_actuators=None)
 
 - **Input**
   - `x`, `y`, `z`: the position to move to, in micrometres from the origin. All three are required.
-  - `with_actuators`: optional; which motor to use per axis, for example `{"z": "piezo"}`. Default: the first motor in `get_actuators` for each axis.
+  - `with_actuators`: optional; which motor to use per axis, for example `{"z": "piezo"}`. Default: the `default` in `get_actuators` for each axis you leave out, the same as for `get_xyz`.
 - **Output (example)**
 
   ```python
   {'success': True,
-   'content': {'x': {'position': 100.0, 'unit': 'micrometer', 'actuators': {'motoric': 50100.0},               'canvas': [-5032.0, 5032.0]},
-               'y': {'position': 50.0,  'unit': 'micrometer', 'actuators': {'motoric': 37550.0},               'canvas': [-5032.0, 5032.0]},
-               'z': {'position': 0.0,   'unit': 'micrometer', 'actuators': {'motoric': 5000.0, 'piezo': 0.0},  'canvas': [-500.0, 500.0]}}}
+   'content': {'x': {'position': 100.0, 'unit': 'micrometer', 'actuator': 'motoric', 'actuators': {'motoric': 50100.0},               'canvas': [-5032.0, 5032.0]},
+               'y': {'position': 50.0,  'unit': 'micrometer', 'actuator': 'motoric', 'actuators': {'motoric': 37550.0},               'canvas': [-5032.0, 5032.0]},
+               'z': {'position': 0.0,   'unit': 'micrometer', 'actuator': 'motoric', 'actuators': {'motoric': 5000.0, 'piezo': 0.0},  'canvas': [-500.0, 500.0]}}}
   ```
 
 - **Note:** You choose which actuator makes the move, but `x`, `y` and `z` are always positions in the absolute coordinate system of the canvas, in micrometres, never in the actuator's own units. The call should return when the stage has arrived. The answer is the same as `get_xyz`, read from the microscope. So it shows the real position, not the one you asked for. A move outside the travel returns `success: False`. So does a move the driver could not confirm.
@@ -199,7 +203,7 @@ mic.get_state()
 
   ```python
   {'success': True,
-   'content': {'changeable': {'laser_power': 10.0, 'gain': 100.0, 'exposure_ms': 10.0, 'objective': 1},
+   'content': {'changeable': {'laser_power': 10.0, 'gain': 100.0, 'exposure_ms': 10.0, 'objective': 1, 'z_planes': 1, 'z_step_um': 1.0},
                'observed': {'objective': '10x/0.30 Air', 'pixel_size': {'x': 1.0, 'y': 1.0, 'unit': 'um'}, ...}}}
   ```
 
@@ -237,13 +241,10 @@ mic.get_acquisition_settings()
 
   ```python
   {'success': True,
-   'content': {'format':    {'options': ['ome-tiff', 'ome-zarr'], 'active': 'ome-tiff', 'default': 'ome-zarr'},
-               'z_planes':  {'options': 'whole number from 1 up to the limit', 'active': 1},
-               'z_step_um': {'options': 'number > 0', 'active': 1.0},
-               ...}}
+   'content': {'trigger': {'options': ['snap', 'recipe'], 'default': 'snap', 'active': 'snap'}}}
   ```
 
-- **Note:** The settings for taking and saving an image. `options` lists the values a setting can take. `active` is the value in use now. It is used when you give nothing. `default`, when a driver gives it, is the value the microscope starts with; an `active` that differs from it was chosen, for example by this session.
+- **Note:** How an acquisition can be triggered, and nothing else. `snap` takes one picture with the settings as they are. `recipe` runs the acquisition the microscope has stored, such as a z-stack; on the mock, its planes and step are part of the state. Each driver lists only the triggers its microscope has, and may add one of its own, which `get_info` explains. `options` lists the values a setting can take, or describes them in words. `default` is the value the driver chose. `active` is the value in use now, used when you give nothing; an `active` that differs from `default` was chosen, for example by this session.
 
 <br>
 
@@ -254,8 +255,8 @@ mic.acquire(position_label, acquisition_settings=None)
 ```
 
 - **Input**
-  - `position_label`: a name for this position, for example `"A1"`. The files are saved under this name.
-  - `acquisition_settings`: optional; values from `get_acquisition_settings`, for example `{"z_planes": 3, "z_step_um": 2.0}`. Default: the `active` value of every setting.
+  - `position_label`: a name for this position, for example `"A1"`. Every saved file's name starts with it.
+  - `acquisition_settings`: optional; values from `get_acquisition_settings`, for example `{"trigger": "recipe"}`. Default: the `active` value of every setting.
 - **Output (example)**
 
   ```python

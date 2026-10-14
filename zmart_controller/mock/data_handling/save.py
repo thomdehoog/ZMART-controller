@@ -2,13 +2,13 @@
 
 The layout under the output folder is::
 
-    <output_root>/<folder>/<position_label>.ome.tif          one plane
-    <output_root>/<folder>/<position_label>_z000.ome.tif     a z-stack, one file per plane
-    <output_root>/<folder>/<position_label>.ome.zarr/        OME-Zarr, any number of planes
-    <output_root>/<folder>/<position_label>.commands.json    the command log
+    <output_root>/<position_label>.ome.tif          one plane
+    <output_root>/<position_label>_z000.ome.tif     a z-stack, one file per plane
+    <output_root>/<position_label>.ome.zarr/        OME-Zarr, any number of planes
+    <output_root>/<position_label>.commands.json    the command log
 
-``folder`` is an acquisition setting. With no folder, the files go
-straight into ``<output_root>``.
+Every name starts with the label the workflow gave, so a workflow that wants
+its acquisitions told apart says so in the label.
 
 Nothing is ever overwritten: a second acquisition with the same label gets
 ``_001``, ``_002`` and so on.
@@ -55,7 +55,6 @@ def save_acquisition(
     ctx,
     *,
     vendor_file: str,
-    folder: str,
     position_label: str,
     image_format: str,
     position_um: dict[str, float],
@@ -87,7 +86,6 @@ def save_acquisition(
         "z": position_um["z"],
     }
     extra = {
-        "folder": folder,
         "position_label": position_label,
         "objective": header["objective"]["name"],
         "vendor_file": str(vendor_file),
@@ -95,7 +93,7 @@ def save_acquisition(
         "calibration": ctx.config.sources["optical_calibration"],
     }
     label = safe_name(position_label)
-    folder = Path(ctx.output_root) / safe_name(folder) if folder else Path(ctx.output_root)
+    folder = Path(ctx.output_root)
     folder.mkdir(parents=True, exist_ok=True)
     files: list[str] = []
     if image_format == "ome-zarr":
