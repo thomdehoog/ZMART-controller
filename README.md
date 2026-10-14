@@ -13,7 +13,7 @@
 <td width="170"><img src="docs/zmart-controller-icon.png" width="150" alt="ZMART Controller"></td>
 <td valign="middle">
 
-The **ZMART Controller** provides a simple, universal schema for driving a microscope using Python. Writing your automated workflow on it simplifies testing and simulating workflows. It also allows you to reuse your workflows on different microscopes.
+The **ZMART Controller** provides a simple, universal schema for driving a microscope using Python. The simplifies testing and simulating workflows and allows you to reuse your workflows on different microscopes.
 
 It is part of [**ZMART**](https://github.com/thomdehoog/ZMART-microscopy) (ZMB's Microscopy-Agnostic Research Toolkit), the tools we are building for smart microscopy at the Center for Microscopy and Image Analysis (ZMB), University of Zurich.
 
@@ -105,7 +105,7 @@ To use it in a project of your own, add it to the project's dependencies, for ex
 dependencies = ["zmart-controller @ git+https://github.com/thomdehoog/ZMART-controller"]
 ```
 
-## Related standards
+## Related standards for interoperability
 
 We are aware of the [useq-schema](https://github.com/pymmcore-plus/useq-schema) from the Micro-Manager
 community and of Anthropic's [Model Hardware Standard](https://www.anthropic.com/news/model-hardware-standard-research-preview).
