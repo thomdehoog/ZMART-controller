@@ -33,8 +33,13 @@ class Scope(ZmartDriver):
         return True, tuple({"options": ["motor"], "default": "motor"} for _ in "xyz")
 
     def get_xyz(self, with_actuators):
-        return True, (0.0, 0.0, 0.0, {"x": {"motor": 0.0}, "y": {"motor": 0.0}, "z": {"motor": 0.0}},
-                      (-10.0, 10.0, -10.0, 10.0, -1.0, 1.0))
+        return True, (
+            0.0,
+            0.0,
+            0.0,
+            {"x": {"motor": 0.0}, "y": {"motor": 0.0}, "z": {"motor": 0.0}},
+            (-10.0, 10.0, -10.0, 10.0, -1.0, 1.0),
+        )
 
     def get_state(self):
         return True, ({}, {})
@@ -63,14 +68,19 @@ def test_get_info_says_what_is_set_up():
 
 
 def test_a_scope_not_yet_told_where_to_save_says_so_and_how():
-    driver = scope(info=(
-        "A scope in memory. +z points up.",
-        {"data_location": {"done": False, "says": "run set_data_location.ipynb once"}},
-    ))
+    driver = scope(
+        info=(
+            "A scope in memory. +z points up.",
+            {"data_location": {"done": False, "says": "run set_data_location.ipynb once"}},
+        )
+    )
 
     content = ZmartController(driver, {}).get_info()["content"]
 
-    assert content["setup"]["data_location"] == {"done": False, "says": "run set_data_location.ipynb once"}
+    assert content["setup"]["data_location"] == {
+        "done": False,
+        "says": "run set_data_location.ipynb once",
+    }
     assert validate_driver(driver, {}) == []
 
 
@@ -89,7 +99,9 @@ def test_a_wrong_answer_is_named(info, says):
 
 
 def test_a_default_may_differ_from_the_active_value():
-    driver = scope(settings={"trigger": {"options": ["snap", "full"], "default": "snap", "active": "full"}})
+    driver = scope(
+        settings={"trigger": {"options": ["snap", "full"], "default": "snap", "active": "full"}}
+    )
 
     content = ZmartController(driver, {}).get_acquisition_settings()["content"]
 

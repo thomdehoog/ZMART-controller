@@ -76,11 +76,17 @@ class TestPosition:
             session.disconnect()
 
     def test_get_actuators_names_the_options_and_the_default(self, mic):
-        assert mic.get_actuators()["content"]["z"] == {"options": ["motoric", "piezo"], "default": "motoric"}
+        assert mic.get_actuators()["content"]["z"] == {
+            "options": ["motoric", "piezo"],
+            "default": "motoric",
+        }
 
     def test_every_answer_says_which_motor_it_used(self, mic):
         assert mic.get_xyz()["content"]["z"]["actuator"] == "motoric"
-        assert mic.set_xyz(0, 0, 5, with_actuators={"z": "piezo"})["content"]["z"]["actuator"] == "piezo"
+        assert (
+            mic.set_xyz(0, 0, 5, with_actuators={"z": "piezo"})["content"]["z"]["actuator"]
+            == "piezo"
+        )
 
     def test_every_motor_reports_its_raw_reading(self, mic):
         """``actuators`` lists each motor of the axis with the reading the stage itself reports."""

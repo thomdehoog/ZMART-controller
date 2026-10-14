@@ -93,7 +93,9 @@ def _check_info(content, problems):
         if not isinstance(state, dict) or not isinstance(state.get("done"), bool):
             problems.append(f'get_info: setup {item!r} must say "done": True or False')
         elif not (isinstance(state.get("says"), str) and state["says"].strip()):
-            problems.append(f"get_info: setup {item!r} must say in words what it holds or what to do")
+            problems.append(
+                f"get_info: setup {item!r} must say in words what it holds or what to do"
+            )
 
 
 def _check_actuators(content, problems):
@@ -151,7 +153,11 @@ def _check_xyz(content, problems):
             found = len(problems)
             _check_readings(axis, reading["actuators"], problems)
             readings = reading["actuators"]
-            if len(problems) == found and "actuator" in reading and reading["actuator"] not in readings:
+            if (
+                len(problems) == found
+                and "actuator" in reading
+                and reading["actuator"] not in readings
+            ):
                 problems.append(
                     f"get_xyz: axis {axis!r} actuator {reading['actuator']!r} must be one of "
                     f"the motors it reads, {list(readings)}"
@@ -379,8 +385,9 @@ def _stack_problems(heights: dict[tuple[int, int, int], float]) -> list[str]:
                 f"acquire: depth {z} at time {t} is at z_um {heights[first]} in channel "
                 f"{first[0]} but {height} in channel {c}; the channels of one slice share its height"
             )
-        below = max((one for one in heights if one[0] == c and one[2] == t and one[1] < z),
-                    default=None)
+        below = max(
+            (one for one in heights if one[0] == c and one[2] == t and one[1] < z), default=None
+        )
         if below is not None and height <= heights[below]:
             problems.append(
                 f"acquire: channel {c} at time {t}: depth {z} is at z_um {height}, not above "

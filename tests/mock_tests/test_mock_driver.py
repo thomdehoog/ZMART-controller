@@ -191,7 +191,9 @@ class TestLimitsGate:
         session = _open(tmp_path, mock_timing="instant", backlash_correction=False)
         try:
             session.set_xyz(0, 0, 490)
-            failed = session.acquire(position_label="p", acquisition_settings=_full_stack(session, 20))
+            failed = session.acquire(
+                position_label="p", acquisition_settings=_full_stack(session, 20)
+            )
         finally:
             session.disconnect()
         assert failed["success"] is False and "z-stack" in failed["content"]
@@ -287,9 +289,13 @@ def _tiff_description(path: Path) -> str:
 class TestDataHandling:
     def test_the_stack_is_state_and_the_full_trigger_takes_it(self, mic):
         mic.set_state({"changeable": {"z_planes": 3, "z_step_um": 2.0}})
-        assert {"z_planes": 3, "z_step_um": 2.0}.items() <= mic.get_state()["content"]["changeable"].items()
+        assert {"z_planes": 3, "z_step_um": 2.0}.items() <= mic.get_state()["content"][
+            "changeable"
+        ].items()
         snapped = mic.acquire(position_label="snap")["content"]
-        taken = mic.acquire(position_label="stack", acquisition_settings={"trigger": "full"})["content"]
+        taken = mic.acquire(position_label="stack", acquisition_settings={"trigger": "full"})[
+            "content"
+        ]
         assert len(snapped["planes"]) == 1
         assert len(taken["planes"]) == 3
 

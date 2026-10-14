@@ -383,9 +383,10 @@ def test_the_channels_of_one_slice_share_its_height(saved):
 
 
 def test_a_later_time_point_may_stand_at_other_heights(saved):
-    planes = [*_stack(saved, [10.0, 12.0]), *[
-        _plane(saved, z=z, t=1, z_um=height) for z, height in enumerate([10.5, 12.5])
-    ]]
+    planes = [
+        *_stack(saved, [10.0, 12.0]),
+        *[_plane(saved, z=z, t=1, z_um=height) for z, height in enumerate([10.5, 12.5])],
+    ]
     assert check_acquire_answer(_answer(files=[str(saved)], planes=planes)) == []
 
 

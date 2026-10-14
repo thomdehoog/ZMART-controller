@@ -452,7 +452,11 @@ def set_state(handle: MockHandle, state: dict) -> dict:
 def _menu() -> dict:
     """The acquisition settings: only how to trigger, with the driver's default."""
     return {
-        "trigger": {"options": list(TRIGGERS), "default": DEFAULT_TRIGGER, "active": DEFAULT_TRIGGER},
+        "trigger": {
+            "options": list(TRIGGERS),
+            "default": DEFAULT_TRIGGER,
+            "active": DEFAULT_TRIGGER,
+        },
     }
 
 

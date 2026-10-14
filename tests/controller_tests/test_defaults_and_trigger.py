@@ -26,7 +26,10 @@ class Scope(ZmartDriver):
 
     actuators = ACTUATORS
     settings = {"trigger": {"options": ["snap", "full"], "default": "snap", "active": "snap"}}
-    info = ("A scope in memory. +z points up.", {"saving": {"done": True, "says": "OME-TIFF under D:/data"}})
+    info = (
+        "A scope in memory. +z points up.",
+        {"saving": {"done": True, "says": "OME-TIFF under D:/data"}},
+    )
 
     def __init__(self, connection):
         self.asked = []
@@ -42,7 +45,11 @@ class Scope(ZmartDriver):
 
     def get_xyz(self, with_actuators):
         self.asked.append(with_actuators)
-        readings = {"x": {"motoric": 0.0}, "y": {"motoric": 0.0}, "z": {"motoric": 0.0, "piezo": 0.0}}
+        readings = {
+            "x": {"motoric": 0.0},
+            "y": {"motoric": 0.0},
+            "z": {"motoric": 0.0, "piezo": 0.0},
+        }
         return True, (0.0, 0.0, 0.0, readings, (-10.0, 10.0, -10.0, 10.0, -1.0, 1.0))
 
     def set_xyz(self, x, y, z, with_actuators):
@@ -76,7 +83,13 @@ def test_get_actuators_names_the_default_per_axis():
 
 
 def test_the_driver_decides_the_default_not_the_list_order():
-    piezo_first = scope(actuators=(ACTUATORS[0], ACTUATORS[1], {"options": ["motoric", "piezo"], "default": "piezo"}))
+    piezo_first = scope(
+        actuators=(
+            ACTUATORS[0],
+            ACTUATORS[1],
+            {"options": ["motoric", "piezo"], "default": "piezo"},
+        )
+    )
     session = ZmartController(piezo_first, {})
 
     answer = session.get_xyz()["content"]
@@ -93,7 +106,9 @@ def test_get_and_set_use_the_same_default_and_say_which_motor(command):
     answer = call() if command == "get_xyz" else call(1.0, 2.0, 0.0)
 
     assert {axis: reading["actuator"] for axis, reading in answer["content"].items()} == {
-        "x": "motoric", "y": "motoric", "z": "motoric",
+        "x": "motoric",
+        "y": "motoric",
+        "z": "motoric",
     }
     assert session._handle.asked == [{"x": "motoric", "y": "motoric", "z": "motoric"}]
 
@@ -110,7 +125,10 @@ def test_a_chosen_motor_replaces_the_default_for_that_axis_only():
 
 @pytest.mark.parametrize(
     ("chosen", "says"),
-    [({"z": "hovercraft"}, "'hovercraft' is not an actuator of axis 'z'"), ({"w": "motoric"}, "no axis 'w'")],
+    [
+        ({"z": "hovercraft"}, "'hovercraft' is not an actuator of axis 'z'"),
+        ({"w": "motoric"}, "no axis 'w'"),
+    ],
 )
 def test_an_unknown_motor_is_refused_before_the_driver_is_asked(chosen, says):
     session = ZmartController(Scope, {})
@@ -145,8 +163,14 @@ def test_a_scope_that_names_every_default_fits():
     ("actuators", "says"),
     [
         ((["motoric"], ["motoric"], ["motoric"]), "get_actuators: axis 'x' must be"),
-        ((ACTUATORS[0], ACTUATORS[1], {"options": ["motoric", "piezo"]}), "get_actuators: axis 'z' must name its default"),
-        ((ACTUATORS[0], ACTUATORS[1], {"options": ["motoric"], "default": "piezo"}), "not one of its options"),
+        (
+            (ACTUATORS[0], ACTUATORS[1], {"options": ["motoric", "piezo"]}),
+            "get_actuators: axis 'z' must name its default",
+        ),
+        (
+            (ACTUATORS[0], ACTUATORS[1], {"options": ["motoric"], "default": "piezo"}),
+            "not one of its options",
+        ),
         ((ACTUATORS[0], ACTUATORS[1], {"options": [], "default": "motoric"}), "at least one"),
     ],
 )
@@ -159,9 +183,15 @@ def test_a_wrong_actuator_answer_is_named(actuators, says):
 @pytest.mark.parametrize(
     ("settings", "says"),
     [
-        ({"trigger": {"options": ["snap"], "active": "snap"}}, "'trigger' must have \"options\", \"default\" and \"active\""),
+        (
+            {"trigger": {"options": ["snap"], "active": "snap"}},
+            '\'trigger\' must have "options", "default" and "active"',
+        ),
         ({"trigger": {"options": ["snap"], "default": "full", "active": "snap"}}, "default 'full'"),
-        ({"trigger": {"options": ["snap"], "default": "snap", "active": "burst"}}, "active 'burst'"),
+        (
+            {"trigger": {"options": ["snap"], "default": "snap", "active": "burst"}},
+            "active 'burst'",
+        ),
     ],
 )
 def test_a_setting_without_a_proper_default_is_named(settings, says):
@@ -171,7 +201,14 @@ def test_a_setting_without_a_proper_default_is_named(settings, says):
 
 
 def test_a_setting_described_in_words_still_names_a_default():
-    driver = scope(settings={"trigger": {"options": "snap, or a hardware pulse on line 3", "default": "snap", "active": "snap"}})
+    driver = scope(
+        settings={
+            "trigger": {
+                "options": "snap, or a hardware pulse on line 3",
+                "default": "snap",
+                "active": "snap",
+            }
+        }
+    )
 
     assert validate_driver(driver, {}) == []
-
