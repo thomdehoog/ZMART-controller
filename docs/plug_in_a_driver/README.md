@@ -77,7 +77,7 @@ the controller calls your `set_state(...)`, and so on for every command.
 
 ### Input and output
 
-Each method returns two things: `True` and the content, or `False` and an
+Each method returns two things: `True` and the output, or `False` and an
 error message. The controller turns this into the answer the workflow sees,
 with the keys `success` and `content`. If the method raises an error instead,
 for example because the vendor library failed, the controller catches it and
