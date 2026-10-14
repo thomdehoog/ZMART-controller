@@ -117,9 +117,8 @@ mic.get_info()
                               '10x/0.30 air, slot 2 is 20x/0.75 air, slot 3 is 63x/1.40 oil. Channels: '
                               'DAPI, GFP and TxRed, each with its own exposure in milliseconds and '
                               'LED power in percent.',
-               'output_root': 'D:/ZMART-data',
-               'setup': {'limits': {'done': True, 'says': 'published 2026-07-09'},
-                         'data_location': {'done': True, 'says': 'D:/ZMART-data'}}}}
+               'output_root': '<the folder this microscope saves under>',
+               'setup': {'<something set up once on this microscope>': {'done': True, 'says': '<whatever context you want to provide>'}}}}
   ```
 
 - **Note:** A description of the microscope, written by the driver's author. It explains the settings and the axes. Read it once when you start on a new microscope.
