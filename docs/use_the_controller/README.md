@@ -255,7 +255,7 @@ mic.acquire(position_label, acquisition_settings=None)
 ```
 
 - **Input**
-  - `position_label`: a name for this position, for example `"A1"`. Every saved file's name starts with it.
+  - `position_label`: a name for this position, for example `"A1"`. The controller hands it to the driver as it is.
   - `acquisition_settings`: optional; values from `get_acquisition_settings`, for example `{"trigger": "full"}`. Default: the `active` value of every setting.
 - **Output (example)**
 

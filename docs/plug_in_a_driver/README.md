@@ -218,7 +218,7 @@ Acquisition settings say only how an acquisition is triggered. For example, `sna
 
 ```python
 def acquire(self, position_label, acquisition_settings):
-    # take an image, start every file name with position_label, never overwrite
+    # take an image, save it, never overwrite; position_label is the workflow's name, as given
     return True, (files, planes)
     # files    ["D:/images/A1.ome.tif", ...]
     # planes   [{"path": ..., "c": 0, "z": 0, "t": 0, "x_um": ..., "y_um": ..., "z_um": ...}, ...]

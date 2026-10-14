@@ -128,8 +128,9 @@ class ZmartDriver:
     def acquire(self, position_label, acquisition_settings):
         """Capture here, save, and return ``True, (files, planes)``, or ``False, message``.
 
-        Start the name of every saved file with ``position_label``, as the
-        workflow gave it, and never overwrite an earlier one. ``files`` lists the path of every file saved. ``planes``
+        ``position_label`` is the workflow's name for this capture, handed on
+        as it was given. Never overwrite an earlier file. ``files`` lists the
+        path of every file saved. ``planes``
         has one entry per saved image plane: its ``path``, its ``c``, ``z``
         and ``t`` counted from 0, and ``x_um``, ``y_um``, ``z_um``, the
         stage position it was taken at. Raise ``ValueError`` for an
