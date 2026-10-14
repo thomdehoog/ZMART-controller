@@ -77,7 +77,6 @@ mic.get_acquisition_settings()
 mic.acquire(position_label=String, acquisition_settings=Dict)
 
 # 6) Run a routine the microscope offers (for example autofocus)
-#    (the routines are not standardised either and differ between microscopes)
 mic.get_procedures()
 mic.run_procedure(Dict)
 
@@ -114,7 +113,7 @@ our needs, and the Model Hardware Standard is not released to the public yet.
 
 ## Status
 
-This is version 0.1. Today it is the layer between our workflows and the Leica Stellaris: the workflow
+This is version 0.3. Today it is the layer between our workflows and the Leica Stellaris: the workflow
 speaks the controller's commands, and the Stellaris driver turns them into actions on the microscope.
 However, the mock driver, `zmart_controller.mock`, lets you try everything without a microscope.
 
