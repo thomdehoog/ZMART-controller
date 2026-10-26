@@ -131,7 +131,10 @@ class TestThePluginFiles:
         """JSON is UTF-8; on Windows a plain read_text() took the code page and garbled it."""
         folder = make_driver(tmp_path / "driver")
         settings = folder / "zmart_controller_plugin" / "zmart_controller_plugin.json"
-        written = {"name": "my-scope", "connection": {"api_type": "socket · v2", "microscope": "µscope"}}
+        written = {
+            "name": "my-scope",
+            "connection": {"api_type": "socket · v2", "microscope": "µscope"},
+        }
         settings.write_bytes(json.dumps(written, ensure_ascii=False).encode("utf-8"))
         assert load_driver(folder).CONNECTION == written["connection"]
 
