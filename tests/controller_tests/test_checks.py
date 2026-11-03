@@ -230,7 +230,7 @@ def test_the_mocks_acquisition_fits():
 def test_files_names_everything_the_acquisition_saved():
     content = _acquire(z_planes=2)["content"]
     names = [Path(path).name for path in content["files"]]
-    assert names == ["A1_z000.ome.tif", "A1_z001.ome.tif", "A1.commands.json"]
+    assert names == ["A1.ome.tif", "A1.commands.json"]
     assert content["command_log"] in content["files"]
 
 

@@ -228,6 +228,13 @@ The call should return when the acquisition is done. Return every saved file and
 
 Every plane says where on the sample it was taken, in the frame `set_xyz` takes. A z-stack the microscope makes by itself is described the same way on every microscope: `z_um` is each slice's own height, `z = 0` is the lowest slice and each depth above it is higher, whichever way the microscope moved, and the channels of one slice share its height. `check_acquire_answer` refuses an answer that does not.
 
+If your driver writes its images itself, write one position per acquisition, in the format the connection names under `"format"` (when it names none, choose your microscope's usual one):
+
+- `"ome-tiff"`: one `.ome.tif` file holding every channel and plane. Its OME-XML gives the pixel size and, on every plane, the stage position of the picture's **corner** (not its middle), in micrometres. Add a map annotation with the namespace `zmart/position` holding `position_origin` = `corner`: that note is how the ZMART interface and viewer know the file is a position they can use as it is. Other programs skip it.
+- `"ome-zarr"`: one `.ome.zarr` image with axes `t, c, z, y, x` (or `z, y, x`), its translation the corner of the picture.
+
+Every plane in `planes` then names that one file, with `c`, `z` and `t` saying where inside it. A driver that keeps the microscope software's own files instead returns those as they are; the ZMART interface turns them into positions itself. The mock driver writes both formats.
+
 <br>
 
 #### `get_procedures`

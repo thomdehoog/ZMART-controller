@@ -2,8 +2,7 @@
 
 The layout under the output folder is::
 
-    <output_root>/<position_label>.ome.tif          one plane
-    <output_root>/<position_label>_z000.ome.tif     a z-stack, one file per plane
+    <output_root>/<position_label>.ome.tif          OME-TIFF, every plane in one file
     <output_root>/<position_label>.ome.zarr/        OME-Zarr, any number of planes
     <output_root>/<position_label>.commands.json    the command log
 
@@ -113,26 +112,21 @@ def save_acquisition(
         files.append(str(target))
         held_in = [str(target)] * len(planes)
     else:
-        many = len(planes) > 1
-        suffixes = [".commands.json"] + (
-            [f"_z{i:03d}.ome.tif" for i in range(len(planes))] if many else [".ome.tif"]
+        stem = _free(folder, label, [".ome.tif", ".commands.json"])
+        target = folder / f"{stem}.ome.tif"
+        description = ome_xml(
+            name=stem,
+            width=width,
+            height=height,
+            planes=len(planes),
+            pixel_size_um=pixel_size,
+            z_step_um=float(header["z_step_um"]),
+            position_um=corner,
+            extra={key: str(value) for key, value in extra.items()},
         )
-        stem = _free(folder, label, suffixes)
-        for index, plane in enumerate(planes):
-            name = f"{stem}_z{index:03d}" if many else stem
-            plane_position = {**corner, "z": corner["z"] + index * float(header["z_step_um"])}
-            description = ome_xml(
-                name=name,
-                width=width,
-                height=height,
-                pixel_size_um=pixel_size,
-                position_um=plane_position,
-                extra={key: str(value) for key, value in extra.items()},
-            )
-            target = folder / f"{name}.ome.tif"
-            write_ome_tiff(target, plane, width, height, description)
-            files.append(str(target))
-        held_in = list(files)
+        write_ome_tiff(target, planes, width, height, description)
+        files.append(str(target))
+        held_in = [str(target)] * len(planes)
     log_path = folder / f"{stem}.commands.json"
     log_path.write_text(json.dumps(ctx.log.since(log_mark), indent=2))
     # Every file saved is listed, the log too, so whoever moves or archives

@@ -303,20 +303,31 @@ class TestDataHandling:
         failed = mic.set_state({"changeable": {"z_planes": 0}})
         assert failed["success"] is False and "z_planes" in failed["content"]
 
-    def test_a_z_stack_is_one_file_per_plane(self, mic):
+    def test_a_z_stack_is_one_file_holding_every_plane(self, mic):
         answer = mic.acquire(position_label="cell 1", acquisition_settings=_full_stack(mic, 3))[
             "content"
         ]
         names = [Path(f).name for f in answer["files"]]
-        assert names == [
-            "cell_1_z000.ome.tif",
-            "cell_1_z001.ome.tif",
-            "cell_1_z002.ome.tif",
-            "cell_1.commands.json",
-        ]
-        description = _tiff_description(Path(answer["files"][1]))
+        assert names == ["cell_1.ome.tif", "cell_1.commands.json"]
+        description = _tiff_description(Path(answer["files"][0]))
         assert 'PhysicalSizeX="1.0"' in description
+        assert 'SizeZ="3"' in description
         assert 'PositionZ="1.0"' in description
+        # ZMART's note: the stage position written is the picture's corner.
+        assert 'Namespace="zmart/position"' in description
+        assert '<M K="position_origin">corner</M>' in description
+
+    def test_the_stack_opens_as_one_ome_tiff_in_other_programs(self, mic):
+        tifffile = pytest.importorskip("tifffile")
+        answer = mic.acquire(position_label="cell 3", acquisition_settings=_full_stack(mic, 3))[
+            "content"
+        ]
+        with tifffile.TiffFile(answer["files"][0]) as tif:
+            assert tif.is_ome
+            series = tif.series[0]
+            assert series.axes == "ZYX" and series.shape[0] == 3
+            stack = series.asarray()
+        assert len({stack[z].tobytes() for z in range(3)}) == 3, "every plane is its own"
 
     def test_each_plane_says_which_file_channel_depth_and_place_it_is(self, mic):
         mic.set_xyz(100, 50, 3)
@@ -326,7 +337,7 @@ class TestDataHandling:
         )["content"]
         assert answer["planes"] == [
             {
-                "path": answer["files"][index],
+                "path": answer["files"][0],
                 "c": 0,
                 "z": index,
                 "t": 0,
